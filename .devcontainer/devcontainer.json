@@ -7,7 +7,7 @@
       "nvmInstall": true
     }
   },
-  "postCreateCommand": "corepack prepare pnpm@10.16.1 --activate && pnpm install",
+  "postCreateCommand": "corepack prepare pnpm@10.20.0 --activate && pnpm install",
   "postStartCommand": "pnpm dev -- --host 0.0.0.0 --port 5173 &",
   "customizations": {
     "vscode": {
@@ -27,7 +27,5 @@
   "remoteEnv": {
     "PNPM_HOME": "/usr/local/share/pnpm"
   },
-  "mounts": [
-    "source=pnpm-store,target=/usr/local/share/pnpm,type=volume"
-  ]
+  "mounts": ["source=pnpm-store,target=/usr/local/share/pnpm,type=volume"]
 }
