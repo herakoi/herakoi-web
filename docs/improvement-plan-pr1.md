@@ -4,9 +4,9 @@
 We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome, PostCSS) without altering the current user experience. Our north star for today is to stand up the tooling scaffolding, keep the existing HTML demo verifiable, and equip the team with a reproducible developer environment via Dev Containers and Codespaces.
 
 ## Baseline & Risk Controls
-- Capture the current `herakoi_web_three_channels/html` behavior with screenshots and a short screen recording so we can regression-check MediaPipe interactions after the migration.
-- Archive the existing static bundle inside `public/legacy-html` so we can serve it side-by-side while the new Vite build matures.
-- Add a lightweight smoke checklist covering image upload, webcam feed, and slider updates; we will use it before and after each major change.
+- Relocate the legacy entry points into `legacy_html/` while keeping their internal layouts intact (e.g., `legacy_html/herakoi_web_three_channels/html`, `legacy_html/herakoi_web_test/herakoi.html`, `legacy_html/test_imgs`, `legacy_html/README.md`). This lets us serve them via Vite or Live Preview without losing historical structure.
+- Define a manual smoke checklist covering image upload, webcam feed, and slider updates; we will run it before and after each major change.
+- Capture written notes on any regressions we spot during manual testing so we can translate them into automated coverage later.
 
 ## Tooling Workstream
 1. **TypeScript adoption**  
@@ -26,15 +26,23 @@ We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome,
    - Add Vitest for unit coverage of helper utilities as they emerge.  
    - Keep Playwright on the radar for later regression testing once the TypeScript refactor settles.
 
+## Migration Phases
+1. **Tooling bootstrap**  
+   - Stand up Vite + TypeScript with pnpm and PostCSS, serving a simple “Hello, Herakoi” page as the default entry (`index.html`) to validate the pipeline.  
+   - Wire Biome lint/format scripts and document the new commands.
+2. **Legacy test port**  
+   - Configure a second Vite HTML entry (e.g., `test.html`) that mirrors `legacy_html/herakoi_web_test/herakoi.html`, reusing assets directly from the legacy directory.  
+   - Validate manual smoke checks against this entry before proceeding.
+3. **Three-channel app port**  
+   - Add a third Vite entry (e.g., `three-channels.html`) that reproduces `legacy_html/herakoi_web_three_channels/html/index.html` with identical behavior.  
+   - Retire direct edits to the legacy folder once parity is confirmed, leaving it for regression comparison only.
+
 ## Environment & Dev Experience
-- Author a `.devcontainer/devcontainer.json` that installs Node LTS, Biome, and Docker CLI tooling; mount the repo and configure post-create commands to run `pnpm install`.  
+- Author a `.devcontainer/devcontainer.json` that installs Node.js 22 LTS, Biome, and Docker CLI tooling; mount the repo and configure post-create commands to run `pnpm install`.  
 - Mirror the configuration in a `devcontainer.json` at the repo root for Codespaces users.  
 - Provide workspace recommendations (VS Code extensions, Biome formatter integration) in the Dev Container features.
 
-## Execution Order
-1. Baseline capture and legacy archive.  
-2. Initialize Vite + TypeScript scaffold.  
-3. Layer in PostCSS configuration.  
-4. Introduce Biome and align scripts.  
-5. Finalize Dev Container + Codespaces setup.  
-6. Run regression checklist and update documentation before opening the modernization pull request.
+## Delivery Strategy
+- Ship the modernization as a single, well-structured pull request so reviewers can follow the end-to-end toolchain upgrade in one place.
+- Keep commit boundaries tight (e.g., legacy verification doc, tooling scaffold, devcontainer) to simplify review and bisecting if issues appear.
+- Close with updated documentation and manual test notes before requesting approval.
