@@ -123,9 +123,13 @@ maxVolSlider.addEventListener("input", (event) => {
 });
 
 const hands = new Hands({
-  locateFile: (file) =>
-    mediaPipeAssets.get(file as HandsFileKey) ??
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+  locateFile: (file) => {
+    const localUrl = mediaPipeAssets.get(file as HandsFileKey);
+    if (!localUrl) {
+      throw new Error(`Missing MediaPipe asset mapping for "${file}".`);
+    }
+    return localUrl;
+  },
 });
 
 hands.setOptions({
