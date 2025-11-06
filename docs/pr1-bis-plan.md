@@ -7,7 +7,7 @@
 
 ## Proposed Module Map
 1. `src/vision/hands.ts`  
-   - Responsibility: provide a focused TypeScript class that wraps the MediaPipe `Hands` instance, handles asset resolution, and exposes a clean API (`initialize`, `setOptions`, `onResults`, `processFrame`).  
+   - Responsibility: provide a focused TypeScript class that wraps the MediaPipe `Hands` instance, handles asset resolution, and exposes a clean API (`initialize`, `setOptions`, `onResults`, `processFrame`). We will treat it as a service object so the controller can manage its lifecycle without owning MediaPipe details.  
    - Tests: ensure bundled assets resolve locally, configuration errors throw meaningful messages, and MediaPipe APIs are invoked as expected (using Vitest spies/mocks).  
    - Collaborators: `Hands`, MediaPipe asset URLs, the camera feed.
 
@@ -34,6 +34,7 @@
 2. Pause for review before writing the implementation.  
 3. Implement the module, adjust `oneChannel/controller.ts` to use it, and document within the module (e.g., block comments or JSDoc) which legacy lines in `legacy_html/herakoi_web_test/herakoi.html` inspired or correspond to each major section.  
 4. Repeat until all logic migrates out of the legacy `main.ts`.
+5. When files import code outside their immediate directory, rely on the `#src/*` package import alias instead of chained `../` segments; keep short relative imports only for siblings or deeper paths within the same folder so that colocated tests remain readable.
 
 ## Open Questions
 - Do we want the controller to expose a `bootstrapOneChannelApp()` function (exported for future reuse/tests) or keep the initialization side-effect-only?  

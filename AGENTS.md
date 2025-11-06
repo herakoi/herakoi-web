@@ -1,27 +1,19 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-We anchor active development in `herakoi_web_three_channels/html`, which serves the production UI and bundles the MediaPipe-based interaction logic. The sibling `dev.docker-compose.yml` and `prod.docker-compose.yml` files orchestrate our NGINX layers for preview and release builds. Legacy proofs of concept live in `herakoi_web_test`, while shared static assets (favicons, logos) sit under `public/assets`. Use `test_imgs` when we need ready-made samples for demoing the image upload path, and keep `src/` available for future TypeScript or component work.
+Active development lives in `src/`, which Vite serves as our modern entry point. Legacy experiences now sit under `legacy_html/` (e.g., `legacy_html/herakoi_web_test/herakoi.html` and `legacy_html/herakoi_web_three_channels/html/index.html`) so we can compare behaviours without mixing concerns. Shared assets remain in `public/`, while documentation and decisions live in `docs/`—see `docs/pr1-bis-plan.md` for the phased refactor and `docs/adrs/` for architectural records. Keep every legacy subfolder intact when we relocate files; future tests still rely on that structure. Use the `#src/*` package import map whenever an import crosses directories, and reserve short relative paths for siblings or deeper descendants.
 
 ## Build, Test, and Development Commands
-We lean on Docker Compose so everyone gets the same NGINX + static build. Spin up the hot-reloading preview with:
-```bash
-docker-compose -f herakoi_web_three_channels/dev.docker-compose.yml up --build
-```
-It mounts the HTML bundle locally, so edits refresh without rebuilding the container. For a release-like image, run:
-```bash
-docker-compose -f herakoi_web_three_channels/prod.docker-compose.yml up --build
-```
-This copies the compiled site into `/usr/share/nginx/html`, matching how our production host serves files. Tear down either stack with the matching `down` command.
+Install dependencies with `pnpm install` (Node ≥ 22). Run the local dev server using `pnpm dev`, which the devcontainer also launches via `postAttachCommand`; pass `--host 0.0.0.0` when Codespaces needs an external URL. Produce optimized assets with `pnpm build`, preview them through `pnpm preview`, and lint plus type-check with `pnpm lint` (this wraps Biome and both TypeScript projects). Execute unit tests using `pnpm test`. The historical Docker Compose stacks still live under `legacy_html` for verification runs—spin them up only when you need parity checks.
 
 ## Coding Style & Naming Conventions
-We favor plain HTML, CSS, and vanilla JavaScript, indented with two spaces to mirror the existing markup. When we introduce new assets, keep filenames lowercase with hyphens (`hand-tracking.js`) so Docker and NGINX stay case-safe. Inline scripts should group DOM queries, MediaPipe setup, and rendering helpers in that order, each separated by narrative comments that explain why the block exists, what it does, and how teammates should expect it to behave.
+We write TypeScript and modular CSS, indented with two spaces. Biome (`biome.jsonc`) enforces formatting, double quotes for JavaScript, and import organization; VS Code is preconfigured to apply those rules and organize imports on save. Stick to lowercase hyphenated filenames for new assets. When documenting code, follow the narrative commenting style (why → what → how) and cite the matching legacy lines in `legacy_html` so teammates can trace the migration path.
 
 ## Testing Guidelines
-No automated harness ships yet, so we validate changes through manual runs. After starting the dev stack, confirm webcam capture, image upload rendering, and frequency slider updates in the browser console. When we touch asset loading, retest using the samples in `test_imgs` to ensure cross-origin handling stays intact. If a change alters MediaPipe usage, document follow-up checks so the next person can reproduce them.
+Follow the red → review → green flow: land Vitest specs first (colocated `*.test.ts` files with descriptive comments), pause for review, then implement. `pnpm lint` already runs Biome plus TypeScript type checking; keep both green before you request feedback. Manual verification still matters—after refactors, compare the Vite build against the legacy HTML to ensure MediaPipe hands rendering, audio sonification, and UI controls behave the same. Capture any gaps or risky scenarios in the plan or ADRs.
 
 ## Commit & Pull Request Guidelines
-Our short Git history uses imperative subjects (“Add dev docker compose”), so keep that voice and front-load the area (`ui:`, `docker:`) where it clarifies scope. Pull requests should include: a concise summary, a note on manual verification (which docker command, which browser), and screenshots or GIFs when UI behavior shifts. Link issues when relevant and call out any TODOs we intentionally defer.
+Commit messages stay short, imperative, and scoped (`tooling: introduce #src import alias`). Each PR should summarize the change, list `pnpm` commands you ran, and include screenshots or notes when UI behaviour differs. Call out TODOs or follow-ups openly and link to the relevant ADR or plan section so reviewers can trace context.
 
 ## Agent-Specific Instructions
-When adding scripts or configs, start with a brief overview comment so future agents know the mission. Before substantial logic blocks, narrate the why/what/how, highlight expected side effects, and flag risks we still need to manage. This keeps our documentation and automation aligned and makes every handoff smoother for the whole team.
+Work on branch `repository-tooling` unless told otherwise. Preserve the legacy build pipeline while layering modern tooling; never delete historic assets without archival confirmation. Before substantial edits, update the plan or ADRs so reviewers can confirm intent. Keep comments welcoming (“we”, “our”) and highlight risks alongside mitigations. When unsure, ask—our goal is shared clarity as we modernize the stack.
