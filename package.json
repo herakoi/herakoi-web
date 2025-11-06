@@ -11,6 +11,9 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.node.json"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.3.4",
     "@types/node": "^24.10.0",
