@@ -1,0 +1,53 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #111827, #020617 55%);
+  color: #e5e7eb;
+}
+
+.hero {
+  max-width: 640px;
+  padding: 2.5rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.4);
+}
+
+.hero > h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.hero > p {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.hero__list {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.5rem;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hero__list > li {
+  list-style: square;
+  transition: color 150ms ease-in-out;
+}
+
+.hero__list > li:hover {
+  color: #38bdf8;
+}

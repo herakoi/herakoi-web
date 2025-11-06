@@ -1,0 +1,5 @@
+# Ignore pure-move commits so blame points to original authors.
+# 1b60e250f51ec65b62e85b177ebcb1d740bddfe7 lifts the historical HTML
+# artifacts into legacy_html/ without touching content; skipping it keeps
+# the blame history anchored to the original UI work.
+1b60e250f51ec65b62e85b177ebcb1d740bddfe7
