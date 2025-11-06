@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "imports": {
-    "#src/*": "./src/*"
+    "#src/*": "./src/*.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.4",

@@ -2,44 +2,8 @@ import "./style.css";
 
 import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
-import {
-  HAND_CONNECTIONS,
-  Hands,
-  type NormalizedLandmarkList,
-  type Results,
-} from "@mediapipe/hands";
-import handFullModelUrl from "@mediapipe/hands/hand_landmark_full.tflite?url";
-import handLiteModelUrl from "@mediapipe/hands/hand_landmark_lite.tflite?url";
-import handsGraphUrl from "@mediapipe/hands/hands.binarypb?url";
-import handsAssetsDataUrl from "@mediapipe/hands/hands_solution_packed_assets.data?url";
-import handsAssetsLoaderUrl from "@mediapipe/hands/hands_solution_packed_assets_loader.js?url";
-import handsSimdScriptUrl from "@mediapipe/hands/hands_solution_simd_wasm_bin.js?url";
-import handsSimdWasmUrl from "@mediapipe/hands/hands_solution_simd_wasm_bin.wasm?url";
-import handsWasmScriptUrl from "@mediapipe/hands/hands_solution_wasm_bin.js?url";
-import handsWasmUrl from "@mediapipe/hands/hands_solution_wasm_bin.wasm?url";
-
-type HandsFileKey =
-  | "hands_solution_packed_assets_loader.js"
-  | "hands_solution_packed_assets.data"
-  | "hands_solution_simd_wasm_bin.js"
-  | "hands_solution_simd_wasm_bin.wasm"
-  | "hands_solution_wasm_bin.js"
-  | "hands_solution_wasm_bin.wasm"
-  | "hand_landmark_full.tflite"
-  | "hand_landmark_lite.tflite"
-  | "hands.binarypb";
-
-const mediaPipeAssets = new Map<HandsFileKey, string>([
-  ["hands_solution_packed_assets_loader.js", handsAssetsLoaderUrl],
-  ["hands_solution_packed_assets.data", handsAssetsDataUrl],
-  ["hands_solution_simd_wasm_bin.js", handsSimdScriptUrl],
-  ["hands_solution_simd_wasm_bin.wasm", handsSimdWasmUrl],
-  ["hands_solution_wasm_bin.js", handsWasmScriptUrl],
-  ["hands_solution_wasm_bin.wasm", handsWasmUrl],
-  ["hand_landmark_full.tflite", handFullModelUrl],
-  ["hand_landmark_lite.tflite", handLiteModelUrl],
-  ["hands.binarypb", handsGraphUrl],
-]);
+import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
+import { HandsDetector } from "#src/vision/hands";
 
 const uploadInput = document.getElementById("upload") as HTMLInputElement | null;
 const videoElement = document.getElementById("input_video") as HTMLVideoElement | null;
@@ -122,22 +86,18 @@ maxVolSlider.addEventListener("input", (event) => {
   maxVolValue.textContent = value.toFixed(2);
 });
 
-const hands = new Hands({
-  locateFile: (file) => {
-    const localUrl = mediaPipeAssets.get(file as HandsFileKey);
-    if (!localUrl) {
-      throw new Error(`Missing MediaPipe asset mapping for "${file}".`);
-    }
-    return localUrl;
-  },
-});
-
-hands.setOptions({
+/*
+ * We reuse HandsDetector so our MediaPipe asset wiring stays centralized with src/vision/hands.ts.
+ * It hands back the underlying Hands instance, so this file keeps the same callback flow the legacy HTML used.
+ * That shared helper also ensures any future asset or option tweaks land everywhere at once.
+ */
+const handsDetector = new HandsDetector({
   maxNumHands: 2,
   modelComplexity: 1,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.7,
 });
+const hands = handsDetector.getInstance();
 
 const audioCtxCtor =
   window.AudioContext ||
