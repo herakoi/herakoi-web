@@ -1,0 +1,68 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const handsInstanceRef: {
+  current: null | { onResults: ReturnType<typeof vi.fn>; setOptions: ReturnType<typeof vi.fn> };
+} = {
+  current: null,
+};
+
+const handsConstructor = vi.fn(function HandsMock() {
+  if (!handsInstanceRef.current) {
+    handsInstanceRef.current = {
+      onResults: vi.fn(),
+      setOptions: vi.fn(),
+    };
+  }
+  return handsInstanceRef.current;
+});
+
+vi.mock("@mediapipe/hands", () => ({
+  Hands: handsConstructor,
+}));
+
+beforeEach(() => {
+  handsConstructor.mockClear();
+  handsInstanceRef.current = {
+    onResults: vi.fn(),
+    setOptions: vi.fn(),
+  };
+});
+
+/**
+ * We are teasing apart the MediaPipe integration that originally lived inline in
+ * legacy_html/herakoi_web_test/herakoi.html:96. In that page, the `Hands`
+ * constructor receives a `locateFile` callback that always hits the CDN. Our
+ * detector wrapper should instead resolve local assets so we stay functional
+ * when the device is offline.
+ */
+describe("HandsDetector asset resolution", () => {
+  it("points MediaPipe Hands at locally bundled assets by default", async () => {
+    const { HandsDetector } = await import("./hands");
+
+    const detector = new HandsDetector();
+    expect(detector).toBeDefined();
+
+    // The constructor should eagerly instantiate Hands with a locateFile helper.
+    expect(handsConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locateFile: expect.any(Function),
+      }),
+    );
+
+    type HandsConstructorOptions = {
+      locateFile: (file: string) => string;
+    };
+
+    const firstCall = handsConstructor.mock.calls[0] as unknown as
+      | [HandsConstructorOptions]
+      | undefined;
+    if (!firstCall) {
+      throw new Error("Expected Hands to be constructed exactly once.");
+    }
+    const [{ locateFile }] = firstCall;
+    const expectedUrlImport = await import("@mediapipe/hands/hands.binarypb?url");
+    const expectedUrl = expectedUrlImport.default;
+    const assetPath = locateFile("hands.binarypb");
+    expect(assetPath).toBe(expectedUrl);
+  });
+});

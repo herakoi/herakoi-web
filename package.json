@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "biome check . && pnpm run typecheck",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.node.json"
+    "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.node.json",
+    "test": "vitest run"
   },
   "imports": {
     "#src/*": "./src/*"
