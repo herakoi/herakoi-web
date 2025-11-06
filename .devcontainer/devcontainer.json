@@ -1,0 +1,35 @@
+{
+  "name": "herakoi-web",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nvmInstall": true
+    },
+    "ghcr.io/devcontainers/features/pnpm:2": {
+      "version": "latest"
+    }
+  },
+  "postCreateCommand": "pnpm install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.formatOnSave": true,
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true
+      },
+      "extensions": [
+        "biomejs.biome",
+        "editorconfig.editorconfig",
+        "ms-vscode.vscode-typescript-next"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "PNPM_HOME": "/usr/local/share/pnpm"
+  },
+  "mounts": [
+    "source=pnpm-store,target=/usr/local/share/pnpm,type=volume"
+  ]
+}
