@@ -2,7 +2,7 @@ import type { Options } from "@mediapipe/hands";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const handsInstanceRef: {
-  current: null | { onResults: ReturnType<typeof vi.fn>; setOptions: ReturnType<typeof vi.fn> };
+  current: null | { setOptions: ReturnType<typeof vi.fn> };
 } = {
   current: null,
 };
@@ -10,7 +10,6 @@ const handsInstanceRef: {
 const handsConstructor = vi.fn(function HandsMock() {
   if (!handsInstanceRef.current) {
     handsInstanceRef.current = {
-      onResults: vi.fn(),
       setOptions: vi.fn(),
     };
   }
@@ -24,7 +23,6 @@ vi.mock("@mediapipe/hands", () => ({
 beforeEach(() => {
   handsConstructor.mockClear();
   handsInstanceRef.current = {
-    onResults: vi.fn(),
     setOptions: vi.fn(),
   };
 });
