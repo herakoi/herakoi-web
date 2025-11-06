@@ -32,12 +32,19 @@ const mediaPipeAssets = new Map<HandsFileKey, string>([
   ["hands.binarypb", handsGraphUrl],
 ]);
 
+type HandsOptions = Parameters<Hands["setOptions"]>[0];
+
 export type HandsDetectorConfig = {
   /**
    * Additional constructor options forwarded to MediaPipe. We keep this separate so callers
    * cannot override our asset resolver by accident.
    */
   handsConfig?: Omit<HandsConfig, "locateFile">;
+  /**
+   * Optional options passed immediately to `Hands#setOptions` after instantiation so callers
+   * can align with legacy defaults.
+   */
+  handsOptions?: HandsOptions;
 };
 
 /**
@@ -63,6 +70,10 @@ export class HandsDetector {
     };
 
     this.hands = new Hands(handsConfig);
+
+    if (options?.handsOptions) {
+      this.hands.setOptions(options.handsOptions);
+    }
   }
 
   /**

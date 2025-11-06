@@ -66,3 +66,20 @@ describe("HandsDetector asset resolution", () => {
     expect(assetPath).toBe(expectedUrl);
   });
 });
+
+describe("HandsDetector configuration passthrough", () => {
+  it("applies caller-provided MediaPipe options during construction", async () => {
+    const defaultSettings = {
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7,
+    } as const;
+    const { HandsDetector } = await import("./hands");
+
+    const detector = new HandsDetector({ handsOptions: defaultSettings });
+    expect(detector).toBeDefined();
+
+    expect(handsInstanceRef.current?.setOptions).toHaveBeenCalledWith(defaultSettings);
+  });
+});
