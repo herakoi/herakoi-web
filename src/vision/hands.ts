@@ -1,4 +1,4 @@
-import { Hands, type HandsConfig } from "@mediapipe/hands";
+import { Hands, type HandsConfig, type Options } from "@mediapipe/hands";
 import handFullModelUrl from "@mediapipe/hands/hand_landmark_full.tflite?url";
 import handLiteModelUrl from "@mediapipe/hands/hand_landmark_lite.tflite?url";
 import handsGraphUrl from "@mediapipe/hands/hands.binarypb?url";
@@ -32,21 +32,6 @@ const mediaPipeAssets = new Map<HandsFileKey, string>([
   ["hands.binarypb", handsGraphUrl],
 ]);
 
-type HandsOptions = Parameters<Hands["setOptions"]>[0];
-
-export type HandsDetectorConfig = {
-  /**
-   * Additional constructor options forwarded to MediaPipe. We keep this separate so callers
-   * cannot override our asset resolver by accident.
-   */
-  handsConfig?: Omit<HandsConfig, "locateFile">;
-  /**
-   * Optional options passed immediately to `Hands#setOptions` after instantiation so callers
-   * can align with legacy defaults.
-   */
-  handsOptions?: HandsOptions;
-};
-
 /**
  * Wraps the MediaPipe Hands solution so we control asset resolution.
  * Mirrors legacy_html/herakoi_web_test/herakoi.html:96, swapping the CDN for bundled assets
@@ -55,7 +40,7 @@ export type HandsDetectorConfig = {
 export class HandsDetector {
   private readonly hands: Hands;
 
-  constructor(options?: HandsDetectorConfig) {
+  constructor(options?: Options) {
     const locateFile: NonNullable<HandsConfig["locateFile"]> = (fileName) => {
       const asset = mediaPipeAssets.get(fileName as HandsFileKey);
       if (!asset) {
@@ -65,14 +50,13 @@ export class HandsDetector {
     };
 
     const handsConfig: HandsConfig = {
-      ...options?.handsConfig,
       locateFile,
     };
 
     this.hands = new Hands(handsConfig);
 
-    if (options?.handsOptions) {
-      this.hands.setOptions(options.handsOptions);
+    if (options && Object.keys(options).length > 0) {
+      this.hands.setOptions(options);
     }
   }
 

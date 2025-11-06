@@ -1,3 +1,4 @@
+import type { Options } from "@mediapipe/hands";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const handsInstanceRef: {
@@ -41,6 +42,7 @@ describe("HandsDetector asset resolution", () => {
 
     const detector = new HandsDetector();
     expect(detector).toBeDefined();
+    expect(handsInstanceRef.current?.setOptions).not.toHaveBeenCalled();
 
     // The constructor should eagerly instantiate Hands with a locateFile helper.
     expect(handsConstructor).toHaveBeenCalledWith(
@@ -69,17 +71,17 @@ describe("HandsDetector asset resolution", () => {
 
 describe("HandsDetector configuration passthrough", () => {
   it("applies caller-provided MediaPipe options during construction", async () => {
-    const defaultSettings = {
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7,
-    } as const;
+    const overrides: Partial<Options> = {
+      maxNumHands: 1,
+      minDetectionConfidence: 0.9,
+    };
     const { HandsDetector } = await import("./hands");
 
-    const detector = new HandsDetector({ handsOptions: defaultSettings });
+    const detector = new HandsDetector(overrides);
     expect(detector).toBeDefined();
 
-    expect(handsInstanceRef.current?.setOptions).toHaveBeenCalledWith(defaultSettings);
+    expect(handsInstanceRef.current?.setOptions).toHaveBeenCalledWith(
+      expect.objectContaining(overrides),
+    );
   });
 });
