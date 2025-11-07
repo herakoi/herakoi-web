@@ -6,8 +6,6 @@ We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome,
 ## Baseline & Risk Controls
 - Relocate the legacy entry points into `legacy_html/` while keeping their internal layouts intact (e.g., `legacy_html/herakoi_web_three_channels/html`, `legacy_html/herakoi_web_test/herakoi.html`, `legacy_html/test_imgs`, `legacy_html/README.md`). This lets us reference behaviours without editing the historic files.
 - Treat everything inside `legacy_html/` as read-only reference material. New UI work will land inside modular TypeScript views under `src/`, even when we are chasing feature parity. We compare outputs but never copy/paste entire legacy blocks forward.
-- Define a manual smoke checklist covering image upload, webcam feed, and slider updates; we will run it before and after each major change.
-- Capture written notes on any regressions we spot during manual testing so we can translate them into automated coverage later.
 
 ## Tooling Workstream
 1. **TypeScript adoption**  
@@ -32,11 +30,11 @@ We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome,
    - Stand up Vite + TypeScript with pnpm and PostCSS, serving a simple “Hello, Herakoi” page as the default entry (`index.html`) to validate the pipeline.  
    - Wire Biome lint/format scripts and document the new commands.
 2. **One-channel parity build**  
-   - Configure a second Vite HTML entry (e.g., `one-channel.html`) that reimplements `legacy_html/herakoi_web_test/herakoi.html` with fresh modules (vision, audio, UI) while importing assets from the legacy directory as needed.  
-   - Run the manual smoke checklist against both the new modular build and the legacy page to ensure behaviour stays aligned.
-3. **Multi-channel modularization**  
-   - Add a third Vite entry (e.g., `three-channels.html`) composed of the new modules, matching the behaviour of `legacy_html/herakoi_web_three_channels/html/index.html` without transplanting markup wholesale.  
-   - Keep the legacy folder untouched for regression comparison; document any divergence so future modular components remain the single source of truth.
+   - Copy the markup from `legacy_html/herakoi_web_test/herakoi.html` into a new Vite entry (`one-channel.html`), but split the inline `<script>` and `<style>` into TypeScript and CSS modules under `src/oneChannel/`. This keeps behaviour identical while letting the tooling own bundling.  
+   - Run the manual smoke checklist against both the Vite entry and the raw legacy file to ensure behaviour stays aligned.
+3. **Three-channel parity build**  
+   - Repeat the approach for `legacy_html/herakoi_web_three_channels/html/index.html`: duplicate the HTML shell for Vite while extracting JS/CSS into dedicated modules (e.g., `src/threeChannels/`).  
+   - Leave any deeper refactors (shared components, state stores) for later once both parity entries compile cleanly through Vite.
 
 ## Environment & Dev Experience
 - Author a `.devcontainer/devcontainer.json` that installs Node.js 22 LTS, Biome, and Docker CLI tooling; mount the repo and configure post-create commands to run `pnpm install`.  
@@ -44,20 +42,3 @@ We want to introduce a maintainable frontend toolchain (TypeScript, Vite, Biome,
 - Provide workspace recommendations (VS Code extensions, Biome formatter integration) in the Dev Container features.
 - Draft a top-level `README.md` that explains the modern toolchain, how legacy references fit in, and where to find the GitHub Pages preview once it exists.
 - Reflect any new workflow expectations inside `AGENTS.md` so every agent sees the requirement to update this plan before acting.
-
-## Publishing Progress
-- Add a GitHub Pages workflow that runs `pnpm build`, uploads the `dist/` artifact, and deploys it whenever `main` updates or the workflow is manually dispatched. This keeps stakeholders informed without cloning the repo.  
-- Once the first deployment lands, document the public URL in `README.md` so designers and testers know where to find the latest sandbox.
-
-## Delivery Strategy
-- Ship the modernization as a single, well-structured pull request so reviewers can follow the end-to-end toolchain upgrade in one place.
-- Keep commit boundaries tight (e.g., legacy verification doc, tooling scaffold, devcontainer) to simplify review and bisecting if issues appear.
-- Close with updated documentation and manual test notes before requesting approval.
-- Treat a green GitHub Pages deployment as part of the review checklist; it proves the build still works in CI and the published sandbox is fresh.
-- Require the plan in `docs/improvement-plan-pr1.md` to stay current throughout the workstream—new tasks land there first, and engineers wait for confirmation before acting on significant additions.
-- Reflect any new workflow expectations inside `AGENTS.md` so every agent sees the requirement to update this plan before acting.
-
-## Plan Completion Checklist
-- Flesh out the manual smoke checklist (steps, expected results, owners) so parity reviews stay repeatable.  
-- Add the timeline for multi-channel modularization and list dependencies (e.g., audio refactors, MediaPipe experiments).  
-- Capture the exact GitHub Pages rollout owner plus fallback reviewer, then link to the workflow once implemented.
