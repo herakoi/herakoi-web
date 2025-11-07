@@ -10,7 +10,9 @@ type NullableElement<T> = T | null;
 
 const uploadInput = document.getElementById("upload") as NullableElement<HTMLInputElement>;
 const videoElement = document.getElementById("input_video") as NullableElement<HTMLVideoElement>;
-const canvasElement = document.getElementById("output_canvas") as NullableElement<HTMLCanvasElement>;
+const canvasElement = document.getElementById(
+  "output_canvas",
+) as NullableElement<HTMLCanvasElement>;
 const imgCanvas = document.getElementById("imageCanvas") as NullableElement<HTMLCanvasElement>;
 const overlayCanvas = document.getElementById("imageOverlay") as NullableElement<HTMLCanvasElement>;
 const inputImage = document.getElementById("inputImage") as NullableElement<HTMLImageElement>;
@@ -102,18 +104,36 @@ function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
   return [h, s, v];
 }
 
-function hueToFrequency(hue: number, minInput: number, maxInput: number, minOutput: number, maxOutput: number) {
+function hueToFrequency(
+  hue: number,
+  minInput: number,
+  maxInput: number,
+  minOutput: number,
+  maxOutput: number,
+) {
   const normalized = (hue - minInput) / (maxInput - minInput);
   return minOutput + (maxOutput - minOutput) * normalized;
 }
 
-function brightnessToVolume(value: number, minInput: number, maxInput: number, minOutput: number, maxOutput: number) {
+function brightnessToVolume(
+  value: number,
+  minInput: number,
+  maxInput: number,
+  minOutput: number,
+  maxOutput: number,
+) {
   const normalized = (value - minInput) / (maxInput - minInput);
   const logScale = Math.log10(1 + 9 * normalized);
   return minOutput + (maxOutput - minOutput) * logScale;
 }
 
-function saturationToPan(saturation: number, minInput: number, maxInput: number, minOutput: number, maxOutput: number) {
+function saturationToPan(
+  saturation: number,
+  minInput: number,
+  maxInput: number,
+  minOutput: number,
+  maxOutput: number,
+) {
   const normalized = (saturation - minInput) / (maxInput - minInput);
   return minOutput + (maxOutput - minOutput) * normalized;
 }
@@ -187,7 +207,10 @@ hands.onResults((results: Results) => {
         z: landmark.z,
       }));
 
-      drawConnectors(overlayCtx, mirroredHandLms, HAND_CONNECTIONS, { color: "#00FF00", lineWidth: 2 });
+      drawConnectors(overlayCtx, mirroredHandLms, HAND_CONNECTIONS, {
+        color: "#00FF00",
+        lineWidth: 2,
+      });
       drawLandmarks(overlayCtx, mirroredHandLms, { color: "#FF0000", lineWidth: 1 });
 
       const indexTip = mirroredHandLms[8];
@@ -291,6 +314,10 @@ function setupCanvasSizes() {
   const height = 480;
 
   [canvasElement, imgCanvas, overlayCanvas].forEach((canvas) => {
+    if (!canvas) {
+      return;
+    }
+
     canvas.width = width;
     canvas.height = height;
   });

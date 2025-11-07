@@ -1,16 +1,17 @@
 import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
+import type { Plugin, ResolvedConfig } from "vite";
 import { defineConfig } from "vite";
 
 const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = repoName ? `/${repoName}/` : "/";
 
-function copyLegacyHtmlPlugin() {
+function copyLegacyHtmlPlugin(): Plugin {
   let outDir = "dist";
   return {
     name: "copy-legacy-html",
-    apply: "build",
-    configResolved(config) {
+    apply: "build" as const,
+    configResolved(config: ResolvedConfig) {
       outDir = config.build.outDir;
     },
     closeBundle() {
