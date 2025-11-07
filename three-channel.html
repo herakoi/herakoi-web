@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Herakoi Web App</title>
+    <link rel="icon" type="image/x-icon" href="/legacy_html/herakoi_web_three_channels/html/assets/favicon.ico" />
+    <link rel="stylesheet" href="/src/threeChannel/style.css" />
+  </head>
+  <body>
+    <header>Herakoi Web App</header>
+    <div class="content">
+      <input type="file" id="upload" accept="image/*" />
+      <div id="container">
+        <div class="panel">
+          <canvas id="imageCanvas"></canvas>
+          <canvas id="imageOverlay" style="z-index: 2"></canvas>
+          <img id="inputImage" crossorigin="anonymous" />
+          <div class="controls">
+            <label for="frequency-range">Frequency Range:</label>
+            <input type="range" id="min-freq" min="100" max="500" value="200" step="10" />
+            <span id="min-freq-value">200</span>
+            <input type="range" id="max-freq" min="500" max="2000" value="700" step="10" />
+            <span id="max-freq-value">700</span> Hz
+          </div>
+        </div>
+        <div class="panel">
+          <video id="input_video" playsinline muted autoplay></video>
+          <canvas id="output_canvas"></canvas>
+        </div>
+      </div>
+    </div>
+    <aside class="sidebar">
+      <p>Welcome to HERAKOI sonification app!</p>
+    </aside>
+    <footer>
+      <i>Brought you by Michele Ginolfi, Luca di Mascolo, Alessandro Bombini</i>
+    </footer>
+
+    <script type="module" src="/src/threeChannel/main.ts"></script>
+  </body>
+</html>

@@ -8,6 +8,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         hello: resolve(__dirname, "hello.html"),
         oneChannel: resolve(__dirname, "one-channel.html"),
+        threeChannel: resolve(__dirname, "three-channel.html"),
       },
     },
   },
