@@ -62,18 +62,22 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
       should_deploy: ${{ steps.decision.outputs.should_deploy }}
-      cache_key: ${{ steps.dist-cache.outputs.cache-primary-key }}
     steps:
-      - name: Prepare dist directory
-        run: mkdir -p dist
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare cache probe
+        run: |
+          mkdir -p .cache-probe
+          echo "probe" > .cache-probe/sentinel.txt
 
       - name: Check build-input cache signature
         id: dist-cache
         uses: actions/cache@v4
         with:
-          path: dist
-          key: |
-            ${{ runner.os }}-vite-dist-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
+          path: .cache-probe
+          key: >-
+            ${{ runner.os }}-vite-inputs-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
           lookup-only: true
 
       - name: Decide whether to deploy
