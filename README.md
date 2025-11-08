@@ -6,6 +6,8 @@ Herakoi is a **motion-sensing sonification experiment**: a webcam tracks your ha
 
 ## Contribution Guide
 
+_2025-11-08 note:_ verifying that README-only tweaks do not trigger deployments.
+
 ### Project Layout
 - `src/` – active TypeScript modules
 - `legacy_html/` – read-only originals kept for behaviour comparison. 
