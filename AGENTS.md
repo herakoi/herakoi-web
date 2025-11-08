@@ -20,6 +20,8 @@ Treat tests as layered guardrails: fast Vitest unit specs live beside their modu
 - Stick to the `type: summary` subject pattern (e.g., `build: add three-channel Vite entry`) and keep bodies focused on intent plus any issue links.
 - Add a short “Verification” note in each PR or commit message describing what you ran or observed (commands, screenshots, audio captures) so reviewers know how you tested.
 - Lefthook already runs Biome fix, Biome lint, TypeScript, and Vitest before every commit; invoke `pnpm lint`, `pnpm test`, or `pnpm build` manually only when you want extra signal between commits.
+- `git commit` (no `-m`) now launches Commitizen through our `prepare-commit-msg` hook so we co-author conventional messages together; run `pnpm commit` directly if you want the same guided prompts outside of Git.
+- When automation or headless sessions need to supply their own message (for example release bots or this CLI), set `CI=1 git commit -m "type: summary"` and the hook will skip the Commitizen wizard while still running commitlint.
 - Reference the relevant doc or ADR whenever architecture shifts, and call out how you validated parity with the legacy HTML demos when they’re touched.
 
 ## Task Planning & ADR Alignment

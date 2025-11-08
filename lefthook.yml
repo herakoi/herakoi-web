@@ -27,6 +27,18 @@ pre-commit:
       # We lean on Vitest's built-in --changed flag so this job only exercises specs tied to our current diff while manual pnpm test runs still cover the full suite.
       run: pnpm test --changed
 
+prepare-commit-msg:
+  # We hand control to Commitizen during message preparation so we co-author conventional commits through the guided wizard instead of free-typing guesswork.
+  jobs:
+    - name: commitizen
+      # We mark this job as interactive so lefthook lets the wizard borrow our terminal and collect answers instead of hanging silently.
+      # Commitizen inspects the LEFTHOOK flag, so we clear it to zero to stop the wizard from thinking the hook recursively invoked itself.
+      interactive: true
+      env:
+        LEFTHOOK: 0
+      # The helper script inspects Git’s arguments so we only launch Commitizen when no message exists yet, letting -m/-F or merge commits remain non-interactive.
+      run: ./scripts/prepare-commit-msg.sh "$1" "$2" "$3"
+
 commit-msg:
   # We lint commit messages so our history stays compatible with changelog tooling and code review stays readable at a glance.
   jobs:
