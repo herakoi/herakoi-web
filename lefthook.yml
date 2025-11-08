@@ -25,4 +25,4 @@ pre-commit:
     - name: vitest
       # We only kick off Vitest after code-health succeeds so test noise never hides lint/type failures.
       # We lean on Vitest's built-in --changed flag so this job only exercises specs tied to our current diff while manual pnpm test runs still cover the full suite.
-      run: pnpm test -- --changed
+      run: pnpm test --changed
