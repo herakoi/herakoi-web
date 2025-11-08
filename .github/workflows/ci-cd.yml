@@ -77,7 +77,7 @@ jobs:
         with:
           path: .cache-probe
           key: >-
-            ${{ runner.os }}-vite-inputs-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
+            build-inputs-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
           lookup-only: true
 
       - name: Decide whether to deploy
