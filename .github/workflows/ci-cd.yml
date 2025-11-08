@@ -1,3 +1,4 @@
+# We keep this workflow focused on two promises: quality gates always run, and we can redeploy Pages on demand when cache probes say no changes.
 name: CI + Deploy
 
 on:
@@ -5,6 +6,14 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: >-
+          When set to true we bypass the cache probe so the deploy jobs always run even if no build inputs changed.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -59,41 +68,88 @@ jobs:
 
   changes:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     outputs:
       should_deploy: ${{ steps.decision.outputs.should_deploy }}
+    env:
+      FORCE_DEPLOY_INPUT: ${{ github.event.inputs.force_deploy || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare cache probe
+      - name: Compute build input hash
+        id: compute-build-hash
         run: |
-          mkdir -p .cache-probe
-          echo "probe" > .cache-probe/sentinel.txt
+          # We lean on GitHub’s hashFiles expression so the runner computes the digest before this script executes, letting us simply record the value for later comparisons.
+          echo "value=${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}" >> "$GITHUB_OUTPUT"
 
-      - name: Check build-input cache signature
-        id: dist-cache
-        uses: actions/cache@v4
+      # We keep one cache key named build-hash so every run knows what we last deployed without relying on hash-derived cache keys that might drift from the actual Pages state.
+      - name: Restore last build hash snapshot
+        id: restore-build-hash
+        uses: actions/cache/restore@v4
         with:
-          path: .cache-probe
-          key: >-
-            build-inputs-${{ hashFiles('src/**', 'public/**', 'legacy_html/**', 'index.html', 'one-channel.html', 'three-channel.html', 'package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.node.json', 'vite.config.ts', 'postcss.config.cjs') }}
-          lookup-only: true
+          path: .build-hash
+          key: build-hash
+
+      - name: Read last build hash
+        id: read-build-hash
+        run: |
+          if [ -f .build-hash/hash.txt ]; then
+            last_hash=$(cat .build-hash/hash.txt)
+            echo "value=$last_hash" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "value=" >> "$GITHUB_OUTPUT"
 
       - name: Decide whether to deploy
         id: decision
         run: |
-          if [ "${{ steps.dist-cache.outputs.cache-hit }}" = 'true' ]; then
+          # We honor manual dispatches first so teammates can redeploy on demand without manufacturing fake file changes.
+          # When no override is requested, we compare the freshly computed hash against the ledger value so Pages only rebuilds when inputs diverge from the last deploy.
+          if [ "$FORCE_DEPLOY_INPUT" = 'true' ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          current_hash="${{ steps.compute-build-hash.outputs.value }}"
+          last_hash="${{ steps.read-build-hash.outputs.value }}"
+          # We write both hashes to the log so teammates can confirm manual comparisons or share ledger mismatches without pulling artifacts.
+          echo "Current build input hash: $current_hash"
+          if [ -n "$last_hash" ]; then
+            echo "Last deployed hash ledger: $last_hash"
+          else
+            echo "Last deployed hash ledger: <none recorded>"
+          fi
+          if [ -n "$last_hash" ] && [ "$last_hash" = "$current_hash" ]; then
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           else
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Persist latest build hash
+        run: |
+          mkdir -p .build-hash
+          echo "${{ steps.compute-build-hash.outputs.value }}" > .build-hash/hash.txt
+
+      - name: Remove existing build-hash cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache delete build-hash || true
+
+      - name: Save build hash snapshot
+        uses: actions/cache/save@v4
+        with:
+          path: .build-hash
+          key: build-hash
+
   pages_build:
+    # We let the changes job define when work is necessary so this stage only runs when should_deploy resolves true for either cache misses or manual overrides.
     needs:
       - quality
       - changes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.should_deploy == 'true'
+    if: needs.changes.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
