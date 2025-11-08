@@ -24,3 +24,11 @@ Treat tests as layered guardrails: fast Vitest unit specs live beside their modu
 
 ## Task Planning & ADR Alignment
 When starting any task, first capture a short checklist-style plan (three to five steps is ideal) so reviewers can track progress as we tick off items. Reference the ADRs under `docs/` and ensure new code follows their prescribed patterns; call out the ADR you followed (or updated) in the PR description. Keep using the asset-loader helpers in `src/vision/hands.ts`, stick to `pnpm@10.20.0`, and document new permission or configuration needs alongside the plan so downstream reviewers know what to validate.
+
+## README Voice & Maintenance
+Use README updates to welcome first-time contributors and explain the workflow in plain language. When editing that file:
+- Lead every section with the purpose (“why”) before listing steps or commands, and keep the tone collaborative (“we” / “our” / “teammates”).
+- Spell out what runs automatically (e.g., Lefthook’s Biome → TypeScript → Vitest chain) versus what contributors run manually, so newcomers immediately understand expectations.
+- Note important dates only when they add context, and remove stale markers as soon as they no longer help (e.g., temporary deployment notes).
+- Prefer short paragraphs over long bullet walls so the story flows: introduce the idea, describe the command, then highlight the outcome/side effect we should expect.
+- When new tooling or conventions appear, explain how to trigger them (`pnpm lint`, `pnpm commit`, etc.) and why they exist, mirroring the style used in the current “Getting Started” block.

@@ -6,8 +6,6 @@ Herakoi is a **motion-sensing sonification experiment**: a webcam tracks your ha
 
 ## Contribution Guide
 
-_2025-11-08 note:_ verifying that README-only tweaks do not trigger deployments.
-
 ### Project Layout
 - `src/` – active TypeScript modules
 - `legacy_html/` – read-only originals kept for behaviour comparison. 
@@ -27,6 +25,10 @@ pnpm commit       # Commitizen prompt for conventional commits
 ```
 
 Your first `pnpm install` now also runs `lefthook install` automatically so Git wires the shared pre-commit hook (which executes `pnpm lint`) before you start committing.
-Biome and TypeScript checks are exposed as separate scripts under the hood, letting Lefthook run them in parallel while `pnpm lint` still chains them for manual runs; Vitest now waits on those hooks so fast lint feedback lands before the heavier test suite spins up.
-Pre-commit now auto-runs Biome’s fix mode first; if it rewrites files, Git pauses the commit so we can review and restage. Vitest follows with `--changed`, which tells Vitest to only execute specs tied to uncommitted file changes. Run `pnpm run lint:biome:fix` directly whenever you want those rewrites without executing the full hook chain.
-Commit messages flow through Commitlint’s conventional ruleset at the `commit-msg` stage, and `pnpm commit` launches Commitizen so we can assemble a compliant subject/body interactively before the hook validates it.
+Git commits automatically trigger Lefthook, which chains the following steps so everyone gets the same gate:
+
+1. Biome fix runs first; if it changes files the commit aborts so we can review and restage the edits.
+2. Biome lint and both TypeScript configs execute in parallel, mirroring `pnpm lint`.
+3. Vitest runs with `--changed` to cover only specs touched by current diffs, keeping the hook fast while still catching regressions.
+
+When you need those checks outside the commit flow, run the individual scripts (`pnpm run lint:biome:fix`, `pnpm lint`, `pnpm typecheck`, `pnpm test`) just as you would expect. `pnpm commit` launches Commitizen’s guided prompt, and Commitlint validates the message at `commit-msg`, so even first-time contributors get a compliant subject/body without memorizing the format.
