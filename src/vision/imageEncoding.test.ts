@@ -18,7 +18,6 @@ const makeImageData = (pixels: number[], width: number, height: number) =>
   new FakeImageData(new Uint8ClampedArray(pixels), width, height) as unknown as ImageData;
 
 type FakeCtx = {
-  drawImage: () => void;
   getImageData: () => ImageData;
 };
 
@@ -30,7 +29,6 @@ type FakeCanvas = {
 
 const makeFakeCanvas = (imageData: ImageData): FakeCanvas => {
   const ctx: FakeCtx = {
-    drawImage: () => {},
     getImageData: () => imageData,
   };
 
@@ -41,17 +39,9 @@ const makeFakeCanvas = (imageData: ImageData): FakeCanvas => {
   };
 };
 
-const makeSampler = async (imageData: ImageData) => {
-  const fakeFile = new File(["dummy"], "test.png", { type: "image/png" });
-  const canvasFactory = () => makeFakeCanvas(imageData) as unknown as HTMLCanvasElement;
-  const loader = () => Promise.resolve({} as HTMLImageElement);
-
-  return ImageSampler.fromFile(
-    fakeFile,
-    { width: imageData.width, height: imageData.height },
-    canvasFactory,
-    loader,
-  );
+const makeSampler = (imageData: ImageData) => {
+  const canvas = makeFakeCanvas(imageData) as unknown as HTMLCanvasElement;
+  return new ImageSampler(canvas);
 };
 
 describe("ImageSampler", () => {
@@ -59,7 +49,7 @@ describe("ImageSampler", () => {
     vi.stubGlobal("ImageData", FakeImageData);
   });
 
-  it("encodes hue/value bytes without mutating the input", async () => {
+  it("encodes hue/value bytes without mutating the input", () => {
     const originalPixels = [
       // (0,0) pure red
       255, 0, 0, 255,
@@ -72,7 +62,7 @@ describe("ImageSampler", () => {
     ];
 
     const input = makeImageData(originalPixels, 2, 2);
-    const sampler = await makeSampler(input);
+    const sampler = makeSampler(input);
 
     // Input stays untouched
     expect(Array.from(input.data)).toEqual(originalPixels);
@@ -83,14 +73,14 @@ describe("ImageSampler", () => {
     expect(sampler.sampleAtPixel(1, 1)).toEqual({ hueByte: 0, valueByte: 128, alpha: 200 });
   });
 
-  it("rejects out-of-bounds samples", async () => {
+  it("rejects out-of-bounds samples", () => {
     const input = makeImageData(
       [255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255],
       2,
       2,
     );
 
-    const sampler = await makeSampler(input);
+    const sampler = makeSampler(input);
 
     expect(sampler.sampleAtPixel(-1, 0)).toBeNull();
     expect(sampler.sampleAtPixel(2, 1)).toBeNull();

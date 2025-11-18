@@ -232,13 +232,13 @@ camera.start();
 
 // We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
 // That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
-uploadInput.addEventListener("change", async (event) => {
+uploadInput.addEventListener("change", (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) {
     return;
   }
 
-  const targetSize = { width: imgCanvas.width, height: imgCanvas.height };
+  const _targetSize = { width: imgCanvas.width, height: imgCanvas.height };
 
   const imgElement = inputImage ?? new Image();
   const objectUrl = URL.createObjectURL(file);
@@ -248,6 +248,9 @@ uploadInput.addEventListener("change", async (event) => {
     uploadedImage = imgElement;
     imgCtx.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
     imgCtx.drawImage(uploadedImage, 0, 0, imgCanvas.width, imgCanvas.height);
+
+    // Build the sampler only after the image is actually drawn, so we encode real pixels.
+    imageSampler = new ImageSampler(imgCanvas);
   };
 
   imgElement.onerror = (error) => {
@@ -256,13 +259,6 @@ uploadInput.addEventListener("change", async (event) => {
   };
 
   imgElement.src = objectUrl;
-
-  try {
-    imageSampler = await ImageSampler.fromFile(file, targetSize);
-  } catch (error) {
-    // We log instead of throwing so the live demo keeps running even if decoding fails.
-    console.error("Failed to load image for sampling", error);
-  }
 });
 
 function setupCanvasSizes() {
