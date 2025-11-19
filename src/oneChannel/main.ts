@@ -4,6 +4,7 @@ import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
 import { Sonifier } from "#src/audio/sonification";
+import { setupDebugTools } from "#src/debug/index";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
 
@@ -105,6 +106,11 @@ const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
 const debugSonifier = new Sonifier();
+const debugTools = setupDebugTools({
+  playTone: (toneId, frequency, volume) => {
+    debugSonifier.updateTone(toneId, { frequency, volume });
+  },
+});
 
 // Expose a lightweight debug hook so we can drive tones from the console while iterating.
 // Useful for manual QA: call `window.debugSonifier("test", 440, 0.2)` to hear a tone.
@@ -114,6 +120,13 @@ const debugSonifier = new Sonifier();
   }
 ).debugSonifier = (id: string, frequency: number, volume: number) => {
   debugSonifier.updateTone(id, { frequency, volume });
+  debugTools.recordToneSample({
+    toneId: id,
+    frequency,
+    volume,
+    hueByte: 0,
+    valueByte: 0,
+  });
 };
 
 hands.onResults((results: Results) => {
@@ -169,6 +182,13 @@ hands.onResults((results: Results) => {
 
         const toneId = `hand-${handIndex}-index-tip`;
         sonifier.updateTone(toneId, { frequency: freq, volume });
+        debugTools.recordToneSample({
+          toneId,
+          frequency: freq,
+          volume,
+          hueByte: pixelSample.hueByte,
+          valueByte: pixelSample.valueByte,
+        });
 
         overlayCtx.fillStyle = "white";
         overlayCtx.fillRect(x + 10, y - 30, 80, 20);
