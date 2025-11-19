@@ -4,7 +4,7 @@ import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
 import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
-import { setupDebugTools } from "#src/debug/index";
+import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
 
@@ -116,6 +116,7 @@ hands.onResults((results: Results) => {
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
   const toneUpdates: ToneUpdate[] = [];
+  const debugToneSamples: DebugToneSample[] = [];
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
@@ -159,7 +160,7 @@ hands.onResults((results: Results) => {
 
         const toneId = `hand-${handIndex}-index-tip`;
         toneUpdates.push({ id: toneId, params: { frequency: freq, volume } });
-        debugTools.logToneSample({
+        debugToneSamples.push({
           toneId,
           frequency: freq,
           volume,
@@ -177,6 +178,7 @@ hands.onResults((results: Results) => {
   }
 
   sonifier.syncTones(toneUpdates);
+  debugTools.logToneSamples(debugToneSamples);
 
   canvasCtx.restore();
 });
