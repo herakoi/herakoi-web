@@ -104,6 +104,7 @@ const handsDetector = new HandsDetector({
 const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
+const debugSonifier = new Sonifier();
 
 // Expose a lightweight debug hook so we can drive tones from the console while iterating.
 // Useful for manual QA: call `window.debugSonifier("test", 440, 0.2)` to hear a tone.
@@ -112,7 +113,7 @@ const sonifier = new Sonifier();
     debugSonifier?: (id: string, frequency: number, volume: number) => void;
   }
 ).debugSonifier = (id: string, frequency: number, volume: number) => {
-  sonifier.updateTone(id, { frequency, volume });
+  debugSonifier.updateTone(id, { frequency, volume });
 };
 
 hands.onResults((results: Results) => {
