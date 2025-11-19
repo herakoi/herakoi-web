@@ -54,6 +54,24 @@ body {
   flex-wrap: wrap;
 }
 
+.debug-ui__sliders select,
+.debug-ui__sliders input[type="range"],
+.debug-ui__sliders input[type="number"] {
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid rgba(125, 249, 255, 0.4);
+  border-radius: 4px;
+  color: #f1f1f1;
+  padding: 4px;
+}
+
+.debug-ui__sliders select {
+  min-width: 140px;
+}
+
+.debug-ui__sliders input[type="number"] {
+  width: 64px;
+}
+
 .debug-ui__label {
   margin: 0;
   font-size: 12px;

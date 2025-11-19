@@ -47,6 +47,10 @@ const maxVolSlider = document.getElementById("max-vol") as HTMLInputElement | nu
 const minVolValue = document.getElementById("min-vol-value");
 const maxVolValue = document.getElementById("max-vol-value");
 const mirrorToggleButton = document.getElementById("mirror-toggle") as HTMLButtonElement | null;
+const maxHandsSlider = document.getElementById("max-hands") as HTMLInputElement | null;
+const maxHandsValue = document.getElementById("max-hands-value");
+const oscillatorTypeSelect = document.getElementById("oscillator-type") as HTMLSelectElement | null;
+const cameraFacingSelect = document.getElementById("camera-facing") as HTMLSelectElement | null;
 
 if (
   !minFreqSlider ||
@@ -57,7 +61,11 @@ if (
   !maxVolSlider ||
   !minVolValue ||
   !maxVolValue ||
-  !mirrorToggleButton
+  !mirrorToggleButton ||
+  !maxHandsSlider ||
+  !maxHandsValue ||
+  !oscillatorTypeSelect ||
+  !cameraFacingSelect
 ) {
   throw new Error("Expected frequency and volume controls to be present.");
 }
@@ -82,6 +90,12 @@ maxFreqSlider.addEventListener("input", (event) => {
 let minVol = Number(minVolSlider.value) || 0;
 let maxVol = Number(maxVolSlider.value) || 0.3;
 let isMirrored = document.body.classList.contains("is-mirrored");
+let maxHands = Number(maxHandsSlider.value) || 4;
+const initialOscType = (oscillatorTypeSelect.value || "sine") as OscillatorType;
+type FacingMode = "user" | "environment";
+let currentFacingMode: FacingMode = (cameraFacingSelect.value as FacingMode) || "user";
+
+maxHandsValue.textContent = String(maxHands);
 
 minVolSlider.addEventListener("input", (event) => {
   const value = Number((event.target as HTMLInputElement).value);
@@ -113,14 +127,18 @@ setMirrorState(isMirrored);
  * That shared helper also ensures any future asset or option tweaks land everywhere at once.
  */
 const handsDetector = new HandsDetector({
-  maxNumHands: 4,
+  maxNumHands: maxHands,
   modelComplexity: 1,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.7,
 });
 const hands = handsDetector.getInstance();
+hands.setOptions({ maxNumHands: maxHands });
+
+let camera: Camera | null = null;
 
 const sonifier = new Sonifier();
+sonifier.setOscillatorType(initialOscType);
 const debugTools = setupDebugTools();
 
 hands.onResults((results: Results) => {
@@ -198,14 +216,35 @@ hands.onResults((results: Results) => {
   videoHandsOverlayCtx.restore();
 });
 
-const camera = new Camera(cameraVideoElement, {
-  onFrame: async () => {
-    await hands.send({ image: cameraVideoElement });
-  },
-  width: 640,
-  height: 480,
-});
-camera.start();
+const startCamera = async (facingMode: FacingMode) => {
+  currentFacingMode = facingMode;
+  cameraFacingSelect.value = facingMode;
+
+  if (camera) {
+    try {
+      await camera.stop();
+    } catch (error) {
+      console.warn("Failed to stop existing camera", error);
+    }
+  }
+
+  camera = new Camera(cameraVideoElement, {
+    onFrame: async () => {
+      await hands.send({ image: cameraVideoElement });
+    },
+    width: 640,
+    height: 480,
+    facingMode,
+  });
+
+  try {
+    await camera.start();
+  } catch (error) {
+    console.error("Failed to start camera", error);
+  }
+};
+
+void startCamera(currentFacingMode);
 
 // We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
 // That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
@@ -258,3 +297,19 @@ function mirrorLandmarks(landmarks: NormalizedLandmarkList): NormalizedLandmarkL
     x: 1 - landmark.x,
   })) as NormalizedLandmarkList;
 }
+maxHandsSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  maxHands = Math.max(1, Math.min(8, value));
+  maxHandsValue.textContent = String(maxHands);
+  hands.setOptions({ maxNumHands: maxHands });
+});
+
+oscillatorTypeSelect.addEventListener("change", (event) => {
+  const nextType = (event.target as HTMLSelectElement).value as OscillatorType;
+  sonifier.setOscillatorType(nextType);
+});
+
+cameraFacingSelect.addEventListener("change", (event) => {
+  const nextFacing = ((event.target as HTMLSelectElement).value as FacingMode) || "user";
+  void startCamera(nextFacing);
+});

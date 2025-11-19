@@ -24,6 +24,7 @@ export class Sonifier {
   private readonly ctx: AudioContext;
   private readonly nodes = new Map<ToneId, ToneNodes>();
   private readonly fadeMs = 100;
+  private oscType: OscillatorType = "sine";
 
   constructor(ctx?: AudioContext) {
     if (ctx) {
@@ -43,6 +44,13 @@ export class Sonifier {
     }
 
     this.ctx = new NativeAudioContext();
+  }
+
+  setOscillatorType(type: OscillatorType): void {
+    this.oscType = type;
+    for (const { osc } of this.nodes.values()) {
+      osc.type = type;
+    }
   }
 
   updateTone(id: ToneId, params: ToneParams): void {
@@ -95,7 +103,7 @@ export class Sonifier {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    osc.type = "sine";
+    osc.type = this.oscType;
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start();

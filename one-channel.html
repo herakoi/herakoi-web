@@ -67,6 +67,36 @@
       <button type="button" id="mirror-toggle" class="debug-ui__button">
         Enable mirror mode
       </button>
+      <p class="debug-ui__label">Hand Detection</p>
+      <div class="debug-ui__sliders">
+        <label for="max-hands" style="display: contents; align-items: center">
+          <span>Max Hands</span>
+          <input type="number" id="max-hands" min="1" max="8" value="4" step="1" />
+          <span id="max-hands-value">4</span>
+        </label>
+      </div>
+      <p class="debug-ui__label">Camera Facing</p>
+      <div class="debug-ui__sliders">
+        <label for="camera-facing" style="display: contents; align-items: center">
+          <span>Camera</span>
+          <select id="camera-facing">
+            <option value="user" selected>Front (user)</option>
+            <option value="environment">Rear (environment)</option>
+          </select>
+        </label>
+      </div>
+      <p class="debug-ui__label">Oscillator Type</p>
+      <div class="debug-ui__sliders">
+        <label for="oscillator-type" style="display: contents">
+          <span>Waveform</span>
+          <select id="oscillator-type">
+            <option value="sine" selected>Sine</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </label>
+      </div>
     </div>
   </div>
 
