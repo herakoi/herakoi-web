@@ -21,7 +21,7 @@ body {
   width: min(1320px, 100%);
 }
 
-.debug-ui {
+.control-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
@@ -30,7 +30,7 @@ body {
   font-size: 14px;
 }
 
-.debug-ui__group {
+.control-card {
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid rgba(125, 249, 255, 0.4);
   border-radius: 8px;
@@ -40,39 +40,39 @@ body {
   gap: 12px;
 }
 
-.debug-ui__sliders {
+.control-sliders {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.debug-ui__group--upload {
+.control-card--upload {
   grid-column: span 1;
 }
 
-.debug-ui__section {
+.control-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.debug-ui__field,
-.debug-ui__field-label {
+.control-field,
+.control-field-label {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
 }
 
-.debug-ui__subtext {
+.control-subtext {
   margin: 0;
   font-size: 12px;
   color: rgba(241, 241, 241, 0.7);
 }
 
-.debug-ui__sliders select,
-.debug-ui__sliders input[type="range"],
-.debug-ui__sliders input[type="number"] {
+.control-sliders select,
+.control-sliders input[type="range"],
+.control-sliders input[type="number"] {
   background: rgba(10, 10, 10, 0.6);
   border: 1px solid rgba(125, 249, 255, 0.4);
   border-radius: 4px;
@@ -80,15 +80,15 @@ body {
   padding: 4px;
 }
 
-.debug-ui__sliders select {
+.control-sliders select {
   min-width: 140px;
 }
 
-.debug-ui__sliders input[type="number"] {
+.control-sliders input[type="number"] {
   width: 64px;
 }
 
-.debug-ui__label {
+.control-label {
   margin: 0;
   font-size: 12px;
   text-transform: uppercase;
@@ -96,7 +96,7 @@ body {
   color: #7df9ff;
 }
 
-.debug-ui__button {
+.control-button {
   margin-top: 8px;
   padding: 8px 12px;
   border: 1px solid rgba(125, 249, 255, 0.6);
@@ -107,7 +107,7 @@ body {
   cursor: pointer;
 }
 
-.debug-ui__button:hover {
+.control-button:hover {
   background: rgba(125, 249, 255, 0.1);
 }
 
@@ -117,25 +117,9 @@ body {
   aspect-ratio: 4 / 3;
 }
 
-.debug-layer {
+.panel-layer {
   position: absolute;
   inset: 0;
-}
-
-.debug-layer::after {
-  content: attr(data-debug-label);
-  position: absolute;
-  top: calc(8px + (var(--debug-label-index, 0) * 28px));
-  left: 8px;
-  padding: 2px 6px;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  background: rgba(0, 0, 0, 0.75);
-  color: #7df9ff;
-  border: 1px solid rgba(125, 249, 255, 0.6);
-  border-radius: 4px;
-  pointer-events: none;
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
 canvas,
@@ -162,7 +146,7 @@ body.is-mirrored #input_video {
     grid-template-columns: 1fr;
   }
 
-  .debug-ui {
+  .control-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }

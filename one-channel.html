@@ -10,51 +10,44 @@
 <body class="is-mirrored">
   <div id="container">
     <div class="panel">
-      <div class="debug-layer"
-        data-debug-label="Source Image Canvas (#imageCanvas)"
-        style="--debug-label-index: 0">
+      <div class="panel-layer">
         <canvas id="imageCanvas"></canvas>
       </div>
-      <div class="debug-layer"
-        data-debug-label="Image Overlay Canvas (#imageOverlay)"
-        style="--debug-label-index: 1">
+      <div class="panel-layer">
         <canvas id="imageOverlay" style="z-index: 2"></canvas>
       </div>
     </div>
     <div class="panel">
-      <div class="debug-layer" data-debug-label="Camera Video (#input_video)"
-        style="--debug-label-index: 0">
+      <div class="panel-layer">
         <video id="input_video" playsinline muted autoplay></video>
       </div>
-      <div class="debug-layer"
-        data-debug-label="Video Overlay Canvas (#output_canvas)"
-        style="--debug-label-index: 1">
+      <div class="panel-layer">
         <canvas id="output_canvas"></canvas>
       </div>
     </div>
   </div>
 
-  <div class="debug-ui">
-    <section class="debug-ui__group debug-ui__group--upload">
-      <p class="debug-ui__label">Source Image</p>
-      <p class="debug-ui__subtext">Load a reference image so we can sample hues
+  <div class="control-grid">
+    <section class="control-card control-card--upload">
+      <p class="control-label">Source Image</p>
+      <p class="control-subtext">Load a reference image so we can sample hues
         and brightness for the sonification.</p>
-      <label class="debug-ui__field" for="upload">
+      <label class="control-field" for="upload">
         <span>Select file</span>
         <input type="file" id="upload" accept="image/*" />
       </label>
     </section>
-    <section class="debug-ui__group">
-      <p class="debug-ui__label">Video & Tracking</p>
-      <p class="debug-ui__subtext">Mirror, pick a camera, and choose how many
+    <section class="control-card">
+      <p class="control-label">Video & Tracking</p>
+      <p class="control-subtext">Mirror, pick a camera, and choose how many
         hands MediaPipe should track.</p>
-      <div class="debug-ui__section">
-        <button type="button" id="mirror-toggle" class="debug-ui__button">
+      <div class="control-section">
+        <button type="button" id="mirror-toggle" class="control-button">
           Enable mirror mode
         </button>
       </div>
-      <div class="debug-ui__section">
-        <label class="debug-ui__field" for="camera-facing">
+      <div class="control-section">
+        <label class="control-field" for="camera-facing">
           <span>Camera</span>
           <select id="camera-facing">
             <option value="user" selected>Front (user)</option>
@@ -62,8 +55,8 @@
           </select>
         </label>
       </div>
-      <div class="debug-ui__section">
-        <label class="debug-ui__field" for="max-hands">
+      <div class="control-section">
+        <label class="control-field" for="max-hands">
           <span>Max Hands</span>
           <input type="number" id="max-hands" min="1" max="8" value="4"
             step="1" />
@@ -71,13 +64,13 @@
         </label>
       </div>
     </section>
-    <section class="debug-ui__group">
-      <p class="debug-ui__label">Audio Settings</p>
-      <p class="debug-ui__subtext">Tune how we map pixels to tones before
+    <section class="control-card">
+      <p class="control-label">Audio Settings</p>
+      <p class="control-subtext">Tune how we map pixels to tones before
         sending them to the sonifier.</p>
-      <div class="debug-ui__section">
-        <span class="debug-ui__field-label">Frequency Range</span>
-        <div class="debug-ui__sliders">
+      <div class="control-section">
+        <span class="control-field-label">Frequency Range</span>
+        <div class="control-sliders">
           <input type="range" id="min-freq" min="100" max="500" value="200"
             step="10" />
           <span id="min-freq-value">200</span> Hz
@@ -86,19 +79,19 @@
           <span id="max-freq-value">700</span> Hz
         </div>
       </div>
-      <div class="debug-ui__section">
-        <span class="debug-ui__field-label">Volume Range</span>
-        <div class="debug-ui__sliders">
+      <div class="control-section">
+        <span class="control-field-label">Volume Range</span>
+        <div class="control-sliders">
           <input type="range" id="min-vol" min="0" max="100" value="0"
             step="1" />
           <span id="min-vol-value">0</span>
-          <input type="range" id="max-vol" min="0" max="100" value="1"
-            step="0.1" />
-          <span id="max-vol-value">1</span>
+          <input type="range" id="max-vol" min="0" max="100" value="20"
+            step="1" />
+          <span id="max-vol-value">20</span>
         </div>
       </div>
-      <div class="debug-ui__section">
-        <label class="debug-ui__field" for="oscillator-type">
+      <div class="control-section">
+        <label class="control-field" for="oscillator-type">
           <span>Waveform</span>
           <select id="oscillator-type">
             <option value="sine" selected>Sine</option>
