@@ -137,11 +137,9 @@ hands.onResults((results: Results) => {
   // We leave the user's uploaded image intact between frames; only new uploads repaint it.
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-  let _handDetected = false;
   const toneUpdates: ToneUpdate[] = [];
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    _handDetected = true;
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
       drawConnectors(canvasCtx, handLms, HAND_CONNECTIONS, {
         color: "#00FF00",
