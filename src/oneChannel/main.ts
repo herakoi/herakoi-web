@@ -16,15 +16,13 @@ const videoHandsOverlayCanvas = document.getElementById(
 ) as HTMLCanvasElement | null;
 const sourceImageCanvas = document.getElementById("imageCanvas") as HTMLCanvasElement | null;
 const imageOverlayCanvas = document.getElementById("imageOverlay") as HTMLCanvasElement | null;
-const uploadedImageElement = document.getElementById("inputImage") as HTMLImageElement | null;
 
 if (
   !imageUploadInput ||
   !cameraVideoElement ||
   !videoHandsOverlayCanvas ||
   !sourceImageCanvas ||
-  !imageOverlayCanvas ||
-  !uploadedImageElement
+  !imageOverlayCanvas
 ) {
   throw new Error("Expected legacy markup to exist before bootstrapping the test app.");
 }
@@ -246,6 +244,14 @@ const startCamera = async (facingMode: FacingMode) => {
 
 void startCamera(currentFacingMode);
 
+/*
+ * We keep an off-DOM Image buffer so we can decode uploads without forcing another element into layout.
+ * That buffer lets us experiment with custom crops or zooms later because the canvas becomes the single
+ * surface we draw to, and ImageSampler keeps owning the pixel encoding work for us.
+ */
+const uploadBufferImage = new Image();
+uploadBufferImage.crossOrigin = "anonymous";
+
 // We pass the raw file straight to ImageSampler so it owns decoding, scaling, and byte encoding.
 // That keeps main focused on wiring callbacks rather than managing canvases or pixel math.
 imageUploadInput.addEventListener("change", (event) => {
@@ -254,24 +260,23 @@ imageUploadInput.addEventListener("change", (event) => {
     return;
   }
 
-  const imgElement = uploadedImageElement ?? new Image();
   const objectUrl = URL.createObjectURL(file);
 
-  imgElement.onload = () => {
+  uploadBufferImage.onload = () => {
     URL.revokeObjectURL(objectUrl);
     imgCtx.clearRect(0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
-    imgCtx.drawImage(imgElement, 0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
+    imgCtx.drawImage(uploadBufferImage, 0, 0, sourceImageCanvas.width, sourceImageCanvas.height);
 
     // Build the sampler only after the image is actually drawn, so we encode real pixels.
     imageSampler = new ImageSampler(sourceImageCanvas);
   };
 
-  imgElement.onerror = (error) => {
+  uploadBufferImage.onerror = (error) => {
     URL.revokeObjectURL(objectUrl);
     console.error("Failed to load image element for display", error);
   };
 
-  imgElement.src = objectUrl;
+  uploadBufferImage.src = objectUrl;
 });
 
 function setupCanvasSizes() {
