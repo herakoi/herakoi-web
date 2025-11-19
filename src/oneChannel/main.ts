@@ -1,10 +1,11 @@
 import "./style.css";
 
 import { Camera } from "@mediapipe/camera_utils";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
-import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
+import type { Results } from "@mediapipe/hands";
 import { Sonifier, type ToneUpdate } from "#src/audio/sonification";
+import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/canvas/overlay";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
+import { getFingerFocus, mirrorHandLandmarks } from "#src/vision/handGeometry";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
 
@@ -104,6 +105,10 @@ const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
 const debugTools = setupDebugTools();
+const overlayContext = {
+  baseCtx: canvasCtx,
+  overlayCtx,
+};
 
 hands.onResults((results: Results) => {
   canvasCtx.save();
@@ -118,38 +123,22 @@ hands.onResults((results: Results) => {
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     for (const [handIndex, handLms] of results.multiHandLandmarks.entries()) {
-      drawConnectors(canvasCtx, handLms, HAND_CONNECTIONS, {
-        color: "#00FF00",
-        lineWidth: 2,
-      });
-      drawLandmarks(canvasCtx, handLms, { color: "#FF0000", lineWidth: 1 });
+      const mirroredHandLms = mirrorHandLandmarks(handLms);
+      drawHands(overlayContext, handLms, mirroredHandLms);
 
-      const mirroredHandLms: NormalizedLandmarkList = handLms.map((landmark) => ({
-        x: 1 - landmark.x,
-        y: landmark.y,
-        z: landmark.z,
-      }));
-
-      drawConnectors(overlayCtx, mirroredHandLms, HAND_CONNECTIONS, {
-        color: "#00FF00",
-        lineWidth: 2,
-      });
-      drawLandmarks(overlayCtx, mirroredHandLms, { color: "#FF0000", lineWidth: 1 });
-
-      const indexTip = mirroredHandLms[8];
-      if (!indexTip) {
+      const fingerFocus = getFingerFocus(
+        mirroredHandLms,
+        overlayCanvas.width,
+        overlayCanvas.height,
+      );
+      if (!fingerFocus) {
         continue;
       }
-      const x = indexTip.x * overlayCanvas.width;
-      const y = indexTip.y * overlayCanvas.height;
-      const boxSize = 20;
 
-      overlayCtx.strokeStyle = "lime";
-      overlayCtx.lineWidth = 2;
-      overlayCtx.strokeRect(x - boxSize / 2, y - boxSize / 2, boxSize, boxSize);
+      drawFingerFocus(overlayCtx, fingerFocus);
 
-      const pixelX = Math.floor(x);
-      const pixelY = Math.floor(y);
+      const pixelX = Math.floor(fingerFocus.x);
+      const pixelY = Math.floor(fingerFocus.y);
 
       const pixelSample = imageSampler?.sampleAtPixel(pixelX, pixelY);
       if (pixelSample) {
@@ -165,12 +154,7 @@ hands.onResults((results: Results) => {
           hueByte: pixelSample.hueByte,
           valueByte: pixelSample.valueByte,
         });
-
-        overlayCtx.fillStyle = "white";
-        overlayCtx.fillRect(x + 10, y - 30, 80, 20);
-        overlayCtx.fillStyle = "black";
-        overlayCtx.font = "12px sans-serif";
-        overlayCtx.fillText(`${Math.round(freq)} Hz - ${handIndex}`, x + 15, y - 15);
+        drawFrequencyLabel(overlayCtx, fingerFocus, freq, handIndex);
       }
     }
   }
