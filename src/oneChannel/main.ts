@@ -105,6 +105,16 @@ const hands = handsDetector.getInstance();
 
 const sonifier = new Sonifier();
 
+// Expose a lightweight debug hook so we can drive tones from the console while iterating.
+// Useful for manual QA: call `window.debugSonifier("test", 440, 0.2)` to hear a tone.
+(
+  window as typeof window & {
+    debugSonifier?: (id: string, frequency: number, volume: number) => void;
+  }
+).debugSonifier = (id: string, frequency: number, volume: number) => {
+  sonifier.updateTone(id, { frequency, volume });
+};
+
 hands.onResults((results: Results) => {
   canvasCtx.save();
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -163,7 +173,7 @@ hands.onResults((results: Results) => {
         overlayCtx.fillRect(x + 10, y - 30, 80, 20);
         overlayCtx.fillStyle = "black";
         overlayCtx.font = "12px sans-serif";
-        overlayCtx.fillText(`${Math.round(freq)} Hz`, x + 15, y - 15);
+        overlayCtx.fillText(`${Math.round(freq)} Hz - ${handIndex}`, x + 15, y - 15);
       }
     }
   }
