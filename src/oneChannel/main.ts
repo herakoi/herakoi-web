@@ -86,7 +86,7 @@ maxFreqSlider.addEventListener("input", (event) => {
 });
 
 let minVol = Number(minVolSlider.value) || 0;
-let maxVol = Number(maxVolSlider.value) || 0.3;
+let maxVol = Number(maxVolSlider.value) || 20;
 let isMirrored = document.body.classList.contains("is-mirrored");
 let maxHands = Number(maxHandsSlider.value) || 4;
 const initialOscType = (oscillatorTypeSelect.value || "sine") as OscillatorType;
@@ -94,17 +94,19 @@ type FacingMode = "user" | "environment";
 let currentFacingMode: FacingMode = (cameraFacingSelect.value as FacingMode) || "user";
 
 maxHandsValue.textContent = String(maxHands);
+minVolValue.textContent = minVol.toFixed(0);
+maxVolValue.textContent = maxVol.toFixed(0);
 
 minVolSlider.addEventListener("input", (event) => {
   const value = Number((event.target as HTMLInputElement).value);
   minVol = value;
-  minVolValue.textContent = value.toFixed(2);
+  minVolValue.textContent = value.toFixed(0);
 });
 
 maxVolSlider.addEventListener("input", (event) => {
   const value = Number((event.target as HTMLInputElement).value);
   maxVol = value;
-  maxVolValue.textContent = value.toFixed(2);
+  maxVolValue.textContent = value.toFixed(0);
 });
 
 const setMirrorState = (nextState: boolean) => {
