@@ -10,6 +10,7 @@ import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { getFingerFocus } from "#src/vision/handGeometry";
 import { HandsDetector } from "#src/vision/hands";
 import { ImageSampler } from "#src/vision/imageEncoding";
+import zodiacConstellationsUrl from "../assets/zodiac-constellations.jpg?url";
 
 figlet.parseFont("Star Strips", StarStripsFont);
 const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
@@ -277,7 +278,7 @@ uploadBufferImage.onerror = (error) => {
   console.error("Failed to load default zodiac constellation image", error);
 };
 
-uploadBufferImage.src = "/assets/zodiac-constellations.jpg";
+uploadBufferImage.src = zodiacConstellationsUrl;
 
 const redrawSourceImage = () => {
   if (!hasUploadedSourceImage) {
@@ -298,7 +299,6 @@ imageUploadInput.addEventListener("change", (event) => {
   if (!file) {
     return;
   }
-
   const objectUrl = URL.createObjectURL(file);
 
   uploadBufferImage.onload = () => {
