@@ -96,7 +96,7 @@ maxVolSlider.addEventListener("input", (event) => {
  * That shared helper also ensures any future asset or option tweaks land everywhere at once.
  */
 const handsDetector = new HandsDetector({
-  maxNumHands: 2,
+  maxNumHands: 4,
   modelComplexity: 1,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.7,
@@ -113,10 +113,12 @@ const overlayContext = {
 hands.onResults((results: Results) => {
   canvasCtx.save();
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+  // this draw replicate the video image. since we have the video element tied to the camera, it's not needed to draw again.
+  // we keep this line as reference in the case we want to follow a different approach to show the camera output
+  // canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
   // We leave the user's uploaded image intact between frames; only new uploads repaint it.
-  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  // overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
   const toneUpdates: ToneUpdate[] = [];
   const debugToneSamples: DebugToneSample[] = [];
