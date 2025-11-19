@@ -7,7 +7,7 @@ export type DebugToneSample = {
 };
 
 export type PanelLogger = {
-  logSample: (sample: DebugToneSample) => void;
+  logSamples: (samples: DebugToneSample[]) => void;
 };
 
 export const createDebugPanel = (): PanelLogger => {
@@ -25,8 +25,19 @@ export const createDebugPanel = (): PanelLogger => {
   };
 
   return {
-    logSample: (sample) => {
-      toneSamples.set(sample.toneId, sample);
+    logSamples: (samples) => {
+      const seen = new Set<string>();
+      for (const sample of samples) {
+        toneSamples.set(sample.toneId, sample);
+        seen.add(sample.toneId);
+      }
+
+      for (const toneId of toneSamples.keys()) {
+        if (!seen.has(toneId)) {
+          toneSamples.delete(toneId);
+        }
+      }
+
       render();
     },
   };

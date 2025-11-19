@@ -23,7 +23,12 @@ export const setupDebugTools = (): DebugTools => {
 
   return {
     logToneSamples: (samples) => {
-      samples.forEach(panel.logSample);
+      if (samples.length === 0) {
+        panel.logSamples([]);
+        return;
+      }
+
+      panel.logSamples(samples);
     },
   };
 };
