@@ -15,19 +15,17 @@ body {
 }
 
 #container {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
+  width: min(1320px, 100%);
 }
 
 .debug-ui {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
-  width: 100%;
-  max-width: 1320px;
-  justify-content: flex-start;
-  align-items: flex-start;
+  width: min(1320px, 100%);
   color: #f1f1f1;
   font-size: 14px;
 }
@@ -40,7 +38,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1 1 280px;
 }
 
 .debug-ui__sliders {
@@ -50,7 +47,7 @@ body {
   flex-wrap: wrap;
 }
 .debug-ui__group--upload {
-  flex: 0 0 260px;
+  grid-column: span 1;
 }
 
 .debug-ui__section {
@@ -116,8 +113,8 @@ body {
 
 .panel {
   position: relative;
-  width: 640px;
-  height: 480px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
 }
 
 .debug-layer {
@@ -147,10 +144,26 @@ img {
   position: absolute;
   top: 0;
   left: 0;
-  width: 640px;
-  height: 480px;
+  width: 100%;
+  height: 100%;
 }
 
 body.is-mirrored #input_video {
   transform: scaleX(-1);
+}
+
+@media (max-width: 960px) {
+  body {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  #container {
+    grid-template-columns: 1fr;
+  }
+
+  .debug-ui {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
