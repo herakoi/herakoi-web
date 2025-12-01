@@ -202,7 +202,7 @@ hands.onResults((results: Results) => {
 
       const boundedPixelX = Math.max(0, Math.min(imageOverlayCanvas.width - 1, pixelX));
       const boundedPixelY = Math.max(0, Math.min(imageOverlayCanvas.height - 1, pixelY));
-      const pixelSample = imageSampler?.sampleAtPixel(boundedPixelX, boundedPixelY);
+      const pixelSample = imageSampler?.sampleFromGrid(boundedPixelX, boundedPixelY);
       if (!pixelSample) {
         continue;
       }
