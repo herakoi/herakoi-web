@@ -29,6 +29,8 @@ Herakoi is a motion-sensing sonification experiment that tracks hand movements v
 - `git commit` (no `-m`) - Also launches Commitizen via prepare-commit-msg hook
 - `CI=1 git commit -m "type: message"` - Bypass Commitizen wizard for automated/scripted commits
 
+**Important**: The prepare-commit-msg hook launches Commitizen regardless of whether you use `-m` flag. In interactive terminals with TTY access, `git commit -m "message"` will still open the Commitizen wizard and wait for input, ignoring your provided message. The `CI=1` environment variable is the only way to skip the wizard and use direct commit messages. In non-interactive environments (like CI/CD or automated tools without TTY), Commitizen fails silently and git falls back to the `-m` message.
+
 ## Architecture
 
 ### Entry Points and Modes
