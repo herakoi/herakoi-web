@@ -2,6 +2,7 @@
   "recommendations": [
     "biomejs.biome",
     "editorconfig.editorconfig",
-    "ms-vscode.vscode-typescript-next"
+    "vitest.explorer",
+    "usernamehw.errorlens"
   ]
 }

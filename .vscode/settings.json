@@ -21,5 +21,6 @@
   "files.exclude": {
     "**/.pnpm-store": true,
     "**/dist": true
-  }
+  },
+  "cSpell.words": ["Lefthook", "vitest"]
 }
