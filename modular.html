@@ -5,34 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Herakoi Modular</title>
   </head>
-  <body class="modular-page">
-    <main class="container">
-      <h1>Herakoi Modular Controller</h1>
-      <p>
-        This entry uses the new interface-driven ApplicationController. Swap detectors, samplers, and
-        sonifiers without touching the main loop.
-      </p>
+  <body class="is-mirrored">
+    <div id="container">
+      <div class="panel">
+        <div class="panel-layer">
+          <canvas id="modular-image"></canvas>
+        </div>
+        <div class="panel-layer">
+          <canvas id="modular-image-overlay" style="z-index: 2"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-layer">
+          <video id="modular-video" playsinline muted autoplay></video>
+        </div>
+        <div class="panel-layer">
+          <canvas id="modular-video-overlay"></canvas>
+        </div>
+      </div>
+    </div>
 
-      <section class="controls">
-        <button id="start-modular">Start modular flow</button>
-        <label>
-          Load sampler image:
-          <input id="modular-image-upload" type="file" accept="image/*" />
+    <div class="control-grid">
+      <section class="control-card control-card--upload">
+        <p class="control-label">Source Image</p>
+        <p class="control-subtext">Load a reference image for sonification (modular architecture).</p>
+        <label class="control-field" for="modular-image-upload">
+          <span>Select file</span>
+          <input type="file" id="modular-image-upload" accept="image/*" />
         </label>
-        <span id="modular-status">Loading default image…</span>
       </section>
-
-      <section class="panels">
-        <div>
-          <h3>Camera</h3>
-          <video id="modular-video" autoplay muted playsinline width="640" height="480"></video>
-        </div>
-        <div>
-          <h3>Sampler Image</h3>
-          <canvas id="modular-image" width="640" height="480"></canvas>
-        </div>
+      <section class="control-card">
+        <p class="control-label">Status</p>
+        <p class="control-subtext" id="modular-status">Loading…</p>
       </section>
-    </main>
+    </div>
 
     <script type="module" src="/src/modular/main.ts"></script>
   </body>

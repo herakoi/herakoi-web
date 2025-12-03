@@ -15,9 +15,20 @@
  */
 
 import { Camera } from "@mediapipe/camera_utils";
-import type { Options, Results } from "@mediapipe/hands";
+import type { NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
 import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
 import { HandsDetector } from "#src/vision/hands";
+
+/**
+ * Callback for drawing hand landmarks visualization.
+ *
+ * MediaPipePointDetector-specific extension that allows consumers to render
+ * the full hand skeleton (all 21 landmarks) without polluting the core
+ * PointDetector interface.
+ *
+ * @param landmarks Array of hand landmark arrays (one per detected hand)
+ */
+export type HandsDrawerCallback = (landmarks: NormalizedLandmarkList[]) => void;
 
 /**
  * Configuration for MediaPipePointDetector.
@@ -44,6 +55,7 @@ export class MediaPipePointDetector implements PointDetector {
   private handsDetector: HandsDetector | null = null;
   private camera: Camera | null = null;
   private callbacks: PointDetectionCallback[] = [];
+  private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
 
@@ -117,6 +129,19 @@ export class MediaPipePointDetector implements PointDetector {
   }
 
   /**
+   * Register a callback for hand visualization (MediaPipe-specific).
+   *
+   * The drawer receives the full hand landmarks (all 21 points per hand)
+   * for rendering hand skeleton, connections, etc. This is separate from
+   * the core PointDetector interface to keep it detector-agnostic.
+   *
+   * @param drawer Function to invoke with full hand landmark arrays
+   */
+  onHandsDrawn(drawer: HandsDrawerCallback): void {
+    this.drawers.push(drawer);
+  }
+
+  /**
    * Handles MediaPipe detection results and converts to DetectedPoint format.
    *
    * Applies finger focus logic:
@@ -129,14 +154,21 @@ export class MediaPipePointDetector implements PointDetector {
   private handleResults(results: Results): void {
     const points: DetectedPoint[] = [];
 
+    // Always call visualization drawers on every frame (even if no hands detected)
+    // This allows drawers to clear previous frames
+    const landmarks = results.multiHandLandmarks || [];
+    for (const drawer of this.drawers) {
+      drawer(landmarks);
+    }
+
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       // Process each detected hand
       for (let handIndex = 0; handIndex < results.multiHandLandmarks.length; handIndex++) {
-        const landmarks = results.multiHandLandmarks[handIndex];
+        const handLandmarks = results.multiHandLandmarks[handIndex];
 
         // Finger focus: use index finger tip (landmark 8)
         // https://github.com/google/mediapipe/blob/master/docs/solutions/hands.md#hand-landmark-model
-        const indexTip = landmarks[8];
+        const indexTip = handLandmarks[8];
 
         if (indexTip) {
           points.push({
