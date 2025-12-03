@@ -73,6 +73,7 @@ describe("MediaPipePointDetector", () => {
         public send = vi.fn().mockResolvedValue(undefined);
         public initialize = vi.fn().mockResolvedValue(undefined);
         public close = vi.fn();
+        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening in this test double
       } as unknown as (...args: any[]) => any,
     );
 
@@ -85,6 +86,7 @@ describe("MediaPipePointDetector", () => {
         constructor(_videoElement: HTMLVideoElement, _config: unknown) {
           lastCameraInstance = this;
         }
+        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening in this test double
       } as unknown as (...args: any[]) => any,
     );
   });
