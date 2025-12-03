@@ -17,6 +17,7 @@ if (!startButton || !statusLabel || !videoElement || !imageCanvas) {
 }
 
 const sampler = new HSVImageSampler();
+let samplerReady = false;
 const sonifier = new OscillatorSonifier(undefined, {
   minFreq: 200,
   maxFreq: 700,
@@ -48,6 +49,7 @@ const drawImageToCanvas = (img: HTMLImageElement) => {
 const loadSamplerFromImage = async (img: HTMLImageElement) => {
   drawImageToCanvas(img);
   await sampler.loadImage(imageCanvas);
+  samplerReady = true;
 };
 
 defaultImage.onload = async () => {
@@ -62,6 +64,10 @@ defaultImage.onerror = () => {
 const startApp = async () => {
   statusLabel.textContent = "Starting...";
   try {
+    if (!samplerReady) {
+      statusLabel.textContent = "Sampler image not ready yet";
+      return;
+    }
     await controller.start();
     statusLabel.textContent = "Running (modular controller)";
   } catch (error) {
