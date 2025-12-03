@@ -11,8 +11,8 @@ import "./style.css";
 import type { NormalizedLandmarkList } from "@mediapipe/hands";
 import { drawFingerFocus, drawHands } from "#src/canvas/overlay";
 import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
-// import { HSVImageSampler } from "#src/sampling/HSVImageSampler";
-// import { OscillatorSonifier } from "#src/sonification/OscillatorSonifier";
+import { HSVImageSampler } from "#src/sampling/HSVImageSampler";
+import { OscillatorSonifier } from "#src/sonification/OscillatorSonifier";
 
 import zodiacConstellationsUrl from "../assets/zodiac-constellations.jpg?url";
 
@@ -59,32 +59,56 @@ const detector = new MediaPipePointDetector(videoElement, {
 });
 
 // Step 1a: Register hand visualization drawer
-// This MediaPipe-specific callback draws the hand skeleton on the video overlay
+// This MediaPipe-specific callback draws the hand skeleton on both overlays
 detector.onHandsDrawn((landmarks) => {
-  // Clear previous frame
+  // Clear previous frame on both overlays
   videoOverlayCtx.clearRect(0, 0, videoOverlayCanvas.width, videoOverlayCanvas.height);
+  imageOverlayCtx.clearRect(0, 0, imageOverlayCanvas.width, imageOverlayCanvas.height);
 
-  // Draw each detected hand (mirror if needed)
+  // Draw each detected hand on both video and image canvases
   for (const handLandmarks of landmarks) {
     const workingLandmarks = isMirrored ? mirrorLandmarks(handLandmarks) : handLandmarks;
-    drawHands([{ ctx: videoOverlayCtx, landmarks: workingLandmarks }]);
+    drawHands([
+      { ctx: videoOverlayCtx, landmarks: workingLandmarks },
+      { ctx: imageOverlayCtx, landmarks: workingLandmarks },
+    ]);
   }
 });
 
-// Step 1b: Draw finger focus squares on detected fingertips
+// Step 1b: Draw finger focus squares on detected fingertips and sample image
 detector.onPointsDetected((points) => {
-  // Convert normalized coordinates to pixel coordinates and draw squares
+  // Convert normalized coordinates to pixel coordinates and draw squares on both canvases
   for (const point of points) {
-    // Mirror x-coordinate if needed
+    // Mirror x-coordinate if needed for visualization
     const normalizedX = isMirrored ? 1 - point.x : point.x;
-    const pixelX = normalizedX * videoOverlayCanvas.width;
-    const pixelY = point.y * videoOverlayCanvas.height;
-    drawFingerFocus(videoOverlayCtx, { x: pixelX, y: pixelY });
+
+    // Draw on video overlay
+    const videoPixelX = normalizedX * videoOverlayCanvas.width;
+    const videoPixelY = point.y * videoOverlayCanvas.height;
+    drawFingerFocus(videoOverlayCtx, { x: videoPixelX, y: videoPixelY });
+
+    // Draw on image overlay
+    const imagePixelX = normalizedX * imageOverlayCanvas.width;
+    const imagePixelY = point.y * imageOverlayCanvas.height;
+    drawFingerFocus(imageOverlayCtx, { x: imagePixelX, y: imagePixelY });
   }
 
-  if (points.length > 0) {
-    console.log(`Detected ${points.length} points:`, points);
+  // Sample image at detected points and send to sonifier
+  // IMPORTANT: Always call processSamples (even with empty map) so sonifier
+  // knows to stop tones when hands disappear
+  const samples = new Map();
+
+  if (samplerReady) {
+    for (const point of points) {
+      const sample = sampler.sampleAt(point);
+      if (sample) {
+        samples.set(point.id, sample);
+      }
+    }
   }
+
+  // Send samples to sonifier (empty map = stop all tones)
+  sonifier.processSamples(samples);
 });
 
 // Step 2: Auto-start detection on page load (matching oneChannel behavior)
@@ -96,16 +120,21 @@ const startDetection = async () => {
   try {
     await detector.initialize();
     if (statusLabel) {
+      statusLabel.textContent = "Initializing audio...";
+    }
+
+    await sonifier.initialize();
+    if (statusLabel) {
       statusLabel.textContent = "Starting camera...";
     }
 
     detector.start();
 
     if (statusLabel) {
-      statusLabel.textContent = "Running - move your hands in front of the camera";
+      statusLabel.textContent = "Running - move your hands to hear sonification";
     }
   } catch (error) {
-    console.error("Failed to start hands detection:", error);
+    console.error("Failed to start detection/audio:", error);
     if (statusLabel) {
       statusLabel.textContent = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
     }
@@ -115,13 +144,49 @@ const startDetection = async () => {
 // Auto-start on page load
 void startDetection();
 
-// For now, just show a placeholder message for the image
+// Step 4: Setup image sampling
+const sampler = new HSVImageSampler();
+let samplerReady = false;
+
+// Step 5: Setup audio sonification
+const sonifier = new OscillatorSonifier(undefined, {
+  minFreq: 200,
+  maxFreq: 700,
+  minVol: 0,
+  maxVol: 0.2,
+  oscillatorType: "sine",
+  fadeMs: 120,
+});
+
+const imageCtx = imageCanvas.getContext("2d");
+if (!imageCtx) {
+  throw new Error("Unable to acquire 2D context for image canvas.");
+}
+
+// Helper to draw image to canvas and load into sampler
+const drawImageToCanvas = (img: HTMLImageElement) => {
+  imageCanvas.width = img.naturalWidth || 640;
+  imageCanvas.height = img.naturalHeight || 480;
+  imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+  imageCtx.drawImage(img, 0, 0, imageCanvas.width, imageCanvas.height);
+};
+
+const loadSamplerFromImage = async (img: HTMLImageElement) => {
+  drawImageToCanvas(img);
+  await sampler.loadImage(imageCanvas);
+  samplerReady = true;
+  if (statusLabel) {
+    statusLabel.textContent = "Image loaded and ready for sampling";
+  }
+};
+
+// Load default zodiac constellation image
 const defaultImage = new Image();
 defaultImage.crossOrigin = "anonymous";
 defaultImage.src = zodiacConstellationsUrl;
 
-defaultImage.onload = () => {
-  // Image loaded, will be used later for sampling
+defaultImage.onload = async () => {
+  await loadSamplerFromImage(defaultImage);
 };
 
 defaultImage.onerror = () => {
@@ -129,6 +194,28 @@ defaultImage.onerror = () => {
     statusLabel.textContent = "Failed to load default image";
   }
 };
+
+// Handle image upload
+const imageInput = document.getElementById("modular-image-upload") as HTMLInputElement | null;
+
+imageInput?.addEventListener("change", (event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = async () => {
+    await loadSamplerFromImage(img);
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => {
+    if (statusLabel) {
+      statusLabel.textContent = "Failed to load custom image";
+    }
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+});
 
 // Step 3: Setup canvas sizing (matching oneChannel behavior)
 const FALLBACK_CANVAS_WIDTH = 640;
@@ -157,7 +244,10 @@ function setupCanvasSizes() {
     canvas.height = height;
   }
 
-  // TODO: When image sampling is added, redraw the source image here
+  // Resizing clears canvas pixels, so redraw the source image if loaded
+  if (samplerReady && defaultImage.complete) {
+    drawImageToCanvas(defaultImage);
+  }
 }
 
 setupCanvasSizes();

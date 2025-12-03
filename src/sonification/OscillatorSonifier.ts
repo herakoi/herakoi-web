@@ -156,6 +156,10 @@ export class OscillatorSonifier implements Sonifier {
     const ctx = this.ctx;
     if (!tone || !ctx) return;
 
+    // Remove from map immediately to prevent race conditions
+    // If a new tone with same ID is created during fade, it won't conflict
+    this.nodes.delete(id);
+
     const { gain, osc } = tone;
     const now = ctx.currentTime;
     gain.gain.setValueAtTime(gain.gain.value, now);
@@ -165,7 +169,6 @@ export class OscillatorSonifier implements Sonifier {
       osc.stop();
       osc.disconnect();
       gain.disconnect();
-      this.nodes.delete(id);
     }, this.fadeMs);
   }
 
