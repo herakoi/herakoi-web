@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Herakoi Modular</title>
+  </head>
+  <body class="modular-page">
+    <main class="container">
+      <h1>Herakoi Modular Controller</h1>
+      <p>
+        This entry uses the new interface-driven ApplicationController. Swap detectors, samplers, and
+        sonifiers without touching the main loop.
+      </p>
+
+      <section class="controls">
+        <button id="start-modular">Start modular flow</button>
+        <label>
+          Load sampler image:
+          <input id="modular-image-upload" type="file" accept="image/*" />
+        </label>
+        <span id="modular-status">Loading default image…</span>
+      </section>
+
+      <section class="panels">
+        <div>
+          <h3>Camera</h3>
+          <video id="modular-video" autoplay muted playsinline width="640" height="480"></video>
+        </div>
+        <div>
+          <h3>Sampler Image</h3>
+          <canvas id="modular-image" width="640" height="480"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/modular/main.ts"></script>
+  </body>
+</html>
