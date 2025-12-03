@@ -22,7 +22,7 @@ type EncodedImage = {
   height: number;
 };
 
-const encodeHueValue = (imageData: ImageData): EncodedImage => {
+const encodeHSV = (imageData: ImageData): EncodedImage => {
   const encoded = new Uint8ClampedArray(imageData.data.length);
 
   for (let i = 0; i < imageData.data.length; i += 4) {
@@ -47,12 +47,15 @@ const encodeHueValue = (imageData: ImageData): EncodedImage => {
 
     if (h < 0) h += 360;
 
+    const s = cmax === 0 ? 0 : delta / cmax;
     const v = cmax;
+
     const hByte = Math.round((h / 360) * 255);
+    const sByte = Math.round(s * 255);
     const vByte = Math.round(v * 255);
 
     encoded[i] = hByte;
-    encoded[i + 1] = hByte;
+    encoded[i + 1] = sByte;
     encoded[i + 2] = vByte;
     encoded[i + 3] = imageData.data[i + 3];
   }
@@ -76,11 +79,11 @@ export class HSVImageSampler implements ImageSamplerInterface {
     }
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    this.encoded = encodeHueValue(imageData);
+    this.encoded = encodeHSV(imageData);
   }
 
   /**
-   * Sample the pre-encoded hue/value data at a normalized point.
+   * Sample the pre-encoded HSV data at a normalized point.
    */
   sampleAt(point: DetectedPoint): ImageSampleResult | null {
     if (!this.encoded) return null;
@@ -100,6 +103,7 @@ export class HSVImageSampler implements ImageSamplerInterface {
     return {
       data: {
         hueByte: data[i],
+        saturationByte: data[i + 1],
         valueByte: data[i + 2],
         alpha: data[i + 3],
       },

@@ -92,7 +92,9 @@ describe("OscillatorSonifier", () => {
   });
 
   it("stops all tones on stop()", async () => {
-    const sonifier = new OscillatorSonifier(ctx as unknown as AudioContext);
+    const sonifier = new OscillatorSonifier(ctx as unknown as AudioContext, {
+      fadeMs: 50, // Use shorter fade for test
+    });
     await sonifier.initialize();
 
     sonifier.processSamples(
@@ -103,7 +105,8 @@ describe("OscillatorSonifier", () => {
     );
 
     sonifier.stop();
-    await Promise.resolve();
+    // Wait for fade to complete
+    await new Promise((resolve) => setTimeout(resolve, 60));
 
     const oscA = ctx.createOscillator.mock.results[0].value as FakeOscillator;
     const oscB = ctx.createOscillator.mock.results[1].value as FakeOscillator;

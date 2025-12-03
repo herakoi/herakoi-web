@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment happy-dom
+ *
+ * This test file uses happy-dom to provide browser APIs (ImageData, canvas)
+ * required by HSVImageSampler for RGB→HSV conversion testing.
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HSVImageSampler } from "./HSVImageSampler";
@@ -64,21 +70,25 @@ describe("HSVImageSampler", () => {
 
     expect(sampler.sampleAt({ id: "p0", x: 0, y: 0 })?.data).toEqual({
       hueByte: 0,
+      saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
     expect(sampler.sampleAt({ id: "p1", x: 1, y: 0 })?.data).toEqual({
       hueByte: 85,
+      saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
     expect(sampler.sampleAt({ id: "p2", x: 0, y: 1 })?.data).toEqual({
       hueByte: 170,
+      saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
     expect(sampler.sampleAt({ id: "p3", x: 1, y: 1 })?.data).toEqual({
       hueByte: 0,
+      saturationByte: 0,
       valueByte: 128,
       alpha: 200,
     });
@@ -100,6 +110,3 @@ describe("HSVImageSampler", () => {
     expect(sampler.sampleAt({ id: "overY", x: 0.5, y: 1.4 })).toBeNull();
   });
 });
-/**
- * @vitest-environment happy-dom
- */

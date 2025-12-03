@@ -45,6 +45,7 @@ export class MediaPipePointDetector implements PointDetector {
   private camera: Camera | null = null;
   private callbacks: PointDetectionCallback[] = [];
   private initialized = false;
+  private started = false;
 
   constructor(videoElement: HTMLVideoElement, config: MediaPipePointDetectorConfig = {}) {
     this.videoElement = videoElement;
@@ -87,18 +88,28 @@ export class MediaPipePointDetector implements PointDetector {
       throw new Error("MediaPipePointDetector must be initialized before calling start()");
     }
 
+    if (this.started) {
+      return; // Already started, ignore duplicate call
+    }
+
     if (!this.camera) {
       throw new Error("Camera not initialized");
     }
 
     // Start camera (which triggers onFrame loop)
     void this.camera.start();
+    this.started = true;
   }
 
   stop(): void {
+    if (!this.started) {
+      return; // Not started, nothing to stop
+    }
+
     if (this.camera) {
       this.camera.stop();
     }
+    this.started = false;
   }
 
   onPointsDetected(callback: PointDetectionCallback): void {

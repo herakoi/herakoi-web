@@ -33,9 +33,10 @@ export class OscillatorSonifier implements Sonifier {
   private minFreq = 200;
   private maxFreq = 700;
   private minVol = 0;
-  private maxVol = 20;
+  private maxVol = 0.2;
   private fadeMs = 100;
   private initialized = false;
+  private stopped = false;
 
   constructor(ctx?: AudioContext, options: OscillatorSonifierOptions = {}) {
     this.ctx = ctx ?? null;
@@ -88,6 +89,10 @@ export class OscillatorSonifier implements Sonifier {
       throw new Error("OscillatorSonifier must be initialized before processing samples.");
     }
 
+    if (this.stopped) {
+      return; // Ignore samples after stop() has been called
+    }
+
     const seen = new Set<string>();
 
     for (const [id, sample] of samples) {
@@ -114,6 +119,7 @@ export class OscillatorSonifier implements Sonifier {
   }
 
   stop(): void {
+    this.stopped = true;
     this.stopAll();
   }
 
@@ -155,12 +161,12 @@ export class OscillatorSonifier implements Sonifier {
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + this.fadeMs / 1000);
 
-    Promise.resolve().then(() => {
+    setTimeout(() => {
       osc.stop();
       osc.disconnect();
       gain.disconnect();
       this.nodes.delete(id);
-    });
+    }, this.fadeMs);
   }
 
   private stopAll(): void {

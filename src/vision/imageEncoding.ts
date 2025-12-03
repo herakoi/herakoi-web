@@ -1,4 +1,16 @@
 /**
+ * @deprecated This file is being replaced by src/sampling/HSVImageSampler.ts which
+ * implements the ImageSampler interface with full HSV support (including saturation)
+ * and normalized coordinates. Use HSVImageSampler for new code. This legacy
+ * implementation will be removed in a future version once all dependents are migrated.
+ *
+ * Migration guide:
+ * - Old: new ImageSampler(canvas) → New: await sampler.loadImage(canvas)
+ * - Old: sampleAtPixel(x, y) → New: sampleAt({id, x: x/width, y: y/height})
+ * - Old: returns {hueByte, valueByte} → New: returns {hueByte, saturationByte, valueByte}
+ */
+
+/**
  * We keep image loading and pixel sampling in one place so the controller only asks
  * for "give me hue/value at this point" and never touches raw ImageData. This mirrors
  * the modernization plan for step 3: store the uploaded image once, expose simple
