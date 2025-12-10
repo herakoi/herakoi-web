@@ -10,7 +10,10 @@ import "./style.css";
 
 import { drawFingerFocus, drawHands } from "#src/canvas/overlay";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
-import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
+import {
+  type FacingMode,
+  MediaPipePointDetector,
+} from "#src/detection/mediapipe/MediaPipePointDetector";
 import { HSVImageSampler } from "#src/sampling/HSVImageSampler";
 import { OscillatorSonifier } from "#src/sonification/OscillatorSonifier";
 
@@ -36,14 +39,72 @@ if (!videoOverlayCtx || !imageOverlayCtx) {
   throw new Error("Unable to acquire 2D contexts for overlay canvases.");
 }
 
+// Get control elements
+const minFreqSlider = document.getElementById("modular-min-freq") as HTMLInputElement | null;
+const maxFreqSlider = document.getElementById("modular-max-freq") as HTMLInputElement | null;
+const minFreqValue = document.getElementById("modular-min-freq-value");
+const maxFreqValue = document.getElementById("modular-max-freq-value");
+
+const minVolSlider = document.getElementById("modular-min-vol") as HTMLInputElement | null;
+const maxVolSlider = document.getElementById("modular-max-vol") as HTMLInputElement | null;
+const minVolValue = document.getElementById("modular-min-vol-value");
+const maxVolValue = document.getElementById("modular-max-vol-value");
+
+const mirrorToggleButton = document.getElementById(
+  "modular-mirror-toggle",
+) as HTMLButtonElement | null;
+const maxHandsSlider = document.getElementById("modular-max-hands") as HTMLInputElement | null;
+const maxHandsValue = document.getElementById("modular-max-hands-value");
+const oscillatorTypeSelect = document.getElementById(
+  "modular-oscillator-type",
+) as HTMLSelectElement | null;
+const cameraFacingSelect = document.getElementById(
+  "modular-camera-facing",
+) as HTMLSelectElement | null;
+
+if (
+  !minFreqSlider ||
+  !maxFreqSlider ||
+  !minFreqValue ||
+  !maxFreqValue ||
+  !minVolSlider ||
+  !maxVolSlider ||
+  !minVolValue ||
+  !maxVolValue ||
+  !mirrorToggleButton ||
+  !maxHandsSlider ||
+  !maxHandsValue ||
+  !oscillatorTypeSelect ||
+  !cameraFacingSelect
+) {
+  throw new Error("Expected control elements to be present.");
+}
+
 // Mirror state (matches body class)
-const isMirrored = document.body.classList.contains("is-mirrored");
+let isMirrored = document.body.classList.contains("is-mirrored");
+
+// Initialize control values
+let minFreq = Number(minFreqSlider.value) || 200;
+let maxFreq = Number(maxFreqSlider.value) || 700;
+let minVol = Number(minVolSlider.value) || 0;
+let maxVol = Number(maxVolSlider.value) / 100 || 0.2; // Convert 0-100 range to 0-1
+let maxHands = Number(maxHandsSlider.value) || 2;
+const initialOscType = (oscillatorTypeSelect.value || "sine") as OscillatorType;
+const initialFacingMode: FacingMode = (cameraFacingSelect.value as FacingMode) || "user";
+
+// Update value displays
+minFreqValue.textContent = String(minFreq);
+maxFreqValue.textContent = String(maxFreq);
+minVolValue.textContent = String(minVolSlider.value);
+maxVolValue.textContent = String(maxVolSlider.value);
+maxHandsValue.textContent = String(maxHands);
 
 // Step 1: Set up hands detection
 // MediaPipePointDetector wraps both HandsDetector and Camera, matching oneChannel/main.ts behavior
 const detector = new MediaPipePointDetector(videoElement, {
-  maxHands: 2,
+  maxHands,
   mirrorX: isMirrored, // Apply mirroring at detector level
+  facingMode: initialFacingMode,
   mediaPipeOptions: {
     modelComplexity: 1,
     minDetectionConfidence: 0.7,
@@ -160,17 +221,12 @@ const sampler = new HSVImageSampler();
 let samplerReady = false;
 
 // Step 5: Setup audio sonification
-const minFreq = 200;
-const maxFreq = 700;
-const minVol = 0;
-const maxVol = 0.2;
-
 const sonifier = new OscillatorSonifier(undefined, {
   minFreq,
   maxFreq,
   minVol,
   maxVol,
-  oscillatorType: "sine",
+  oscillatorType: initialOscType,
   fadeMs: 120,
 });
 
@@ -271,3 +327,72 @@ function setupCanvasSizes() {
 
 setupCanvasSizes();
 window.addEventListener("resize", setupCanvasSizes);
+
+// Step 7: Setup control event listeners
+
+// Frequency sliders
+minFreqSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  minFreq = value;
+  minFreqValue.textContent = String(value);
+  sonifier.configure({ minFreq });
+});
+
+maxFreqSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  maxFreq = value;
+  maxFreqValue.textContent = String(value);
+  sonifier.configure({ maxFreq });
+});
+
+// Volume sliders
+minVolSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  minVol = value / 100; // Convert 0-100 to 0-1
+  minVolValue.textContent = String(value);
+  sonifier.configure({ minVol });
+});
+
+maxVolSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  maxVol = value / 100; // Convert 0-100 to 0-1
+  maxVolValue.textContent = String(value);
+  sonifier.configure({ maxVol });
+});
+
+// Mirror toggle
+const setMirrorState = (nextState: boolean) => {
+  isMirrored = nextState;
+  document.body.classList.toggle("is-mirrored", isMirrored);
+  mirrorToggleButton.textContent = isMirrored ? "Disable mirror mode" : "Enable mirror mode";
+
+  // Keep detector coordinates aligned with the displayed video so overlays track correctly
+  detector.setMirror(isMirrored);
+};
+
+mirrorToggleButton.addEventListener("click", () => {
+  setMirrorState(!isMirrored);
+});
+
+// Initialize mirror button text
+setMirrorState(isMirrored);
+
+// Max hands slider - Note: MediaPipe requires recreation to change maxHands
+maxHandsSlider.addEventListener("input", (event) => {
+  const value = Number((event.target as HTMLInputElement).value);
+  maxHands = Math.max(1, Math.min(8, value));
+  maxHandsValue.textContent = String(maxHands);
+  detector.setMaxHands(maxHands);
+});
+
+// Oscillator type selector
+oscillatorTypeSelect.addEventListener("change", (event) => {
+  const nextType = (event.target as HTMLSelectElement).value as OscillatorType;
+  sonifier.configure({ oscillatorType: nextType });
+});
+
+// Camera facing selector - restart camera with new facing mode
+cameraFacingSelect.addEventListener("change", (event) => {
+  const nextFacing = ((event.target as HTMLSelectElement).value as FacingMode) || "user";
+  void detector.restartCamera(nextFacing);
+});

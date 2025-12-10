@@ -31,6 +31,11 @@ import { HandsDetector } from "#src/vision/hands";
 export type HandsDrawerCallback = (landmarks: NormalizedLandmarkList[]) => void;
 
 /**
+ * Camera facing mode for video input.
+ */
+export type FacingMode = "user" | "environment";
+
+/**
  * Configuration for MediaPipePointDetector.
  */
 export interface MediaPipePointDetectorConfig {
@@ -42,6 +47,15 @@ export interface MediaPipePointDetectorConfig {
 
   /** Mirror x-coordinates horizontally (useful for user-facing cameras) */
   mirrorX?: boolean;
+
+  /** Camera facing mode ("user" for front camera, "environment" for rear) */
+  facingMode?: FacingMode;
+
+  /** Camera resolution width (default: 640) */
+  cameraWidth?: number;
+
+  /** Camera resolution height (default: 480) */
+  cameraHeight?: number;
 }
 
 /**
@@ -91,11 +105,88 @@ export class MediaPipePointDetector implements PointDetector {
           await this.handsDetector.getInstance().send({ image: this.videoElement });
         }
       },
-      width: this.videoElement.width || 640,
-      height: this.videoElement.height || 480,
+      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
+      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
+      facingMode: this.config.facingMode ?? "user",
     });
 
     this.initialized = true;
+  }
+
+  /**
+   * Restart the camera with a new facing mode.
+   *
+   * Allows switching between front ("user") and rear ("environment") cameras
+   * without recreating the entire detector.
+   *
+   * @param facingMode New camera facing mode
+   * @throws Error if not initialized or if camera fails to restart
+   */
+  async restartCamera(facingMode: FacingMode): Promise<void> {
+    if (!this.initialized) {
+      throw new Error("MediaPipePointDetector must be initialized before restarting camera");
+    }
+
+    // Stop existing camera
+    if (this.camera) {
+      try {
+        await this.camera.stop();
+      } catch (error) {
+        console.warn("Failed to stop existing camera:", error);
+      }
+    }
+
+    // Update config
+    this.config.facingMode = facingMode;
+
+    // Create new camera with new facing mode
+    this.camera = new Camera(this.videoElement, {
+      onFrame: async () => {
+        if (this.handsDetector) {
+          await this.handsDetector.getInstance().send({ image: this.videoElement });
+        }
+      },
+      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
+      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
+      facingMode,
+    });
+
+    // Restart camera if we were already started
+    if (this.started) {
+      try {
+        await this.camera.start();
+      } catch (error) {
+        console.error("Failed to start new camera:", error);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Update mirror mode at runtime so UI toggles can keep overlays aligned with the video.
+   *
+   * We only flip the in-memory config; the next MediaPipe result cycle will
+   * apply the mirrored coordinates without needing to recreate the detector.
+   *
+   * @param mirrorX Whether to mirror x-coordinates for selfie-style rendering
+   */
+  setMirror(mirrorX: boolean): void {
+    this.config.mirrorX = mirrorX;
+  }
+
+  /**
+   * Update the maximum number of hands MediaPipe should track at runtime.
+   *
+   * MediaPipe Hands supports changing `maxNumHands` via setOptions, so we
+   * propagate the new limit without tearing down the detector.
+   *
+   * @param maxHands Maximum hands to track (1-8; MediaPipe clamps internally)
+   */
+  setMaxHands(maxHands: number): void {
+    this.config.maxHands = maxHands;
+    if (this.handsDetector) {
+      this.handsDetector.getInstance().setOptions({ maxNumHands: maxHands });
+    }
   }
 
   start(): void {
