@@ -8,8 +8,8 @@
 
 import "./style.css";
 
-import type { NormalizedLandmarkList } from "@mediapipe/hands";
 import { drawFingerFocus, drawHands } from "#src/canvas/overlay";
+import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
 import { HSVImageSampler } from "#src/sampling/HSVImageSampler";
 import { OscillatorSonifier } from "#src/sonification/OscillatorSonifier";
@@ -39,18 +39,11 @@ if (!videoOverlayCtx || !imageOverlayCtx) {
 // Mirror state (matches body class)
 const isMirrored = document.body.classList.contains("is-mirrored");
 
-// Helper function to mirror landmarks horizontally
-function mirrorLandmarks(landmarks: NormalizedLandmarkList): NormalizedLandmarkList {
-  return landmarks.map((landmark) => ({
-    ...landmark,
-    x: 1 - landmark.x,
-  })) as NormalizedLandmarkList;
-}
-
 // Step 1: Set up hands detection
 // MediaPipePointDetector wraps both HandsDetector and Camera, matching oneChannel/main.ts behavior
 const detector = new MediaPipePointDetector(videoElement, {
   maxHands: 2,
+  mirrorX: isMirrored, // Apply mirroring at detector level
   mediaPipeOptions: {
     modelComplexity: 1,
     minDetectionConfidence: 0.7,
@@ -60,6 +53,7 @@ const detector = new MediaPipePointDetector(videoElement, {
 
 // Step 1a: Register hand visualization drawer
 // This MediaPipe-specific callback draws the hand skeleton on both overlays
+// Note: landmarks are already mirrored by the detector if mirrorX is enabled
 detector.onHandsDrawn((landmarks) => {
   // Clear previous frame on both overlays
   videoOverlayCtx.clearRect(0, 0, videoOverlayCanvas.width, videoOverlayCanvas.height);
@@ -67,28 +61,25 @@ detector.onHandsDrawn((landmarks) => {
 
   // Draw each detected hand on both video and image canvases
   for (const handLandmarks of landmarks) {
-    const workingLandmarks = isMirrored ? mirrorLandmarks(handLandmarks) : handLandmarks;
     drawHands([
-      { ctx: videoOverlayCtx, landmarks: workingLandmarks },
-      { ctx: imageOverlayCtx, landmarks: workingLandmarks },
+      { ctx: videoOverlayCtx, landmarks: handLandmarks },
+      { ctx: imageOverlayCtx, landmarks: handLandmarks },
     ]);
   }
 });
 
 // Step 1b: Draw finger focus squares on detected fingertips and sample image
+// Note: points are already mirrored by the detector if mirrorX is enabled
 detector.onPointsDetected((points) => {
   // Convert normalized coordinates to pixel coordinates and draw squares on both canvases
   for (const point of points) {
-    // Mirror x-coordinate if needed for visualization
-    const normalizedX = isMirrored ? 1 - point.x : point.x;
-
     // Draw on video overlay
-    const videoPixelX = normalizedX * videoOverlayCanvas.width;
+    const videoPixelX = point.x * videoOverlayCanvas.width;
     const videoPixelY = point.y * videoOverlayCanvas.height;
     drawFingerFocus(videoOverlayCtx, { x: videoPixelX, y: videoPixelY });
 
     // Draw on image overlay
-    const imagePixelX = normalizedX * imageOverlayCanvas.width;
+    const imagePixelX = point.x * imageOverlayCanvas.width;
     const imagePixelY = point.y * imageOverlayCanvas.height;
     drawFingerFocus(imageOverlayCtx, { x: imagePixelX, y: imagePixelY });
   }
@@ -97,18 +88,38 @@ detector.onPointsDetected((points) => {
   // IMPORTANT: Always call processSamples (even with empty map) so sonifier
   // knows to stop tones when hands disappear
   const samples = new Map();
+  const debugToneSamples: DebugToneSample[] = [];
 
   if (samplerReady) {
     for (const point of points) {
       const sample = sampler.sampleAt(point);
       if (sample) {
         samples.set(point.id, sample);
+
+        // Build debug data by calculating frequency/volume from sample
+        const hueByte = sample.data.hueByte ?? 0;
+        const saturationByte = sample.data.saturationByte ?? 0;
+        const valueByte = sample.data.valueByte ?? 0;
+        const frequency = minFreq + (hueByte / 255) * (maxFreq - minFreq);
+        const volume = minVol + (valueByte / 255) * (maxVol - minVol);
+
+        debugToneSamples.push({
+          toneId: point.id,
+          frequency,
+          volume,
+          hueByte,
+          saturationByte,
+          valueByte,
+        });
       }
     }
   }
 
   // Send samples to sonifier (empty map = stop all tones)
   sonifier.processSamples(samples);
+
+  // Update debug HUD
+  debugTools.logToneSamples(debugToneSamples);
 });
 
 // Step 2: Auto-start detection on page load (matching oneChannel behavior)
@@ -149,14 +160,22 @@ const sampler = new HSVImageSampler();
 let samplerReady = false;
 
 // Step 5: Setup audio sonification
+const minFreq = 200;
+const maxFreq = 700;
+const minVol = 0;
+const maxVol = 0.2;
+
 const sonifier = new OscillatorSonifier(undefined, {
-  minFreq: 200,
-  maxFreq: 700,
-  minVol: 0,
-  maxVol: 0.2,
+  minFreq,
+  maxFreq,
+  minVol,
+  maxVol,
   oscillatorType: "sine",
   fadeMs: 120,
 });
+
+// Step 6: Setup debug tools
+const debugTools = setupDebugTools();
 
 const imageCtx = imageCanvas.getContext("2d");
 if (!imageCtx) {
