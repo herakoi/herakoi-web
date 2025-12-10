@@ -43,6 +43,7 @@ const encodeHueValue = (imageData: ImageData) => {
     }
 
     if (h < 0) h += 360;
+    if (h > 340) h = 340;
 
     const v = cmax;
     const hByte = Math.round((h / 360) * 255);
@@ -90,6 +91,54 @@ export class ImageSampler {
       hueByte: this.encoded[i],
       valueByte: this.encoded[i + 2],
       alpha: this.encoded[i + 3],
+    };
+  }
+
+  /**
+   * Sample a grid centered at (x, y) and return the average hue and value.
+   * This provides smoother sonification by reducing the impact of single-pixel noise.
+   */
+  public sampleFromGrid(x: number, y: number, gridSize = 3): PixelSample | null {
+    if (!this.encoded) {
+      return null;
+    }
+
+    if (gridSize < 1 || gridSize % 2 === 0) {
+      throw new Error("gridSize must be a positive odd number");
+    }
+
+    let hueSum = 0;
+    let valueSum = 0;
+    let alphaSum = 0;
+    let validSamples = 0;
+
+    const radius = Math.floor(gridSize / 2);
+
+    // Sample grid around the target pixel
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const sampleX = x + dx;
+        const sampleY = y + dy;
+
+        // Only include samples within bounds
+        if (sampleX >= 0 && sampleX < this.width && sampleY >= 0 && sampleY < this.height) {
+          const i = (sampleY * this.width + sampleX) * 4;
+          hueSum += this.encoded[i];
+          valueSum += this.encoded[i + 2];
+          alphaSum += this.encoded[i + 3];
+          validSamples++;
+        }
+      }
+    }
+
+    if (validSamples === 0) {
+      return null;
+    }
+
+    return {
+      hueByte: Math.round(hueSum / validSamples),
+      valueByte: Math.round(valueSum / validSamples),
+      alpha: Math.round(alphaSum / validSamples),
     };
   }
 }

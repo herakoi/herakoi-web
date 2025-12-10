@@ -24,6 +24,8 @@ export class Sonifier {
   private readonly ctx: AudioContext;
   private readonly nodes = new Map<ToneId, ToneNodes>();
   private readonly fadeMs = 100;
+  private readonly updateIntervalMs = 100;
+  private readonly lastUpdate = new Map<ToneId, number>();
   private oscType: OscillatorType = "sine";
 
   constructor(ctx?: AudioContext) {
@@ -54,6 +56,14 @@ export class Sonifier {
   }
 
   updateTone(id: ToneId, params: ToneParams): void {
+    const now = Date.now();
+    const lastUpdateTime = this.lastUpdate.get(id) ?? 0;
+
+    if (now - lastUpdateTime < this.updateIntervalMs) {
+      return;
+    }
+
+    this.lastUpdate.set(id, now);
     const existing = this.nodes.get(id) ?? this.createTone(id);
 
     existing.gain.gain.setValueAtTime(params.volume, this.ctx.currentTime);
@@ -83,6 +93,8 @@ export class Sonifier {
     const now = this.ctx.currentTime;
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + this.fadeMs / 1000);
+
+    this.lastUpdate.delete(id);
 
     // Use a microtask to keep tests synchronous while mirroring the fade delay for real audio.
     Promise.resolve().then(() => {
