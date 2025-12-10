@@ -59,7 +59,7 @@ All implementation work MUST follow the Red-Green-Refactor cycle:
 - [x] Canvas utilities (`overlay`)
 - [x] Test coverage (8 tests passing)
 - [ ] Abstractions not yet interface-based (classes are concrete, not swappable)
-- [ ] Orchestration still monolithic in `main.ts` (373 lines)
+- [ ] Orchestration still monolithic in legacy `src/oneChannel/main.ts` (kept for reference)
 - [ ] No plugin composition system
 
 ---
@@ -67,7 +67,7 @@ All implementation work MUST follow the Red-Green-Refactor cycle:
 ## Phase 3: Interface-Driven Architecture (Immediate Priority)
 
 ### Goal
-Define and implement the three core abstractions as TypeScript interfaces, refactor existing code to conform, and create a composition system that wires them together.
+Define and implement the three core abstractions as TypeScript interfaces, refactor existing code to conform, and create a composition system that wires them together. We are now applying this work to the new `modular.html` touchpoint (`src/modular/main.ts`) instead of the legacy `src/oneChannel/main.ts`, so the controller wiring should target the modular entry first and backport only if needed.
 
 ### 3.1 Define Core Interfaces
 
@@ -178,7 +178,7 @@ export class ApplicationController {
 }
 ```
 
-**Update `src/oneChannel/main.ts` to use composition:**
+**Update `src/modular/main.ts` to use composition (primary target):**
 
 ```typescript
 import { ApplicationController } from '#src/core/ApplicationController';
@@ -210,7 +210,7 @@ await app.start();
 ```
 
 **Success criteria:**
-- `main.ts` under 100 lines (bootstrap + UI wiring only)
+- `src/modular/main.ts` under 100 lines (bootstrap + UI wiring only)
 - Core loop in `ApplicationController` is interface-driven (no concrete class dependencies)
 - Existing one-channel behavior unchanged
 - Tests for `ApplicationController` with mocked interfaces
@@ -222,7 +222,7 @@ await app.start();
 ### Goal
 Prove the architecture works by implementing alternative plugins that swap in cleanly.
 
-### 4.1 Mouse Point Detector
+### 4.1 Mouse Point Detector *(postponed)*
 
 **Create `src/detection/mouse/MousePointDetector.ts`:**
 - Implements `PointDetector`
@@ -237,7 +237,7 @@ const detector = new MousePointDetector(imageOverlayCanvas);
 // Everything else stays the same!
 ```
 
-### 4.2 MIDI Sonifier
+### 4.2 MIDI Sonifier *(postponed)*
 
 **Create `src/sonification/MIDISonifier.ts`:**
 - Implements `Sonifier`
@@ -254,7 +254,7 @@ const app = new ApplicationController(detector, sampler, sonifier);
 // Now hand movements trigger MIDI notes instead of oscillators!
 ```
 
-### 4.3 Three-Channel Sonifier (Not a separate app!)
+### 4.3 Three-Channel Sonifier (Not a separate app!) *(postponed)*
 
 **Create `src/sonification/StereoOscillatorSonifier.ts`:**
 - Implements `Sonifier`
@@ -283,7 +283,7 @@ modeSelect.addEventListener('change', (e) => {
 });
 ```
 
-### 4.4 Brightness Sampler
+### 4.4 Brightness Sampler *(postponed)*
 
 **Create `src/sampling/BrightnessImageSampler.ts`:**
 - Implements `ImageSampler`
@@ -309,7 +309,7 @@ sonifier.configure({
 ### Goal
 Enable users to compose plugins without writing code.
 
-### 5.1 JSON Configuration Format
+### 5.1 JSON Configuration Format *(postponed)*
 
 **Create `src/core/config.schema.ts`:**
 
@@ -385,7 +385,7 @@ export class PluginRegistry {
 }
 ```
 
-### 5.2 Preset Configurations
+### 5.2 Preset Configurations *(postponed)*
 
 **Create `src/presets/one-channel-hands.json`:**
 ```json
@@ -414,7 +414,7 @@ export class PluginRegistry {
 }
 ```
 
-### 5.3 Preset Loader
+### 5.3 Preset Loader *(postponed)*
 
 **Update `main.ts`:**
 ```typescript
@@ -438,7 +438,7 @@ await app.start();
 
 ## Phase 6: Developer Experience & Documentation
 
-### 6.1 Plugin Development Guide
+### 6.1 Plugin Development Guide *(postponed)*
 
 **Create `docs/plugin-development.md`:**
 - How to implement each interface
@@ -446,14 +446,14 @@ await app.start();
 - Registration in PluginRegistry
 - Example: step-by-step walkthrough of building a TouchPointDetector
 
-### 6.2 Architecture Diagram
+### 6.2 Architecture Diagram *(postponed)*
 
 **Create `docs/architecture.md`:**
 - Visual diagram showing the three-interface flow
 - Example configurations with different plugin combinations
 - Sequence diagram of point detection → sampling → sonification
 
-### 6.3 API Documentation
+### 6.3 API Documentation *(postponed)*
 
 **Add JSDoc to all interfaces:**
 - Document coordinate systems
@@ -532,19 +532,19 @@ await app.start();
 - [ ] `main.ts` under 100 lines
 - [ ] Test coverage maintained above 75%
 
-**Phase 4 (Alternative Implementations):**
+**Phase 4 (Alternative Implementations):** *postponed*
 - [ ] Mouse detector swappable via one-line change
 - [ ] MIDI sonifier functional with external DAW
 - [ ] Three-channel behavior achieved via sonifier swap (no new HTML entry)
 - [ ] Brightness sampler works with existing sonifiers
 - [ ] Tests for all new plugins
 
-**Phase 5 (Configuration System):**
+**Phase 5 (Configuration System):** *postponed*
 - [ ] Three presets loadable from JSON
 - [ ] Plugin registry instantiates correct implementations
 - [ ] Runtime preset switching works without page reload
 
-**Phase 6 (Documentation):**
+**Phase 6 (Documentation):** *postponed*
 - [ ] Plugin development guide published
 - [ ] Architecture diagram in `docs/`
 - [ ] All interfaces have JSDoc
@@ -558,24 +558,24 @@ await app.start();
 - Week 2: Build ApplicationController, update main.ts, tests
 - Week 3: Buffer for edge cases, documentation
 
-**Phase 4 (Alternative Implementations):** 1-2 weeks
-- Mouse detector: 1-2 days
-- MIDI sonifier: 3-4 days (Web MIDI API learning curve)
-- Three-channel sonifier: 2-3 days (stereo panning implementation)
-- Brightness sampler: 1-2 days
-- Tests: 2-3 days
+**Phase 4 (Alternative Implementations):** *postponed*
+- Mouse detector: 1-2 days (deferred)
+- MIDI sonifier: 3-4 days (deferred; Web MIDI API learning curve)
+- Three-channel sonifier: 2-3 days (deferred; stereo panning implementation)
+- Brightness sampler: 1-2 days (deferred)
+- Tests: 2-3 days (deferred)
 
-**Phase 5 (Configuration System):** 1 week
-- Registry: 2 days
-- Presets + loader: 2 days
-- UI integration: 1 day
-- Tests: 2 days
+**Phase 5 (Configuration System):** *postponed*
+- Registry: 2 days (deferred)
+- Presets + loader: 2 days (deferred)
+- UI integration: 1 day (deferred)
+- Tests: 2 days (deferred)
 
-**Phase 6 (Documentation):** Ongoing
-- Write docs alongside implementation
-- Final polish: 2-3 days
+**Phase 6 (Documentation):** *postponed*
+- Write docs alongside implementation (deferred)
+- Final polish: 2-3 days (deferred)
 
-**Total:** 5-7 weeks for full plugin architecture
+**Total:** Phase 3 in-flight; overall timeline will be re-estimated when phases 4-6 are rescheduled.
 
 ---
 
