@@ -214,6 +214,7 @@ await app.start();
 - Core loop in `ApplicationController` is interface-driven (no concrete class dependencies)
 - Existing one-channel behavior unchanged
 - Tests for `ApplicationController` with mocked interfaces
+- `index.html` links to `modular.html` as the active development touchpoint; legacy `one-channel.html` and `three-channel.html` stay in the repo but are removed from primary navigation to reduce confusion.
 
 ---
 
@@ -583,7 +584,7 @@ await app.start();
 
 **Step 1:** Define interfaces (no breaking changes)
 **Step 2:** Create new implementations in parallel (old code untouched)
-**Step 3:** Update main.ts to use new implementations (single commit, easy rollback)
+**Step 3:** Update `modular.html` / `src/modular/main.ts` to use new implementations and point `index.html` at `modular.html`; remove `one-channel.html` and `three-channel.html` from main links (keep files for reference)
 **Step 4:** Deprecate old paths (keep exports working with warnings)
 **Step 5:** Remove old files after one release cycle
 
