@@ -39,6 +39,9 @@ export interface MediaPipePointDetectorConfig {
 
   /** Additional MediaPipe Hands options */
   mediaPipeOptions?: Options;
+
+  /** Mirror x-coordinates horizontally (useful for user-facing cameras) */
+  mirrorX?: boolean;
 }
 
 /**
@@ -147,6 +150,7 @@ export class MediaPipePointDetector implements PointDetector {
    * Applies finger focus logic:
    * - For each detected hand, extract only the index fingertip (landmark 8)
    * - Convert to normalized coordinates (MediaPipe already provides 0-1 range)
+   * - Apply mirroring transformation if configured
    * - Generate unique ID for each hand's index finger
    *
    * @param results MediaPipe Hands detection results
@@ -154,17 +158,22 @@ export class MediaPipePointDetector implements PointDetector {
   private handleResults(results: Results): void {
     const points: DetectedPoint[] = [];
 
+    // Apply mirroring to landmarks if configured
+    const landmarks = results.multiHandLandmarks || [];
+    const workingLandmarks = this.config.mirrorX
+      ? landmarks.map((hand) => this.mirrorLandmarks(hand))
+      : landmarks;
+
     // Always call visualization drawers on every frame (even if no hands detected)
     // This allows drawers to clear previous frames
-    const landmarks = results.multiHandLandmarks || [];
     for (const drawer of this.drawers) {
-      drawer(landmarks);
+      drawer(workingLandmarks);
     }
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       // Process each detected hand
-      for (let handIndex = 0; handIndex < results.multiHandLandmarks.length; handIndex++) {
-        const handLandmarks = results.multiHandLandmarks[handIndex];
+      for (let handIndex = 0; handIndex < workingLandmarks.length; handIndex++) {
+        const handLandmarks = workingLandmarks[handIndex];
 
         // Finger focus: use index finger tip (landmark 8)
         // https://github.com/google/mediapipe/blob/master/docs/solutions/hands.md#hand-landmark-model
@@ -173,7 +182,7 @@ export class MediaPipePointDetector implements PointDetector {
         if (indexTip) {
           points.push({
             id: `hand-${handIndex}-index-tip`,
-            x: indexTip.x, // Already normalized 0-1
+            x: indexTip.x, // Already normalized 0-1 and mirrored if configured
             y: indexTip.y, // Already normalized 0-1
           });
         }
@@ -184,5 +193,15 @@ export class MediaPipePointDetector implements PointDetector {
     for (const callback of this.callbacks) {
       callback(points);
     }
+  }
+
+  /**
+   * Mirror landmarks horizontally for selfie-camera effect.
+   */
+  private mirrorLandmarks(landmarks: NormalizedLandmarkList): NormalizedLandmarkList {
+    return landmarks.map((landmark) => ({
+      ...landmark,
+      x: 1 - landmark.x,
+    })) as NormalizedLandmarkList;
   }
 }

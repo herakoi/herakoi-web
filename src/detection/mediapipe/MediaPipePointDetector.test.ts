@@ -322,5 +322,127 @@ describe("MediaPipePointDetector", () => {
       expect(callback1).toHaveBeenCalled();
       expect(callback2).toHaveBeenCalled();
     });
+
+    it("should mirror x-coordinates when mirrorX is true", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement, { mirrorX: true });
+      const callback = vi.fn();
+
+      await detector.initialize();
+      detector.onPointsDetected(callback);
+
+      // Simulate MediaPipe detecting one hand with index finger at (0.3, 0.4)
+      const mockImage = document.createElement("img") as HTMLImageElement;
+      const mockResults: Results = {
+        image: mockImage,
+        multiHandLandmarks: [
+          Array.from({ length: 21 }, (_, i) =>
+            i === 8 ? { x: 0.3, y: 0.4, z: 0 } : { x: 0, y: 0, z: 0 },
+          ),
+        ],
+        multiHandedness: [],
+        multiHandWorldLandmarks: [],
+      };
+
+      mockOnResultsCallback?.(mockResults);
+
+      // x should be mirrored: 1 - 0.3 = 0.7, y stays the same
+      expect(callback).toHaveBeenCalledWith([
+        {
+          id: "hand-0-index-tip",
+          x: 0.7,
+          y: 0.4,
+        },
+      ]);
+    });
+
+    it("should not mirror coordinates when mirrorX is false", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement, { mirrorX: false });
+      const callback = vi.fn();
+
+      await detector.initialize();
+      detector.onPointsDetected(callback);
+
+      // Simulate MediaPipe detecting one hand with index finger at (0.3, 0.4)
+      const mockImage = document.createElement("img") as HTMLImageElement;
+      const mockResults: Results = {
+        image: mockImage,
+        multiHandLandmarks: [
+          Array.from({ length: 21 }, (_, i) =>
+            i === 8 ? { x: 0.3, y: 0.4, z: 0 } : { x: 0, y: 0, z: 0 },
+          ),
+        ],
+        multiHandedness: [],
+        multiHandWorldLandmarks: [],
+      };
+
+      mockOnResultsCallback?.(mockResults);
+
+      // Coordinates should remain unchanged
+      expect(callback).toHaveBeenCalledWith([
+        {
+          id: "hand-0-index-tip",
+          x: 0.3,
+          y: 0.4,
+        },
+      ]);
+    });
+  });
+
+  describe("onHandsDrawn()", () => {
+    it("should invoke drawer callbacks with mirrored landmarks when mirrorX is true", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement, { mirrorX: true });
+      const drawer = vi.fn();
+
+      await detector.initialize();
+      detector.onHandsDrawn(drawer);
+
+      // Simulate MediaPipe detecting one hand
+      const mockImage = document.createElement("img") as HTMLImageElement;
+      const mockResults: Results = {
+        image: mockImage,
+        multiHandLandmarks: [Array.from({ length: 21 }, () => ({ x: 0.3, y: 0.4, z: 0 }))],
+        multiHandedness: [],
+        multiHandWorldLandmarks: [],
+      };
+
+      mockOnResultsCallback?.(mockResults);
+
+      // Drawer should receive mirrored landmarks
+      expect(drawer).toHaveBeenCalledWith([
+        expect.arrayContaining([
+          expect.objectContaining({ x: 0.7, y: 0.4, z: 0 }), // x mirrored: 1 - 0.3 = 0.7
+        ]),
+      ]);
+    });
+
+    it("should invoke drawer callbacks with original landmarks when mirrorX is false", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement, { mirrorX: false });
+      const drawer = vi.fn();
+
+      await detector.initialize();
+      detector.onHandsDrawn(drawer);
+
+      // Simulate MediaPipe detecting one hand
+      const mockImage = document.createElement("img") as HTMLImageElement;
+      const mockResults: Results = {
+        image: mockImage,
+        multiHandLandmarks: [Array.from({ length: 21 }, () => ({ x: 0.3, y: 0.4, z: 0 }))],
+        multiHandedness: [],
+        multiHandWorldLandmarks: [],
+      };
+
+      mockOnResultsCallback?.(mockResults);
+
+      // Drawer should receive original landmarks
+      expect(drawer).toHaveBeenCalledWith([
+        expect.arrayContaining([
+          expect.objectContaining({ x: 0.3, y: 0.4, z: 0 }), // x unchanged
+        ]),
+      ]);
+    });
   });
 });
