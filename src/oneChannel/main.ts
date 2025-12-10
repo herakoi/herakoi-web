@@ -216,6 +216,7 @@ hands.onResults((results: Results) => {
         frequency: freq,
         volume,
         hueByte: pixelSample.hueByte,
+        saturationByte: 255, // Legacy ImageSampler doesn't provide saturation, default to full
         valueByte: pixelSample.valueByte,
       });
       drawFrequencyLabel(imageOverlayCtx, fingerFocus, freq, handIndex);

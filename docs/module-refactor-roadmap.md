@@ -18,6 +18,34 @@ Herakoi's core loop is simple: **detect point → extract image data → create 
 
 **Core principle:** Swapping implementations should require only configuration changes, not code rewrites. The controller orchestrates these three interfaces without knowing their concrete implementations.
 
+## Development Methodology
+
+**Test-Driven Development (TDD) - MANDATORY**
+
+All implementation work MUST follow the Red-Green-Refactor cycle:
+
+1. **Red** - Write failing tests first
+   - Define the interface contract through tests
+   - Specify expected behavior before implementation
+   - Tests should fail initially (red)
+
+2. **Green** - Write minimal code to pass tests
+   - Implement just enough to make tests pass
+   - Focus on correctness, not optimization
+   - All tests should pass (green)
+
+3. **Refactor** - Improve code quality
+   - Clean up implementation while keeping tests green
+   - Improve naming, structure, and patterns
+   - Ensure tests still pass after refactoring
+
+**Implementation workflow:**
+- Discuss implementation strategy before writing code
+- Write tests defining the contract and behavior
+- Implement to satisfy tests
+- Refactor for quality
+- Repeat for next component
+
 ---
 
 ## Current Status

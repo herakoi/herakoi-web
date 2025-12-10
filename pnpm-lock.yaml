@@ -42,6 +42,9 @@ importers:
       cz-conventional-changelog:
         specifier: ^3.3.0
         version: 3.3.0(@types/node@24.10.0)(typescript@5.9.3)
+      happy-dom:
+        specifier: ^20.0.11
+        version: 20.0.11
       lefthook:
         specifier: ^2.0.2
         version: 2.0.2
@@ -56,7 +59,7 @@ importers:
         version: 7.2.1(@types/node@24.10.0)(jiti@2.6.1)
       vitest:
         specifier: ^4.0.7
-        version: 4.0.7(@types/node@24.10.0)(jiti@2.6.1)
+        version: 4.0.7(@types/node@24.10.0)(happy-dom@20.0.11)(jiti@2.6.1)
 
 packages:
 
@@ -483,8 +486,14 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/node@20.19.25':
+    resolution: {integrity: sha512-ZsJzA5thDQMSQO788d7IocwwQbI8B5OPzmqNvpf3NY/+MHDAS759Wo0gd2WQeXYt5AAAQjzcrTVC6SKCuYgoCQ==}
+
   '@types/node@24.10.0':
     resolution: {integrity: sha512-qzQZRBqkFsYyaSWXuEHc2WR9c0a0CXwiE5FWUvn7ZM+vdy1uZLfCunD38UzhuB7YN/J11ndbDBcTmOdxJo9Q7A==}
+
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
 
   '@vitest/expect@4.0.7':
     resolution: {integrity: sha512-jGRG6HghnJDjljdjYIoVzX17S6uCVCBRFnsgdLGJ6CaxfPh8kzUKe/2n533y4O/aeZ/sIr7q7GbuEbeGDsWv4Q==}
@@ -861,6 +870,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  happy-dom@20.0.11:
+    resolution: {integrity: sha512-QsCdAUHAmiDeKeaNojb1OHOPF7NjcWPBR7obdu3NwH2a/oyQaLg5d0aaCy/9My6CdPChYF07dvz5chaXBGaD4g==}
+    engines: {node: '>=20.0.0'}
 
   has-flag@3.0.0:
     resolution: {integrity: sha512-sKJf1+ceQBr4SMkvQnBDNDtf4TXpVhVGateu0t918bl30FnbE2m4vNLX+VWe/dpjlb+HugGYzW7uQXH98HPEYw==}
@@ -1329,6 +1342,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
@@ -1425,6 +1441,10 @@ packages:
 
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
+
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
 
   which@1.3.1:
     resolution: {integrity: sha512-HxJdYWq1MTIQbJ3nw0cqssHoTNU267KlrDuGZ1WYlxDStUtKUhOaJmh112/TZmHxxUfuJqPXSOm7tDyas0OSIQ==}
@@ -1784,9 +1804,15 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/node@20.19.25':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/node@24.10.0':
     dependencies:
       undici-types: 7.16.0
+
+  '@types/whatwg-mimetype@3.0.2': {}
 
   '@vitest/expect@4.0.7':
     dependencies:
@@ -2204,6 +2230,12 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  happy-dom@20.0.11:
+    dependencies:
+      '@types/node': 20.19.25
+      '@types/whatwg-mimetype': 3.0.2
+      whatwg-mimetype: 3.0.0
+
   has-flag@3.0.0: {}
 
   has-flag@4.0.0: {}
@@ -2609,6 +2641,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
+  undici-types@6.21.0: {}
+
   undici-types@7.16.0: {}
 
   unicorn-magic@0.1.0: {}
@@ -2636,7 +2670,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.6.1
 
-  vitest@4.0.7(@types/node@24.10.0)(jiti@2.6.1):
+  vitest@4.0.7(@types/node@24.10.0)(happy-dom@20.0.11)(jiti@2.6.1):
     dependencies:
       '@vitest/expect': 4.0.7
       '@vitest/mocker': 4.0.7(vite@7.2.1(@types/node@24.10.0)(jiti@2.6.1))
@@ -2660,6 +2694,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.10.0
+      happy-dom: 20.0.11
     transitivePeerDependencies:
       - jiti
       - less
@@ -2677,6 +2712,8 @@ snapshots:
   wcwidth@1.0.1:
     dependencies:
       defaults: 1.0.4
+
+  whatwg-mimetype@3.0.0: {}
 
   which@1.3.1:
     dependencies:

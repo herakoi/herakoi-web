@@ -1,0 +1,130 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+}
+
+#container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  width: min(1320px, 100%);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  width: min(1320px, 100%);
+  color: #f1f1f1;
+  font-size: 14px;
+}
+
+.control-card {
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(125, 249, 255, 0.4);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-card--upload {
+  grid-column: span 1;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-field,
+.control-field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.control-subtext {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(241, 241, 241, 0.7);
+}
+
+.control-label {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7df9ff;
+}
+
+.control-button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(125, 249, 255, 0.6);
+  border-radius: 4px;
+  background: transparent;
+  color: #7df9ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.control-button:hover {
+  background: rgba(125, 249, 255, 0.1);
+}
+
+/* Panel system - critical for canvas overlay */
+.panel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+.panel-layer {
+  position: absolute;
+  inset: 0;
+}
+
+canvas,
+video,
+img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.is-mirrored #modular-video {
+  transform: scaleX(-1);
+}
+
+@media (max-width: 960px) {
+  body {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  #container {
+    grid-template-columns: 1fr;
+  }
+
+  .control-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

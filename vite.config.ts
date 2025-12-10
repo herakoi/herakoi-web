@@ -38,6 +38,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         oneChannel: resolve(__dirname, "one-channel.html"),
         threeChannel: resolve(__dirname, "three-channel.html"),
+        modular: resolve(__dirname, "modular.html"),
       },
     },
   },
