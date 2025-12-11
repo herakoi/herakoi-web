@@ -14,6 +14,9 @@
  * sample the image, gather successful samples into a Map keyed by point id,
  * and pass that Map straight to the sonifier.
  */
+
+import figlet from "figlet";
+import StarStripsFont from "figlet/importable-fonts/Star Strips.js";
 import type { ImageSample, ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
 
 export class ApplicationController {
@@ -61,3 +64,13 @@ export class ApplicationController {
     this.sonifier.stop();
   }
 }
+
+figlet.parseFont("Star Strips", StarStripsFont);
+const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
+const koiBanner = figlet.textSync("KOI", { font: "Star Strips" });
+const herakoiBanner = `${heraBanner}\n${koiBanner}`;
+const bannerDivider = "* ".repeat(44).trim();
+
+console.log(
+  `\n${bannerDivider}\n${herakoiBanner}\n${bannerDivider}\n\n"Sic itur ad astra." - Virgilio, Eneide IX, 641\n`,
+);
