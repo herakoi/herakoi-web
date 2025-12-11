@@ -68,6 +68,13 @@ All implementation work MUST follow the Red-Green-Refactor cycle:
 
 ## Phase 3: Interface-Driven Architecture (Immediate Priority)
 
+### Parity Check: modular vs one-channel
+
+When we touch `src/modular/main.ts`, keep `src/oneChannel/main.ts` as the behavioral reference:
+- Manual smoke: load both modular and one-channel pages, confirm fingertip focus, hand overlays, and tone response match for the default image and camera.
+- Automated: run `pnpm test` (Vitest) and `pnpm tsc --noEmit`; these cover factories, controls, and detector plumbing. The one-channel entry stays intentionally unchanged—if behavior diverges, note it here with rationale and next steps.
+- If modular introduces a new plug-in, document how to toggle it (config or factory) and what parity gap remains.
+
 ### Goal
 Define and implement the three core abstractions as TypeScript interfaces, refactor existing code to conform, and create a composition system that wires them together. We are now applying this work to the new `modular.html` touchpoint (`src/modular/main.ts`) instead of the legacy `src/oneChannel/main.ts`, so the controller wiring should target the modular entry first and backport only if needed.
 
