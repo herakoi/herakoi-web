@@ -1,5 +1,5 @@
 /**
- * @deprecated This file is being replaced by src/sampling/HSVImageSampler.ts which
+ * @deprecated This file is being replaced by src/sampling/hsv/HSVImageSampler.ts which
  * implements the ImageSampler interface with full HSV support (including saturation)
  * and normalized coordinates. Use HSVImageSampler for new code. This legacy
  * implementation will be removed in a future version once all dependents are migrated.

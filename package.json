@@ -17,7 +17,13 @@
     "postinstall": "lefthook install"
   },
   "imports": {
-    "#src/*": "./src/*.ts"
+    "#src/*": [
+      "./src/*",
+      "./src/*.ts",
+      "./src/*.tsx",
+      "./src/*/index.ts",
+      "./src/*/index.tsx"
+    ]
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.4",

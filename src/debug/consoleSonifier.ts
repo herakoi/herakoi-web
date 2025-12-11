@@ -1,4 +1,4 @@
-import { Sonifier } from "#src/audio/sonification";
+import { Sonifier } from "#src/deprecated/audio/sonification";
 export const setupConsoleSonifier = (): void => {
   if (typeof window === "undefined") {
     return;

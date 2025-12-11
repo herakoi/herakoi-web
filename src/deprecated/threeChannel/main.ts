@@ -4,7 +4,7 @@ import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { HAND_CONNECTIONS, type NormalizedLandmarkList, type Results } from "@mediapipe/hands";
 
-import { HandsDetector } from "../vision/hands";
+import { HandsDetector } from "#src/detection/mediapipe/hands";
 
 type NullableElement<T> = T | null;
 
