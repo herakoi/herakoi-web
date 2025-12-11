@@ -11,7 +11,7 @@ import { ApplicationController } from "#src/core/ApplicationController";
 import { getMediaPipeDetector } from "#src/detection/mediapipe/factory";
 import { DetectorControls } from "#src/detection/mediapipe/uiControls";
 import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
-import { buildDebugToneLogger } from "#src/modular/debugConfig";
+import { attachDevFrequencyLabels, buildDebugToneLogger } from "#src/modular/debugConfig";
 import { HSVSamplerControls } from "#src/sampling/hsv/uiControls";
 import { getOscillatorSonifier } from "#src/sonification/oscillator/factory";
 import { OscillatorControls } from "#src/sonification/oscillator/uiControls";
@@ -52,6 +52,7 @@ const controller = new ApplicationController(detector, sampler, sonifier);
 
 const { imageOverlayCanvas } = hsvControls.elements;
 const { videoOverlayCanvas } = detectorControls.elements;
+const imageOverlayCtx = imageOverlayCanvas.getContext("2d") as CanvasRenderingContext2D;
 bindHandsUi(detector, [videoOverlayCanvas, imageOverlayCanvas]);
 
 // --- Debug logging ----------------------------------------------------------
@@ -62,6 +63,13 @@ const logDebugTones = buildDebugToneLogger(
   () => hsvControls.state.samplerReady,
 );
 detector.onPointsDetected(logDebugTones);
+attachDevFrequencyLabels(
+  detector,
+  sampler,
+  oscillatorState,
+  { canvas: imageOverlayCanvas, ctx: imageOverlayCtx },
+  () => hsvControls.state.samplerReady,
+);
 
 // --- Pipeline startup -------------------------------------------------------
 

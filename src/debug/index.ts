@@ -21,7 +21,7 @@ const queryParamEnablesDev = (() => {
   }
 })();
 
-const isDev = isBuildTimeDev || queryParamEnablesDev;
+export const isDev = isBuildTimeDev || queryParamEnablesDev;
 
 export type DebugTools = {
   logToneSamples: (samples: DebugToneSample[]) => void;

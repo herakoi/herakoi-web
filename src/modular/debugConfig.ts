@@ -4,7 +4,8 @@
  */
 
 import type { DetectedPoint } from "#src/core/interfaces";
-import { type DebugToneSample, setupDebugTools } from "#src/debug";
+import { type DebugToneSample, isDev, setupDebugTools } from "#src/debug";
+import { drawFrequencyLabel } from "#src/detection/mediapipe/overlay";
 
 export const debugTools = setupDebugTools();
 export type { DebugToneSample };
@@ -57,3 +58,39 @@ export const buildDebugToneLogger =
 
     debugTools.logToneSamples(debugToneSamples);
   };
+
+type OverlayForDebug = {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+};
+
+/**
+ * In dev builds we mirror the debug HUD by sketching the computed frequency
+ * next to each fingertip on the provided overlay canvas. We keep this wiring
+ * here so the main entrypoint stays focused on production concerns.
+ */
+export const attachDevFrequencyLabels = (
+  detector: { onPointsDetected: (cb: (points: DetectedPoint[]) => void) => void },
+  sampler: { sampleAt: (point: DetectedPoint) => unknown | null },
+  oscillatorState: { minFreq: number; maxFreq: number },
+  overlay: OverlayForDebug,
+  isSamplerReady: () => boolean,
+): void => {
+  if (!isDev) return;
+
+  detector.onPointsDetected((points) => {
+    for (const point of points) {
+      const sample = isSamplerReady() ? sampler.sampleAt(point) : null;
+      if (!sample) continue;
+
+      const hueByte = (sample as { data: { hueByte?: number } | undefined }).data?.hueByte ?? 0;
+      const frequency =
+        oscillatorState.minFreq +
+        (hueByte / 255) * (oscillatorState.maxFreq - oscillatorState.minFreq);
+
+      const imagePixelX = point.x * overlay.canvas.width;
+      const imagePixelY = point.y * overlay.canvas.height;
+      drawFrequencyLabel(overlay.ctx, { x: imagePixelX, y: imagePixelY }, frequency, 0);
+    }
+  });
+};
