@@ -10,7 +10,7 @@ import { ImageSampler } from "#src/deprecated/sampling/imageEncoding";
 import { getFingerFocus } from "#src/detection/mediapipe/handGeometry";
 import { HandsDetector } from "#src/detection/mediapipe/hands";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/detection/mediapipe/overlay";
-import zodiacConstellationsUrl from "../assets/zodiac-constellations.jpg?url";
+import zodiacConstellationsUrl from "../../assets/zodiac-constellations.jpg?url";
 
 figlet.parseFont("Star Strips", StarStripsFont);
 const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
