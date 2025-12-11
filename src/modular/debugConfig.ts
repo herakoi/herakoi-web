@@ -79,9 +79,12 @@ export const attachDevFrequencyLabels = (
   if (!isDev) return;
 
   detector.onPointsDetected((points) => {
-    for (const point of points) {
+    for (let handIndex = 0; handIndex < points.length; handIndex += 1) {
+      const point = points[handIndex];
       const sample = isSamplerReady() ? sampler.sampleAt(point) : null;
-      if (!sample) continue;
+      if (!sample) {
+        continue;
+      }
 
       const hueByte = (sample as { data: { hueByte?: number } | undefined }).data?.hueByte ?? 0;
       const frequency =
@@ -90,7 +93,7 @@ export const attachDevFrequencyLabels = (
 
       const imagePixelX = point.x * overlay.canvas.width;
       const imagePixelY = point.y * overlay.canvas.height;
-      drawFrequencyLabel(overlay.ctx, { x: imagePixelX, y: imagePixelY }, frequency, 0);
+      drawFrequencyLabel(overlay.ctx, { x: imagePixelX, y: imagePixelY }, frequency, handIndex);
     }
   });
 };
