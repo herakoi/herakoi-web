@@ -9,7 +9,7 @@
  * How: Call bindHandsUi with the detector and an array of overlays; we iterate all of
  * them so MediaPipe hands render wherever the caller wants (video, image, etc.).
  */
-import { drawFingerFocus, drawHands } from "#src/canvas/overlay";
+import { drawFingerFocus, drawHands } from "#src/detection/mediapipe/overlay";
 import type { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 export function bindHandsUi(detector: MediaPipePointDetector, overlays: HTMLCanvasElement[]): void {

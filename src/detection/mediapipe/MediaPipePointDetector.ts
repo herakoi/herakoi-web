@@ -17,7 +17,7 @@
 import { Camera } from "@mediapipe/camera_utils";
 import type { NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
 import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
-import { HandsDetector } from "#src/vision/hands";
+import { HandsDetector } from "#src/detection/mediapipe/hands";
 
 /**
  * Callback for drawing hand landmarks visualization.

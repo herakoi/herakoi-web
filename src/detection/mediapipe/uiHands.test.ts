@@ -3,11 +3,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { drawFingerFocus, drawHands } from "#src/canvas/overlay";
 import type { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
+import { drawFingerFocus, drawHands } from "#src/detection/mediapipe/overlay";
 import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
 
-vi.mock("#src/canvas/overlay", () => ({
+vi.mock("#src/detection/mediapipe/overlay", () => ({
   drawHands: vi.fn(),
   drawFingerFocus: vi.fn(),
 }));
@@ -22,6 +22,8 @@ const makeCanvas = () => {
     clearRect: vi.fn(),
     beginPath: vi.fn(),
     stroke: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
   } as unknown as CanvasRenderingContext2D;
 
   // happy-dom returns null for getContext; stub with a narrow signature and cast back.
