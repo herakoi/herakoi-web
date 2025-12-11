@@ -124,17 +124,17 @@ export interface Sonifier {
   - Converts MediaPipe landmarks → `DetectedPoint[]` with finger focus logic
   - Tests: `MediaPipePointDetector.test.ts`
 
-- Refactor `src/vision/imageEncoding.ts` → `src/sampling/HSVImageSampler.ts`
+- Refactor `src/vision/imageEncoding.ts` → `src/sampling/hsv/HSVImageSampler.ts`
   - Current `ImageSampler` class becomes `HSVImageSampler`
   - Implements `ImageSampler` interface
   - Returns `{ data: { hue, saturation, value } }`
-  - Tests: Update existing `imageEncoding.test.ts` → `HSVImageSampler.test.ts`
+  - Tests: Update existing `imageEncoding.test.ts` → `hsv/HSVImageSampler.test.ts`
 
-- Refactor `src/audio/sonification.ts` → `src/sonification/OscillatorSonifier.ts`
+- Refactor `src/audio/sonification.ts` → `src/sonification/oscillator/OscillatorSonifier.ts`
   - Current `Sonifier` class becomes `OscillatorSonifier`
   - Implements `Sonifier` interface
   - Internally maps ImageSample data (hue→frequency, value→volume) to oscillator nodes
-  - Tests: Update `sonification.test.ts` → `OscillatorSonifier.test.ts`
+  - Tests: Update `sonification.test.ts` → `oscillator/OscillatorSonifier.test.ts`
 
 **Migration strategy:**
 - Keep old imports working temporarily via barrel exports
@@ -185,8 +185,8 @@ export class ApplicationController {
 ```typescript
 import { ApplicationController } from '#src/core/ApplicationController';
 import { MediaPipePointDetector } from '#src/detection/mediapipe/MediaPipePointDetector';
-import { HSVImageSampler } from '#src/sampling/HSVImageSampler';
-import { OscillatorSonifier } from '#src/sonification/OscillatorSonifier';
+import { HSVImageSampler } from '#src/sampling/hsv/HSVImageSampler';
+import { OscillatorSonifier } from '#src/sonification/oscillator/OscillatorSonifier';
 
 // ... DOM acquisition, UI controls setup ...
 
