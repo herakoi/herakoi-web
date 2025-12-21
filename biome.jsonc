@@ -28,5 +28,22 @@
         "organizeImports": "on"
       }
     }
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noUnknownAtRules": {
+          "level": "error",
+          "options": {
+            "ignore": ["tailwind", "apply", "layer", "variants", "responsive", "screen"]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }
