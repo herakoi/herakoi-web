@@ -35,7 +35,7 @@
         "noUnknownAtRules": {
           "level": "error",
           "options": {
-            "ignore": ["tailwind", "apply", "layer", "variants", "responsive", "screen"]
+            "ignore": ["tailwind", "apply"]
           }
         }
       }
