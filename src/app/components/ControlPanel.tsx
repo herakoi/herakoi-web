@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
@@ -46,69 +48,47 @@ export const ControlPanel = <K extends string>({
   onRestart,
   onStop,
 }: ControlPanelProps<K>) => {
-  const tabRefs = useRef(new Map<K, HTMLButtonElement>());
-  const panelId = "herakoi-controls-panel";
-
   const defaultKey = useMemo(() => {
     const cameraKey = sections.find((section) => section.key === ("camera" as K))?.key;
     return cameraKey ?? sections[0]?.key ?? null;
   }, [sections]);
 
-  useEffect(() => {
-    if (!openSection) return;
-    const active = tabRefs.current.get(openSection);
-    if (!active) return;
-    requestAnimationFrame(() => active.focus());
-  }, [openSection]);
-
-  const handleSectionKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!openSection) return;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-      event.preventDefault();
-      const next = (index + 1) % sections.length;
-      const nextKey = sections[next]?.key;
-      if (!nextKey) return;
-      setOpenSection(nextKey);
-      tabRefs.current.get(nextKey)?.focus();
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const prev = (index - 1 + sections.length) % sections.length;
-      const prevKey = sections[prev]?.key;
-      if (!prevKey) return;
-      setOpenSection(prevKey);
-      tabRefs.current.get(prevKey)?.focus();
-    }
-  };
-
   const activeSection: ControlPanelSection<K> | null = openSection
     ? (sections.find((section) => section.key === openSection) ?? null)
     : null;
+  const open = Boolean(openSection);
+  const value = openSection ?? defaultKey;
 
   return (
     <div className="fixed bottom-4 right-4 z-10 flex flex-col items-end gap-2">
-      <div className="relative flex flex-col items-end">
-        <Button
-          variant="ghost"
-          className={cn(
-            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
-            openSection
-              ? "border-primary/60 bg-primary/10 text-primary"
-              : "border-border/50 bg-black/50 text-muted-foreground",
-          )}
-          onClick={() => setOpenSection(openSection ? null : defaultKey)}
-          aria-expanded={Boolean(openSection)}
-          aria-controls={panelId}
-          aria-label="Toggle controls panel"
-          tabIndex={0}
-          style={{ position: "relative", zIndex: 2 }}
-        >
-          Controls
-        </Button>
-        {openSection ? (
-          <Card
-            className="w-[320px]"
-            id={panelId}
-            style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0 }}
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!defaultKey) return;
+          setOpenSection(nextOpen ? (value ?? defaultKey) : null);
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            className={cn(
+              "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
+              open
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border/50 bg-black/50 text-muted-foreground",
+            )}
+            aria-label="Toggle controls panel"
+            tabIndex={0}
+          >
+            Controls
+          </Button>
+        </PopoverTrigger>
+        {defaultKey && value ? (
+          <PopoverContent
+            align="end"
+            side="top"
+            sideOffset={8}
+            className="w-[320px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
           >
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between text-sm">
@@ -118,30 +98,24 @@ export const ControlPanel = <K extends string>({
               <CardDescription>Tap chip to collapse. Switch sections below.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Control sections">
-                {sections.map((section, index) => (
-                  <Button
-                    key={section.key}
-                    variant="outline"
-                    size="sm"
-                    role="tab"
-                    aria-selected={openSection === section.key}
-                    tabIndex={openSection === section.key ? 0 : -1}
-                    ref={(element) => {
-                      if (element) {
-                        tabRefs.current.set(section.key, element);
-                      } else {
-                        tabRefs.current.delete(section.key);
-                      }
-                    }}
-                    onClick={() => setOpenSection(section.key)}
-                    onKeyDown={(event) => handleSectionKeyDown(event, index)}
-                  >
-                    {section.label}
-                  </Button>
+              <Tabs value={value} onValueChange={(nextValue) => setOpenSection(nextValue as K)}>
+                <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0">
+                  {sections.map((section) => (
+                    <TabsTrigger
+                      key={section.key}
+                      value={section.key}
+                      className="w-full border border-input bg-background text-foreground shadow-outline data-[state=active]:border-primary/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                    >
+                      {section.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {sections.map((section) => (
+                  <TabsContent key={section.key} value={section.key} className="mt-3">
+                    {section.render()}
+                  </TabsContent>
                 ))}
-              </div>
-              {activeSection?.render() ?? null}
+              </Tabs>
               <div className="mt-3 flex items-center gap-3">
                 <Button className="flex-1" variant="outline" onClick={onRestart}>
                   Restart
@@ -152,9 +126,9 @@ export const ControlPanel = <K extends string>({
               </div>
               {error ? <p className="text-xs text-red-200">Error: {error}</p> : null}
             </CardContent>
-          </Card>
+          </PopoverContent>
         ) : null}
-      </div>
+      </Popover>
     </div>
   );
 };
