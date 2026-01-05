@@ -71,7 +71,7 @@ export const ControlPanel = <K extends string>({
             align="end"
             side="top"
             sideOffset={8}
-            className="h-[260px] w-[400px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
+            className="h-[290px] w-[400px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
           >
             <CardContent className="flex h-full flex-col gap-3 pt-4">
               <Tabs

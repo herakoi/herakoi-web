@@ -25,7 +25,14 @@ const resizeCanvasToContainer = (canvas: HTMLCanvasElement) => {
   canvas.height = height;
 };
 
-const drawImageToCanvas = (canvas: HTMLCanvasElement, image: HTMLImageElement, cover: boolean) => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const drawImageToCanvas = (
+  canvas: HTMLCanvasElement,
+  image: HTMLImageElement,
+  cover: boolean,
+  pan: { x: number; y: number },
+) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return false;
   const scale = cover
@@ -33,8 +40,16 @@ const drawImageToCanvas = (canvas: HTMLCanvasElement, image: HTMLImageElement, c
     : Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
   const drawWidth = image.naturalWidth * scale;
   const drawHeight = image.naturalHeight * scale;
-  const offsetX = (canvas.width - drawWidth) / 2;
-  const offsetY = (canvas.height - drawHeight) / 2;
+  const baseOffsetX = (canvas.width - drawWidth) / 2;
+  const baseOffsetY = (canvas.height - drawHeight) / 2;
+  const extraX = Math.max(0, (drawWidth - canvas.width) / 2);
+  const extraY = Math.max(0, (drawHeight - canvas.height) / 2);
+  const offsetX = cover
+    ? clamp(baseOffsetX + pan.x, baseOffsetX - extraX, baseOffsetX + extraX)
+    : baseOffsetX;
+  const offsetY = cover
+    ? clamp(baseOffsetY + pan.y, baseOffsetY - extraY, baseOffsetY + extraY)
+    : baseOffsetY;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
   return true;
@@ -51,12 +66,14 @@ export const usePipeline = ({
   const imageReady = usePipelineStore((state) => state.imageReady);
   const setStatus = usePipelineStore((state) => state.setStatus);
   const setImageReady = usePipelineStore((state) => state.setImageReady);
+  const setImagePan = usePipelineStore((state) => state.setImagePan);
   const setHandDetected = usePipelineStore((state) => state.setHandDetected);
   const mirror = usePipelineStore((state) => state.mirror);
   const maxHands = usePipelineStore((state) => state.maxHands);
   const facingMode = usePipelineStore((state) => state.facingMode);
   const oscillator = usePipelineStore((state) => state.oscillator);
   const imageCover = usePipelineStore((state) => state.imageCover);
+  const imagePan = usePipelineStore((state) => state.imagePan);
 
   const detectorRef = useRef<MediaPipePointDetector | null>(null);
   const samplerRef = useRef<HSVImageSampler | null>(null);
@@ -101,14 +118,15 @@ export const usePipeline = ({
       });
       img.src = src;
       const loaded = await loadPromise;
+      setImagePan({ x: 0, y: 0 });
       imageBufferRef.current = loaded;
       const canvas = imageCanvasRef.current;
       if (!canvas) {
         throw new Error("Image canvas missing for sampler load");
       }
       resizeCanvasToContainer(canvas);
-      const cover = usePipelineStore.getState().imageCover;
-      const drawn = drawImageToCanvas(canvas, loaded, cover);
+      const { imageCover: cover, imagePan: currentPan } = usePipelineStore.getState();
+      const drawn = drawImageToCanvas(canvas, loaded, cover, currentPan);
       if (!drawn) {
         throw new Error("Unable to acquire 2D context for image canvas");
       }
@@ -118,7 +136,7 @@ export const usePipeline = ({
         window.dispatchEvent(new Event("herakoi-image-rendered"));
       }
     },
-    [imageCanvasRef, setImageReady],
+    [imageCanvasRef, setImagePan, setImageReady],
   );
 
   const loadImageFile = useCallback(
@@ -248,8 +266,8 @@ export const usePipeline = ({
       ensureCanvasesSized();
       if (imageBufferRef.current && imageCanvasRef.current) {
         const canvas = imageCanvasRef.current;
-        const cover = usePipelineStore.getState().imageCover;
-        const drawn = drawImageToCanvas(canvas, imageBufferRef.current, cover);
+        const { imageCover: cover, imagePan: currentPan } = usePipelineStore.getState();
+        const drawn = drawImageToCanvas(canvas, imageBufferRef.current, cover, currentPan);
         if (!drawn) {
           throw new Error("Unable to acquire 2D context for image canvas");
         }
@@ -324,7 +342,7 @@ export const usePipeline = ({
       if (imageBufferRef.current && imageCanvasRef.current) {
         const canvas = imageCanvasRef.current;
         resizeCanvasToContainer(canvas);
-        drawImageToCanvas(canvas, imageBufferRef.current, imageCover);
+        drawImageToCanvas(canvas, imageBufferRef.current, imageCover, imagePan);
       }
     };
     window.addEventListener("resize", handleResize);
@@ -333,20 +351,20 @@ export const usePipeline = ({
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("resize", rerenderImage);
     };
-  }, [ensureCanvasesSized, imageCanvasRef, imageCover]);
+  }, [ensureCanvasesSized, imageCanvasRef, imageCover, imagePan]);
 
   useEffect(() => {
     if (!imageBufferRef.current || !imageCanvasRef.current) return;
     const canvas = imageCanvasRef.current;
     resizeCanvasToContainer(canvas);
-    const drawn = drawImageToCanvas(canvas, imageBufferRef.current, imageCover);
+    const drawn = drawImageToCanvas(canvas, imageBufferRef.current, imageCover, imagePan);
     if (drawn) {
       void samplerRef.current?.loadImage(canvas);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("herakoi-image-rendered"));
       }
     }
-  }, [imageCover, imageCanvasRef]);
+  }, [imageCover, imageCanvasRef, imagePan]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

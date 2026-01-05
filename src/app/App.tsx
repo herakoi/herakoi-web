@@ -8,6 +8,7 @@ import {
   Play,
   RotateCcw,
   Square,
+  Trash2,
   Upload,
   Waves,
 } from "lucide-react";
@@ -243,7 +244,23 @@ const AudioPanel = () => {
   );
 };
 
-const ImagePanel = ({ onFile }: { onFile: (file: File) => Promise<void> }) => {
+type ImagePanelProps = {
+  onFile: (file: File) => Promise<void>;
+  entries: ImageEntry[];
+  currentImageId: string;
+  onSelectImage: (entry: ImageEntry) => void;
+  imageCover: boolean;
+  setImageCover: (cover: boolean) => void;
+};
+
+const ImagePanel = ({
+  onFile,
+  entries,
+  currentImageId,
+  onSelectImage,
+  imageCover,
+  setImageCover,
+}: ImagePanelProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -254,11 +271,36 @@ const ImagePanel = ({ onFile }: { onFile: (file: File) => Promise<void> }) => {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col gap-3">
+      <Select
+        value={currentImageId}
+        onValueChange={(value) => {
+          const entry = entries.find((item) => item.id === value);
+          if (!entry) return;
+          void onSelectImage(entry);
+        }}
+      >
+        <SelectTrigger id="active-image" aria-label="Active image">
+          <SelectValue placeholder="Active image" />
+        </SelectTrigger>
+        <SelectContent>
+          {entries.map((entry) => (
+            <SelectItem key={entry.id} value={entry.id}>
+              {entry.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm font-medium" htmlFor="cover-toggle">
+          Cover image
+        </Label>
+        <Switch id="cover-toggle" checked={imageCover} onCheckedChange={setImageCover} />
+      </div>
       <button
         type="button"
         className={cn(
-          "flex w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground transition",
+          "flex w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground transition",
           dragActive
             ? "border-white/40 bg-white/5 text-foreground"
             : "border-border/60 hover:border-white/20 hover:bg-white/5",
@@ -371,6 +413,8 @@ const App = () => {
   const [importDragActive, setImportDragActive] = useState(false);
   const imageCover = usePipelineStore((state) => state.imageCover);
   const setImageCover = usePipelineStore((state) => state.setImageCover);
+  const imagePan = usePipelineStore((state) => state.imagePan);
+  const setImagePan = usePipelineStore((state) => state.setImagePan);
   const handDetected = usePipelineStore((state) => state.handDetected);
   const uiDimPercent = usePipelineStore((state) => state.uiDimPercent);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
@@ -386,6 +430,12 @@ const App = () => {
     transitionDuration: uiDimmed ? `${uiDimFadeMs}ms` : `${uiDimResetMs}ms`,
     transitionTimingFunction: uiDimmed ? "ease-out" : "ease-in-out",
   };
+  const imageEntries = [...howItWorksImages, ...curatedImages, ...uploads];
+  const imagePanRef = useRef(imagePan);
+
+  useEffect(() => {
+    imagePanRef.current = imagePan;
+  }, [imagePan]);
 
   useEffect(() => {
     const stored = localStorage.getItem(IMAGE_CACHE_KEY);
@@ -444,6 +494,21 @@ const App = () => {
       setCurrentImage({ id: entry.id, title: entry.title });
     },
     [loadImageSource],
+  );
+
+  const handleDeleteUpload = useCallback(
+    (entry: ImageEntry) => {
+      const nextUploads = uploads.filter((item) => item.id !== entry.id);
+      setUploads(nextUploads);
+      persistUploads(nextUploads);
+      if (currentImage.id === entry.id) {
+        const fallback = curatedImages[0] ?? howItWorksImages[0] ?? nextUploads[0];
+        if (fallback) {
+          void handleSelectImage(fallback);
+        }
+      }
+    },
+    [currentImage.id, handleSelectImage, persistUploads, uploads],
   );
 
   const handleImageInput = useCallback(
@@ -570,6 +635,83 @@ const App = () => {
   }, [scheduleUiDimCheck]);
 
   useEffect(() => {
+    const canvas = imageCanvasRef.current;
+    if (!canvas) return;
+
+    canvas.style.cursor = imageCover ? "grab" : "default";
+    canvas.style.touchAction = imageCover ? "none" : "auto";
+    if (!imageCover) return;
+
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    let rafId = 0;
+    let pendingX = 0;
+    let pendingY = 0;
+
+    const applyPan = () => {
+      if (!pendingX && !pendingY) return;
+      const current = imagePanRef.current;
+      setImagePan({ x: current.x + pendingX, y: current.y + pendingY });
+      pendingX = 0;
+      pendingY = 0;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      canvas.style.cursor = "grabbing";
+      canvas.setPointerCapture(event.pointerId);
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!dragging) return;
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      pendingX += dx;
+      pendingY += dy;
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          rafId = 0;
+          applyPan();
+        });
+      }
+    };
+
+    const endDrag = (event: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      canvas.style.cursor = "grab";
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      applyPan();
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    return () => {
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+      canvas.style.cursor = "default";
+      canvas.style.touchAction = "auto";
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [imageCover, setImagePan]);
+
+  useEffect(() => {
     const handleResize = () => {
       if (headerToneRafRef.current !== null) return;
       headerToneRafRef.current = requestAnimationFrame(() => {
@@ -609,7 +751,16 @@ const App = () => {
       key: "image",
       label: "Image",
       icon: <ImageIcon className="h-3.5 w-3.5" />,
-      render: () => <ImagePanel onFile={handleImageFile} />,
+      render: () => (
+        <ImagePanel
+          onFile={handleImageFile}
+          entries={imageEntries}
+          currentImageId={currentImage.id}
+          onSelectImage={handleSelectImage}
+          imageCover={imageCover}
+          setImageCover={setImageCover}
+        />
+      ),
     },
     {
       key: "input",
@@ -804,28 +955,40 @@ const App = () => {
                     </p>
                   ) : (
                     uploads.map((entry) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition",
-                          currentImage.id === entry.id
-                            ? "border-white/35 bg-white/5"
-                            : "border-transparent hover:border-white/20 hover:bg-white/5",
-                        )}
-                        onClick={() => void handleSelectImage(entry)}
-                      >
-                        <img
-                          src={entry.previewSrc}
-                          alt={entry.title}
-                          className="h-10 w-10 rounded-md object-cover"
-                          loading="lazy"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{entry.title}</p>
-                          <p className="text-xs text-muted-foreground">{entry.meta}</p>
-                        </div>
-                      </button>
+                      <div key={entry.id} className="relative">
+                        <button
+                          type="button"
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-lg border px-3 py-2 pr-10 text-left transition",
+                            currentImage.id === entry.id
+                              ? "border-white/35 bg-white/5"
+                              : "border-transparent hover:border-white/20 hover:bg-white/5",
+                          )}
+                          onClick={() => void handleSelectImage(entry)}
+                        >
+                          <img
+                            src={entry.previewSrc}
+                            alt={entry.title}
+                            className="h-10 w-10 rounded-md object-cover"
+                            loading="lazy"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{entry.title}</p>
+                            <p className="text-xs text-muted-foreground">{entry.meta}</p>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground"
+                          aria-label={`Remove ${entry.title}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteUpload(entry);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     ))
                   )}
                 </div>
