@@ -20,6 +20,10 @@ type PipelineState = {
   facingMode: FacingMode;
   oscillator: OscillatorSettings;
   imageReady: boolean;
+  imageCover: boolean;
+  handDetected: boolean;
+  uiDimPercent: number;
+  dimLogoMark: boolean;
 };
 
 type PipelineActions = {
@@ -29,6 +33,10 @@ type PipelineActions = {
   setFacingMode: (facingMode: FacingMode) => void;
   setOscillator: (settings: Partial<OscillatorSettings>) => void;
   setImageReady: (ready: boolean) => void;
+  setImageCover: (cover: boolean) => void;
+  setHandDetected: (hasHands: boolean) => void;
+  setUiDimPercent: (percent: number) => void;
+  setDimLogoMark: (dim: boolean) => void;
 };
 
 const defaultOscillator: OscillatorSettings = {
@@ -46,6 +54,10 @@ export const usePipelineStore = create<PipelineState & PipelineActions>((set) =>
   facingMode: "user",
   oscillator: defaultOscillator,
   imageReady: false,
+  imageCover: false,
+  handDetected: false,
+  uiDimPercent: 25,
+  dimLogoMark: false,
   setStatus: (status, error) => set({ status, error }),
   setMirror: (mirror) => set({ mirror }),
   setMaxHands: (maxHands) => set({ maxHands }),
@@ -53,4 +65,8 @@ export const usePipelineStore = create<PipelineState & PipelineActions>((set) =>
   setOscillator: (settings) =>
     set((state) => ({ oscillator: { ...state.oscillator, ...settings } })),
   setImageReady: (ready) => set({ imageReady: ready }),
+  setImageCover: (cover) => set({ imageCover: cover }),
+  setHandDetected: (hasHands) => set({ handDetected: hasHands }),
+  setUiDimPercent: (percent) => set({ uiDimPercent: percent }),
+  setDimLogoMark: (dim) => set({ dimLogoMark: dim }),
 }));

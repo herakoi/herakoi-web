@@ -133,7 +133,8 @@ const ensurePanel = () => {
 const applyPanelStyles = (panel: HTMLPreElement) => {
   panel.style.position = "fixed";
   panel.style.bottom = "16px";
-  panel.style.right = "16px";
+  panel.style.left = "50%";
+  panel.style.transform = "translateX(-50%)";
   panel.style.width = "min(500px, 45vw)";
   panel.style.maxWidth = "min(500px, 45vw)";
   panel.style.maxHeight = "min(320px, 50vh)";

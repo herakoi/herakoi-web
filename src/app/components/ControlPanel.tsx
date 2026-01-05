@@ -1,66 +1,48 @@
+import { SlidersHorizontal } from "lucide-react";
 import { useMemo } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { CardContent } from "./ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const styles: Record<string, string> = {
-    running: "bg-green-500/20 text-green-200 border border-green-500/50",
-    initializing: "bg-amber-500/20 text-amber-100 border border-amber-500/40",
-    idle: "bg-slate-500/20 text-slate-100 border border-slate-500/50",
-    error: "bg-red-500/20 text-red-100 border border-red-500/50",
-  };
-  const className = styles[status] ?? styles.idle;
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${className}`}
-    >
-      {status}
-    </span>
-  );
-};
 
 export type ControlPanelSection<K extends string = string> = {
   key: K;
   label: string;
   title?: string;
+  icon?: React.ReactNode;
   render: () => React.ReactNode;
 };
 
 type ControlPanelProps<K extends string> = {
-  status: string;
   error: string | null;
+  className?: string;
+  style?: React.CSSProperties;
   openSection: K | null;
   setOpenSection: React.Dispatch<React.SetStateAction<K | null>>;
   sections: ControlPanelSection<K>[];
-  onRestart: () => void;
-  onStop: () => void;
 };
 
 export const ControlPanel = <K extends string>({
-  status,
   error,
+  className,
+  style,
   openSection,
   setOpenSection,
   sections,
-  onRestart,
-  onStop,
 }: ControlPanelProps<K>) => {
   const defaultKey = useMemo(() => {
-    const cameraKey = sections.find((section) => section.key === ("camera" as K))?.key;
-    return cameraKey ?? sections[0]?.key ?? null;
+    return sections[0]?.key ?? null;
   }, [sections]);
 
-  const activeSection: ControlPanelSection<K> | null = openSection
-    ? (sections.find((section) => section.key === openSection) ?? null)
-    : null;
   const open = Boolean(openSection);
   const value = openSection ?? defaultKey;
 
   return (
-    <div className="fixed bottom-4 right-4 z-10 flex flex-col items-end gap-2">
+    <div
+      className={cn("fixed bottom-4 right-4 z-10 flex flex-col items-end gap-2", className)}
+      style={style}
+    >
       <Popover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -72,7 +54,7 @@ export const ControlPanel = <K extends string>({
           <Button
             variant="ghost"
             className={cn(
-              "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
+              "gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
               open
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border/50 bg-black/50 text-muted-foreground",
@@ -80,7 +62,8 @@ export const ControlPanel = <K extends string>({
             aria-label="Toggle controls panel"
             tabIndex={0}
           >
-            Controls
+            <SlidersHorizontal className="h-4 w-4" />
+            <span>Settings</span>
           </Button>
         </PopoverTrigger>
         {defaultKey && value ? (
@@ -88,42 +71,36 @@ export const ControlPanel = <K extends string>({
             align="end"
             side="top"
             sideOffset={8}
-            className="w-[320px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
+            className="h-[260px] w-[400px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
           >
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between text-sm">
-                {activeSection?.title ?? activeSection?.label ?? "Controls"}
-                <StatusBadge status={status} />
-              </CardTitle>
-              <CardDescription>Tap chip to collapse. Switch sections below.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Tabs value={value} onValueChange={(nextValue) => setOpenSection(nextValue as K)}>
-                <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0">
+            <CardContent className="flex h-full flex-col gap-3 pt-4">
+              <Tabs
+                value={value}
+                onValueChange={(nextValue) => setOpenSection(nextValue as K)}
+                className="flex h-full flex-col"
+              >
+                <TabsList className="grid w-full grid-cols-4 gap-1 rounded-full border border-white/10 bg-black/25 p-1">
                   {sections.map((section) => (
                     <TabsTrigger
                       key={section.key}
                       value={section.key}
-                      className="w-full border border-input bg-background text-foreground shadow-outline data-[state=active]:border-primary/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                      className="flex items-center justify-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline"
                     >
-                      {section.label}
+                      {section.icon ? (
+                        <span className="flex h-3 w-3 items-center justify-center text-white/70">
+                          {section.icon}
+                        </span>
+                      ) : null}
+                      <span className="truncate">{section.label}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
                 {sections.map((section) => (
-                  <TabsContent key={section.key} value={section.key} className="mt-3">
+                  <TabsContent key={section.key} value={section.key} className="mt-4 flex-1">
                     {section.render()}
                   </TabsContent>
                 ))}
               </Tabs>
-              <div className="mt-3 flex items-center gap-3">
-                <Button className="flex-1" variant="outline" onClick={onRestart}>
-                  Restart
-                </Button>
-                <Button className="flex-1" variant="ghost" onClick={onStop}>
-                  Stop
-                </Button>
-              </div>
               {error ? <p className="text-xs text-red-200">Error: {error}</p> : null}
             </CardContent>
           </PopoverContent>

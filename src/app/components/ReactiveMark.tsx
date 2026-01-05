@@ -5,9 +5,10 @@ type Props = {
   analyserRef: RefObject<AnalyserNode | null>;
   size: number;
   className?: string;
+  tone?: "light" | "dark";
 };
 
-const makeConfig = (size: number): SunburstConfig => {
+const makeConfig = (size: number, tone: "light" | "dark"): SunburstConfig => {
   const maxRadius = size * 0.495;
   const coreRadius = size * 0.048;
   const rayGap = size * 0.04;
@@ -16,10 +17,10 @@ const makeConfig = (size: number): SunburstConfig => {
 
   return {
     bg: "rgba(0,0,0,0)",
-    rayColor: "rgba(255,255,255,0.97)",
+    rayColor: tone === "dark" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.97)",
     rays: 24,
     coreRadius,
-    coreColor: "rgba(0,0,0,0.92)",
+    coreColor: "rgba(0,0,0,0)",
     rayGap,
     rayWidth: Math.max(0.75, size * 0.016),
     baseLen,
@@ -40,11 +41,11 @@ const makeConfig = (size: number): SunburstConfig => {
   };
 };
 
-export function ReactiveMark({ analyserRef, size, className }: Props) {
+export function ReactiveMark({ analyserRef, size, className, tone = "light" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scratchRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
-  const mark = useMemo(() => new SunburstMark(makeConfig(size)), [size]);
+  const mark = useMemo(() => new SunburstMark(makeConfig(size, tone)), [size, tone]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,7 +61,7 @@ export function ReactiveMark({ analyserRef, size, className }: Props) {
       canvas.width = Math.floor(size * dpr);
       canvas.height = Math.floor(size * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      mark.updateConfig(makeConfig(size));
+      mark.updateConfig(makeConfig(size, tone));
     };
 
     const loop = () => {
@@ -84,7 +85,7 @@ export function ReactiveMark({ analyserRef, size, className }: Props) {
     rafId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(rafId);
-  }, [analyserRef, mark, size]);
+  }, [analyserRef, mark, size, tone]);
 
   return <canvas ref={canvasRef} className={className} style={{ width: size, height: size }} />;
 }

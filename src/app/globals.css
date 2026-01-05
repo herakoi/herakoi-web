@@ -3,25 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --popover: 222 47% 6%;
-  --popover-foreground: 210 40% 98%;
-  --card: 222 47% 8%;
-  --card-foreground: 210 40% 98%;
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
-  --primary: 195 85% 60%;
-  --primary-foreground: 216 71% 12%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 96%;
-  --accent: 195 80% 70%;
-  --accent-foreground: 222 47% 8%;
+  --background: 0 0% 6%;
+  --foreground: 0 0% 98%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 68%;
+  --popover: 0 0% 6%;
+  --popover-foreground: 0 0% 98%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 98%;
+  --border: 0 0% 22%;
+  --input: 0 0% 22%;
+  --primary: 0 0% 92%;
+  --primary-foreground: 0 0% 12%;
+  --secondary: 0 0% 16%;
+  --secondary-foreground: 0 0% 96%;
+  --accent: 0 0% 82%;
+  --accent-foreground: 0 0% 12%;
   --destructive: 0 85% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 195 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 0 0% 78%;
 }
 
 * {
@@ -29,7 +29,7 @@
 }
 
 body {
-  @apply bg-background text-foreground min-h-screen;
+  @apply bg-background text-foreground min-h-screen font-sans;
 }
 
 .bg-grid {
