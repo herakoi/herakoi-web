@@ -1,5 +1,4 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
-import zodiacConstellationsUrl from "#src/assets/zodiac-constellations.jpg?url";
 import { ApplicationController } from "#src/core/ApplicationController";
 import type { DetectedPoint } from "#src/core/interfaces";
 import { type DebugToneSample, setupDebugTools } from "#src/debug";
@@ -7,6 +6,7 @@ import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointD
 import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
 import { HSVImageSampler } from "#src/sampling/hsv/HSVImageSampler";
 import { OscillatorSonifier } from "#src/sonification/oscillator/OscillatorSonifier";
+import { curatedImages } from "../data/curatedImages";
 import { usePipelineStore } from "../state/pipelineStore";
 
 type Refs = {
@@ -277,7 +277,12 @@ export const usePipeline = ({
           window.dispatchEvent(new Event("herakoi-image-rendered"));
         }
       } else {
-        await loadImage(zodiacConstellationsUrl);
+        const fallback = curatedImages[0];
+        if (fallback) {
+          await loadImage(fallback.src);
+        } else {
+          setImageReady(false);
+        }
       }
 
       await controllerRef.current.start();

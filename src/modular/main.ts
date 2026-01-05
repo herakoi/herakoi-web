@@ -18,7 +18,7 @@ import { OscillatorControls } from "#src/sonification/oscillator/uiControls";
 import { requireElement } from "#src/utils/dom";
 import "./style.css";
 
-import zodiacConstellationsUrl from "../assets/zodiac-constellations.jpg?url";
+import { getDefaultCuratedImage } from "#src/app/data/curatedImages";
 
 // --- DOM lookups ------------------------------------------------------------
 
@@ -29,8 +29,14 @@ const statusLabel = requireElement<HTMLSpanElement>("modular-status");
 // Module-scoped control groups keep UI wiring beside their respective modules.
 const detectorControls = new DetectorControls();
 const oscillatorControls = new OscillatorControls();
+const curatedDefault = getDefaultCuratedImage();
+
+if (!curatedDefault) {
+  throw new Error("No curated images found in src/app/assets/curated.");
+}
+
 const hsvControls = new HSVSamplerControls(
-  zodiacConstellationsUrl,
+  curatedDefault.src,
   () => {
     statusLabel.textContent = "Image loaded and ready for sampling";
   },

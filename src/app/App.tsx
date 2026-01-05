@@ -13,7 +13,6 @@ import {
   Waves,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import zodiacConstellationsUrl from "#src/assets/zodiac-constellations.jpg?url";
 import { CameraDock } from "./components/CameraDock";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { ReactiveMark } from "./components/ReactiveMark";
@@ -30,6 +29,7 @@ import {
 } from "./components/ui/select";
 import { Slider } from "./components/ui/slider";
 import { Switch } from "./components/ui/switch";
+import { curatedImages } from "./data/curatedImages";
 import { usePipeline } from "./hooks/usePipeline";
 import { cn } from "./lib/utils";
 import { usePipelineStore } from "./state/pipelineStore";
@@ -81,17 +81,6 @@ const gammaTestSvg = `
 `.trim();
 
 const gammaTestUrl = `data:image/svg+xml;utf8,${encodeURIComponent(gammaTestSvg)}`;
-
-const curatedImages: ImageEntry[] = [
-  {
-    id: "curated-zodiac",
-    title: "Zodiac constellations",
-    meta: "Curated - JPG",
-    src: zodiacConstellationsUrl,
-    previewSrc: zodiacConstellationsUrl,
-    kind: "curated",
-  },
-];
 
 const howItWorksImages: ImageEntry[] = [
   {
@@ -400,9 +389,12 @@ const App = () => {
     imageOverlayRef,
   });
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
-  const [currentImage, setCurrentImage] = useState({
-    id: curatedImages[0]?.id ?? "curated-default",
-    title: curatedImages[0]?.title ?? "Curated image",
+  const [currentImage, setCurrentImage] = useState(() => {
+    const fallback = curatedImages[0] ?? howItWorksImages[0];
+    return {
+      id: fallback?.id ?? "curated-default",
+      title: fallback?.title ?? "Curated image",
+    };
   });
   const [logoTone, setLogoTone] = useState<"light" | "dark">("light");
   const [coverTone, setCoverTone] = useState<"light" | "dark">("light");
