@@ -43,6 +43,7 @@ export const usePipeline = ({
   const samplerRef = useRef<HSVImageSampler | null>(null);
   const sonifierRef = useRef<OscillatorSonifier | null>(null);
   const controllerRef = useRef<ApplicationController | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const imageBufferRef = useRef<HTMLImageElement | null>(null);
 
   const ensureCanvasesSized = useCallback(() => {
@@ -147,6 +148,10 @@ export const usePipeline = ({
       await loadImage(zodiacConstellationsUrl);
 
       await controllerRef.current.start();
+      analyserRef.current = sonifierRef.current.getAnalyserNode({
+        fftSize: 2048,
+        smoothingTimeConstant: 0.65,
+      });
       setStatus("running");
     } catch (error) {
       const message =
@@ -247,5 +252,6 @@ export const usePipeline = ({
     error,
     imageReady,
     loadImageFile,
+    analyser: analyserRef,
   };
 };

@@ -2,6 +2,7 @@ import { Camera, Palette, Radio, Waves } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { PiPPanel, type PiPState } from "./components/PiPPanel";
+import { ReactiveMark } from "./components/ReactiveMark";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -197,7 +198,7 @@ const App = () => {
   const videoOverlayRef = useRef<HTMLCanvasElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
-  const { start, stop, status, error, loadImageFile } = usePipeline({
+  const { start, stop, status, error, loadImageFile, analyser } = usePipeline({
     videoRef,
     videoOverlayRef,
     imageCanvasRef,
@@ -255,8 +256,11 @@ const App = () => {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/80" />
       </div>
 
-      <div className="absolute left-4 top-4 z-10 rounded-full border border-border/60 bg-black/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground backdrop-blur">
-        Herakoi
+      <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-3">
+        <ReactiveMark analyserRef={analyser} size={56} className="relative z-0 -mr-4 opacity-95" />
+        <span className="relative z-10 font-brand text-[28px] font-normal leading-none text-white/95">
+          herakoi
+        </span>
       </div>
 
       <ControlPanel
