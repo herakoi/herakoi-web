@@ -791,7 +791,7 @@ const App = () => {
           </div>
           <span
             className={cn(
-              "relative z-10 hidden font-brand text-[28px] font-normal leading-none transition-opacity sm:inline",
+              "relative z-10 hidden font-brand text-[28px] font-normal leading-none transition-opacity md:inline",
               logoTone === "dark" ? "text-neutral-900/80" : "text-white/95",
             )}
             style={uiFadeStyle}
@@ -833,9 +833,7 @@ const App = () => {
                       ? coverTone === "dark"
                         ? "border-black/40 bg-neutral-900/85 text-white shadow-sm"
                         : "border-white/40 bg-white/10 text-white"
-                      : coverTone === "dark"
-                        ? "border-black/25 bg-white/80 text-neutral-900/80 hover:bg-white/90"
-                        : "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70",
+                      : "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70",
                   )}
                   aria-label="Toggle cover mode"
                   aria-pressed={imageCover}
