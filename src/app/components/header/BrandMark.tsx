@@ -7,7 +7,7 @@ type BrandMarkProps = {
   logoTone: "light" | "dark";
   dimLogoMark: boolean;
   uiFadeStyle: CSSProperties;
-  logoRef: RefObject<HTMLDivElement>;
+  logoRef: RefObject<HTMLButtonElement>;
 };
 
 export const BrandMark = ({
@@ -17,8 +17,19 @@ export const BrandMark = ({
   uiFadeStyle,
   logoRef,
 }: BrandMarkProps) => {
+  const handleClick = () => {
+    if (typeof window === "undefined") return;
+    window.location.reload();
+  };
+
   return (
-    <div ref={logoRef} className="flex min-w-0 items-center gap-5">
+    <button
+      ref={logoRef}
+      type="button"
+      className="pointer-events-auto flex min-w-0 items-center gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0"
+      onClick={handleClick}
+      aria-label="Reload page"
+    >
       <div className="transition-opacity" style={dimLogoMark ? uiFadeStyle : undefined}>
         <ReactiveMark
           analyserRef={analyserRef}
@@ -36,6 +47,6 @@ export const BrandMark = ({
       >
         herakoi
       </span>
-    </div>
+    </button>
   );
 };

@@ -7,9 +7,22 @@ type CameraDockProps = {
   overlayRef: React.RefObject<HTMLCanvasElement>;
   onStart: () => void;
   onStop: () => void;
+  cameraTone: "light" | "dark";
+  cameraSelectTone: "light" | "dark";
+  cameraToggleRef: React.RefObject<HTMLButtonElement>;
+  cameraSelectRef: React.RefObject<HTMLButtonElement>;
 };
 
-export const CameraDock = ({ videoRef, overlayRef, onStart, onStop }: CameraDockProps) => {
+export const CameraDock = ({
+  videoRef,
+  overlayRef,
+  onStart,
+  onStop,
+  cameraTone,
+  cameraSelectTone,
+  cameraToggleRef,
+  cameraSelectRef,
+}: CameraDockProps) => {
   const mirror = usePipelineStore((state) => state.mirror);
   const setMirror = usePipelineStore((state) => state.setMirror);
   const maxHands = usePipelineStore((state) => state.maxHands);
@@ -40,6 +53,10 @@ export const CameraDock = ({ videoRef, overlayRef, onStart, onStop }: CameraDock
       onMaxHandsChange={setMaxHands}
       facingMode={facingMode}
       onFacingModeChange={setFacingMode}
+      cameraTone={cameraTone}
+      cameraSelectTone={cameraSelectTone}
+      cameraToggleRef={cameraToggleRef}
+      cameraSelectRef={cameraSelectRef}
       pip={pip}
       setPip={setPip}
       videoRef={videoRef}

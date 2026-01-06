@@ -27,6 +27,10 @@ type PiPPanelProps = {
   onMaxHandsChange: (value: number) => void;
   facingMode: FacingMode;
   onFacingModeChange: (value: FacingMode) => void;
+  cameraTone: "light" | "dark";
+  cameraSelectTone: "light" | "dark";
+  cameraToggleRef: React.RefObject<HTMLButtonElement>;
+  cameraSelectRef: React.RefObject<HTMLButtonElement>;
   pip: PiPState;
   setPip: React.Dispatch<React.SetStateAction<PiPState>>;
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -46,6 +50,10 @@ export const PiPPanel = ({
   onMaxHandsChange,
   facingMode,
   onFacingModeChange,
+  cameraTone,
+  cameraSelectTone,
+  cameraToggleRef,
+  cameraSelectRef,
   pip,
   setPip,
   videoRef,
@@ -56,6 +64,30 @@ export const PiPPanel = ({
   const [videoReady, setVideoReady] = useState(false);
   const isActive = isRunning || isInitializing;
   const [isResizing, setIsResizing] = useState(false);
+  const cameraBaseClass =
+    cameraTone === "dark"
+      ? "border-black/30 bg-black/40 text-white/90"
+      : "border-border/50 bg-black/50 text-muted-foreground";
+  const cameraHoverClass =
+    cameraTone === "dark"
+      ? "hover:bg-black/55 hover:text-white"
+      : "hover:bg-black/70 hover:text-foreground";
+  const cameraActiveClass =
+    cameraTone === "dark"
+      ? "border-black/50 bg-black/70 text-white"
+      : "border-white/40 bg-white/10 text-white";
+  const selectBaseClass =
+    cameraSelectTone === "dark"
+      ? "border-black/30 bg-black/40 text-white/90"
+      : "border-border/50 bg-black/50 text-muted-foreground";
+  const selectHoverClass =
+    cameraSelectTone === "dark"
+      ? "hover:bg-black/55 hover:text-white"
+      : "hover:bg-black/70 hover:text-foreground";
+  const selectOpenClass =
+    cameraSelectTone === "dark"
+      ? "data-[state=open]:border-black/50 data-[state=open]:bg-black/70 data-[state=open]:text-white"
+      : "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white";
 
   const getMaxPipY = useCallback((pipHeight: number) => {
     const controlsRect = controlsRef.current?.getBoundingClientRect();
@@ -176,13 +208,14 @@ export const PiPPanel = ({
           variant="ghost"
           className={cn(
             "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
-            open
-              ? "border-primary/60 bg-primary/10 text-primary"
-              : "border-border/50 bg-black/50 text-muted-foreground",
+            cameraBaseClass,
+            cameraHoverClass,
+            open && cameraActiveClass,
           )}
           aria-pressed={open}
           aria-label={open ? "Hide picture in picture" : "Show picture in picture"}
           onClick={onToggle}
+          ref={cameraToggleRef}
         >
           Camera
         </Button>
@@ -192,7 +225,13 @@ export const PiPPanel = ({
         >
           <SelectTrigger
             aria-label="Camera facing"
-            className="h-9 w-[150px] rounded-full border border-border/50 bg-black/50 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur focus:ring-1 focus:ring-ring/60 focus:ring-offset-0"
+            className={cn(
+              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus:ring-1 focus:ring-ring/60 focus:ring-offset-0",
+              selectBaseClass,
+              selectHoverClass,
+              selectOpenClass,
+            )}
+            ref={cameraSelectRef}
           >
             <SelectValue placeholder="Camera" />
           </SelectTrigger>

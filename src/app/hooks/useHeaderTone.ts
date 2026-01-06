@@ -2,11 +2,17 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from "react"
 
 type Tone = "light" | "dark";
 
+export type ToneTarget = {
+  key: string;
+  ref: RefObject<HTMLElement>;
+};
+
 type UseHeaderToneArgs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
   logoRef: RefObject<HTMLElement>;
   coverButtonRef: RefObject<HTMLButtonElement>;
   transportButtonRef: RefObject<HTMLButtonElement>;
+  extraTargets?: ToneTarget[];
 };
 
 export const useHeaderTone = ({
@@ -14,12 +20,32 @@ export const useHeaderTone = ({
   logoRef,
   coverButtonRef,
   transportButtonRef,
+  extraTargets,
 }: UseHeaderToneArgs) => {
   const logoSampleRef = useRef<HTMLCanvasElement | null>(null);
   const headerToneRafRef = useRef<number | null>(null);
   const [logoTone, setLogoTone] = useState<Tone>("light");
   const [coverTone, setCoverTone] = useState<Tone>("light");
   const [transportTone, setTransportTone] = useState<Tone>("light");
+  const [extraTones, setExtraTones] = useState<Record<string, Tone>>(() => {
+    if (!extraTargets?.length) return {};
+    return Object.fromEntries(extraTargets.map(({ key }) => [key, "light"]));
+  });
+
+  useEffect(() => {
+    if (!extraTargets?.length) return;
+    setExtraTones((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const { key } of extraTargets) {
+        if (!(key in next)) {
+          next[key] = "light";
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [extraTargets]);
 
   const sampleElementTone = useCallback(
     (element: HTMLElement | null) => {
@@ -75,7 +101,23 @@ export const useHeaderTone = ({
     if (nextTransportTone) {
       setTransportTone((prev) => (prev === nextTransportTone ? prev : nextTransportTone));
     }
-  }, [coverButtonRef, logoRef, sampleElementTone, transportButtonRef]);
+
+    if (extraTargets?.length) {
+      setExtraTones((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const { key, ref } of extraTargets) {
+          const nextTone = sampleElementTone(ref.current);
+          if (!nextTone) continue;
+          if (next[key] !== nextTone) {
+            next[key] = nextTone;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+  }, [coverButtonRef, extraTargets, logoRef, sampleElementTone, transportButtonRef]);
 
   useEffect(() => {
     if (headerToneRafRef.current !== null) {
@@ -117,5 +159,5 @@ export const useHeaderTone = ({
     return () => window.removeEventListener("herakoi-image-rendered", handleImageRendered);
   }, [updateHeaderTones]);
 
-  return { logoTone, coverTone, transportTone };
+  return { logoTone, coverTone, transportTone, extraTones };
 };

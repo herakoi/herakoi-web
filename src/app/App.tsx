@@ -1,5 +1,5 @@
 import { Bug, Hand, Image as ImageIcon, Waves } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CameraDock } from "./components/CameraDock";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { BrandMark } from "./components/header/BrandMark";
@@ -11,7 +11,7 @@ import { ImagePanel } from "./components/panels/ImagePanel";
 import { InputPanel } from "./components/panels/InputPanel";
 import { curatedImages } from "./data/curatedImages";
 import { howItWorksImages } from "./data/howItWorksImages";
-import { useHeaderTone } from "./hooks/useHeaderTone";
+import { type ToneTarget, useHeaderTone } from "./hooks/useHeaderTone";
 import { useImageCoverPan } from "./hooks/useImageCoverPan";
 import { useImageLibrary } from "./hooks/useImageLibrary";
 import { usePipeline } from "./hooks/usePipeline";
@@ -25,9 +25,16 @@ const App = () => {
   const videoOverlayRef = useRef<HTMLCanvasElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLButtonElement>(null);
   const coverButtonRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const restartButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
+  const cameraToggleRef = useRef<HTMLButtonElement>(null);
+  const cameraSelectRef = useRef<HTMLButtonElement>(null);
   const { start, stop, status, error, loadImageFile, loadImageSource, analyser } = usePipeline({
     videoRef,
     videoOverlayRef,
@@ -54,12 +61,26 @@ const App = () => {
       loadImageSource,
     });
 
-  const { uiFadeStyle } = useUiDimmer({ handDetected, uiDimPercent });
-  const { logoTone, coverTone, transportTone } = useHeaderTone({
+  const { uiFadeStyle, uiDimmed } = useUiDimmer({ handDetected, uiDimPercent });
+  const toneTargets = useMemo<ToneTarget[]>(
+    () => [
+      { key: "import", ref: importButtonRef },
+      { key: "image", ref: imageButtonRef },
+      { key: "restart", ref: restartButtonRef },
+      { key: "settings", ref: settingsButtonRef },
+      { key: "help", ref: helpButtonRef },
+      { key: "cameraToggle", ref: cameraToggleRef },
+      { key: "cameraSelect", ref: cameraSelectRef },
+    ],
+    [],
+  );
+
+  const { logoTone, coverTone, transportTone, extraTones } = useHeaderTone({
     imageCanvasRef,
     logoRef,
     coverButtonRef,
     transportButtonRef,
+    extraTargets: toneTargets,
   });
 
   useImageCoverPan({ imageCanvasRef, imageCover, imagePan, setImagePan });
@@ -113,7 +134,15 @@ const App = () => {
           ref={imageOverlayRef}
           className="pointer-events-none absolute inset-0 h-full w-full"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/55" />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/55"
+          style={{
+            opacity: uiDimmed ? 0 : 1,
+            transitionProperty: "opacity",
+            transitionDuration: uiFadeStyle.transitionDuration,
+            transitionTimingFunction: uiFadeStyle.transitionTimingFunction,
+          }}
+        />
       </div>
 
       <header className="pointer-events-none absolute left-1 right-4 top-4 z-10 flex items-center">
@@ -135,11 +164,15 @@ const App = () => {
             uploads={uploads}
             imageCover={imageCover}
             coverTone={coverTone}
+            importTone={extraTones.import ?? "light"}
+            imageTone={extraTones.image ?? "light"}
             onToggleCover={() => setImageCover(!imageCover)}
             onFile={handleImageFile}
             onSelectImage={handleSelectImage}
             onDeleteUpload={handleDeleteUpload}
             coverButtonRef={coverButtonRef}
+            importButtonRef={importButtonRef}
+            imageButtonRef={imageButtonRef}
           />
         </div>
         <div
@@ -150,10 +183,12 @@ const App = () => {
             isActive={isActive}
             isInitializing={isInitializing}
             transportTone={transportTone}
+            restartTone={extraTones.restart ?? transportTone}
             onRestart={() => void start()}
             onStart={() => void start()}
             onStop={() => stop()}
             transportButtonRef={transportButtonRef}
+            restartButtonRef={restartButtonRef}
           />
         </div>
       </header>
@@ -163,6 +198,10 @@ const App = () => {
         openSection={openPanel}
         setOpenSection={setOpenPanel}
         sections={sections}
+        settingsTone={extraTones.settings ?? "light"}
+        helpTone={extraTones.help ?? "light"}
+        settingsButtonRef={settingsButtonRef}
+        helpButtonRef={helpButtonRef}
         className="transition-opacity"
         style={uiFadeStyle}
       />
@@ -173,6 +212,10 @@ const App = () => {
           overlayRef={videoOverlayRef}
           onStart={() => void start()}
           onStop={() => stop()}
+          cameraTone={extraTones.cameraToggle ?? "light"}
+          cameraSelectTone={extraTones.cameraSelect ?? "light"}
+          cameraToggleRef={cameraToggleRef}
+          cameraSelectRef={cameraSelectRef}
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { ChevronDown, Crop, Image as ImageIcon, Trash2, Upload } from "lucide-react";
-import { type ChangeEvent, type RefObject, useRef, useState } from "react";
+import { type ChangeEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import type { ImageEntry } from "../../types/image";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -16,11 +16,15 @@ type ImageToolbarProps = {
   uploads: ImageEntry[];
   imageCover: boolean;
   coverTone: "light" | "dark";
+  importTone: "light" | "dark";
+  imageTone: "light" | "dark";
   onToggleCover: () => void;
   onFile: (file: File) => Promise<void>;
   onSelectImage: (entry: ImageEntry) => Promise<void>;
   onDeleteUpload: (entry: ImageEntry) => void;
   coverButtonRef: RefObject<HTMLButtonElement>;
+  importButtonRef: RefObject<HTMLButtonElement>;
+  imageButtonRef: RefObject<HTMLButtonElement>;
 };
 
 export const ImageToolbar = ({
@@ -30,21 +34,76 @@ export const ImageToolbar = ({
   uploads,
   imageCover,
   coverTone,
+  importTone,
+  imageTone,
   onToggleCover,
   onFile,
   onSelectImage,
   onDeleteUpload,
   coverButtonRef,
+  importButtonRef,
+  imageButtonRef,
 }: ImageToolbarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importDragActive, setImportDragActive] = useState(false);
+  const [importActive, setImportActive] = useState(false);
+
+  useEffect(() => {
+    if (!importActive) return;
+    const handleFocus = () => setImportActive(false);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [importActive]);
+
+  const handleImportClick = () => {
+    setImportActive(true);
+    inputRef.current?.click();
+  };
 
   const handleImageInput = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     await onFile(file);
+    setImportActive(false);
     event.target.value = "";
   };
+
+  const importBaseClass =
+    importTone === "dark"
+      ? "border-black/30 bg-black/40 text-white/90"
+      : "border-border/50 bg-black/50 text-muted-foreground";
+  const importHoverClass =
+    importTone === "dark"
+      ? "hover:bg-black/55 hover:text-white"
+      : "hover:bg-black/70 hover:text-foreground";
+  const importActiveClass =
+    importTone === "dark"
+      ? "border-black/50 bg-black/70 text-white"
+      : "border-white/40 bg-white/10 text-white";
+  const imageBaseClass =
+    imageTone === "dark"
+      ? "border-black/30 bg-black/40 text-white/90"
+      : "border-border/50 bg-black/50 text-foreground/80";
+  const imageHoverClass =
+    imageTone === "dark"
+      ? "hover:bg-black/55 hover:text-white"
+      : "hover:bg-black/70 hover:text-foreground";
+  const imageOpenClass =
+    imageTone === "dark"
+      ? "data-[state=open]:border-black/50 data-[state=open]:bg-black/70 data-[state=open]:text-white"
+      : "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white";
+  const coverBaseClass =
+    coverTone === "dark"
+      ? "border-black/30 bg-black/40 text-white/90"
+      : "border-border/50 bg-black/50 text-muted-foreground";
+  const coverHoverClass =
+    coverTone === "dark"
+      ? "hover:bg-black/55 hover:text-white"
+      : "hover:bg-black/70 hover:text-foreground";
+  const coverActiveClass =
+    coverTone === "dark"
+      ? "border-black/50 bg-black/70 text-white shadow-sm"
+      : "border-white/40 bg-white/10 text-white";
 
   return (
     <Popover>
@@ -52,17 +111,29 @@ export const ImageToolbar = ({
         <div className="relative flex items-center gap-2">
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/50 bg-black/50 text-muted-foreground backdrop-blur transition hover:bg-black/70"
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition",
+              importBaseClass,
+              importHoverClass,
+              importActive && importActiveClass,
+            )}
             aria-label="Import image"
-            onClick={() => inputRef.current?.click()}
+            onClick={handleImportClick}
+            ref={importButtonRef}
           >
             <Upload className="h-4 w-4" />
           </button>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-full border border-border/50 bg-black/50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground/80 backdrop-blur transition hover:bg-black/70"
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur transition",
+                imageBaseClass,
+                imageHoverClass,
+                imageOpenClass,
+              )}
               title={currentImage.title}
+              ref={imageButtonRef}
             >
               <ImageIcon className="h-4 w-4" />
               <span className="max-w-[220px] truncate">{currentImage.title}</span>
@@ -73,11 +144,9 @@ export const ImageToolbar = ({
             type="button"
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition",
-              imageCover
-                ? coverTone === "dark"
-                  ? "border-black/40 bg-neutral-900/85 text-white shadow-sm"
-                  : "border-white/40 bg-white/10 text-white"
-                : "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70",
+              coverBaseClass,
+              coverHoverClass,
+              imageCover && coverActiveClass,
             )}
             aria-label="Toggle cover mode"
             aria-pressed={imageCover}
@@ -91,7 +160,7 @@ export const ImageToolbar = ({
       <PopoverContent
         align="center"
         sideOffset={10}
-        className="w-[360px] border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur"
+        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[360px] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur [scrollbar-gutter:stable]"
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -103,7 +172,7 @@ export const ImageToolbar = ({
                   ? "border-white/40 bg-white/5 text-foreground"
                   : "border-border/60 text-muted-foreground hover:border-white/25 hover:bg-white/5",
               )}
-              onClick={() => inputRef.current?.click()}
+              onClick={handleImportClick}
               onDragEnter={() => setImportDragActive(true)}
               onDragOver={(event) => {
                 event.preventDefault();
