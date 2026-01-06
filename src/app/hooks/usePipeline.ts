@@ -187,9 +187,9 @@ export const usePipeline = ({
 
       if (videoOverlayRef.current && imageOverlayRef.current && detectorRef.current) {
         const imageOverlayStyle: HandOverlayStyle = {
-          connectorColor: "rgba(200, 200, 200, 0.75)",
+          connectorColor: "rgba(200, 200, 200, 0.85)",
           connectorWidth: 1.2,
-          landmarkColor: "rgba(210, 210, 210, 0.85)",
+          landmarkColor: "rgba(210, 210, 210, 0.95)",
           landmarkWidth: 1,
           focusColor: "rgba(215, 215, 215, 0.95)",
           focusFillColor: "rgba(210, 210, 210, 0.3)",
