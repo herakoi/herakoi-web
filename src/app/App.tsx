@@ -53,13 +53,20 @@ const App = () => {
   const isInitializing = status === "initializing";
   const isActive = isRunning || isInitializing;
 
-  const { currentImage, entries, uploads, handleImageFile, handleSelectImage, handleDeleteUpload } =
-    useImageLibrary({
-      curatedImages,
-      howItWorksImages,
-      loadImageFile,
-      loadImageSource,
-    });
+  const {
+    currentImage,
+    entries,
+    uploads,
+    imageHydrated,
+    handleImageFile,
+    handleSelectImage,
+    handleDeleteUpload,
+  } = useImageLibrary({
+    curatedImages,
+    howItWorksImages,
+    loadImageFile,
+    loadImageSource,
+  });
 
   const { uiFadeStyle, uiDimmed } = useUiDimmer({ handDetected, uiDimPercent });
   const toneTargets = useMemo<ToneTarget[]>(
@@ -86,9 +93,10 @@ const App = () => {
   useImageCoverPan({ imageCanvasRef, imageCover, imagePan, setImagePan });
 
   useEffect(() => {
+    if (!imageHydrated) return;
     void start();
     return () => stop();
-  }, [start, stop]);
+  }, [imageHydrated, start, stop]);
 
   const sections: ControlPanelSection<PanelKey>[] = [
     {

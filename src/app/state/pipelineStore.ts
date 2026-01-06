@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { PIPELINE_PREFERENCES_KEY } from "./persistenceKeys";
 
 export type FacingMode = "user" | "environment";
 
@@ -39,6 +41,7 @@ type PipelineActions = {
   setHandDetected: (hasHands: boolean) => void;
   setUiDimPercent: (percent: number) => void;
   setDimLogoMark: (dim: boolean) => void;
+  resetPreferences: () => void;
 };
 
 const defaultOscillator: OscillatorSettings = {
@@ -49,28 +52,54 @@ const defaultOscillator: OscillatorSettings = {
   oscillatorType: "sine",
 };
 
-export const usePipelineStore = create<PipelineState & PipelineActions>((set) => ({
-  status: "idle",
+const defaultPreferences = {
   mirror: true,
   maxHands: 2,
-  facingMode: "user",
+  facingMode: "user" as FacingMode,
   oscillator: defaultOscillator,
-  imageReady: false,
   imageCover: false,
   imagePan: { x: 0, y: 0 },
-  handDetected: false,
   uiDimPercent: 25,
   dimLogoMark: false,
-  setStatus: (status, error) => set({ status, error }),
-  setMirror: (mirror) => set({ mirror }),
-  setMaxHands: (maxHands) => set({ maxHands }),
-  setFacingMode: (facingMode) => set({ facingMode }),
-  setOscillator: (settings) =>
-    set((state) => ({ oscillator: { ...state.oscillator, ...settings } })),
-  setImageReady: (ready) => set({ imageReady: ready }),
-  setImageCover: (cover) => set({ imageCover: cover }),
-  setImagePan: (pan) => set({ imagePan: pan }),
-  setHandDetected: (hasHands) => set({ handDetected: hasHands }),
-  setUiDimPercent: (percent) => set({ uiDimPercent: percent }),
-  setDimLogoMark: (dim) => set({ dimLogoMark: dim }),
-}));
+};
+
+const preferenceStorage =
+  typeof window === "undefined" ? undefined : createJSONStorage(() => localStorage);
+
+export const usePipelineStore = create<PipelineState & PipelineActions>()(
+  persist(
+    (set) => ({
+      status: "idle",
+      ...defaultPreferences,
+      imageReady: false,
+      handDetected: false,
+      setStatus: (status, error) => set({ status, error }),
+      setMirror: (mirror) => set({ mirror }),
+      setMaxHands: (maxHands) => set({ maxHands }),
+      setFacingMode: (facingMode) => set({ facingMode }),
+      setOscillator: (settings) =>
+        set((state) => ({ oscillator: { ...state.oscillator, ...settings } })),
+      setImageReady: (ready) => set({ imageReady: ready }),
+      setImageCover: (cover) => set({ imageCover: cover }),
+      setImagePan: (pan) => set({ imagePan: pan }),
+      setHandDetected: (hasHands) => set({ handDetected: hasHands }),
+      setUiDimPercent: (percent) => set({ uiDimPercent: percent }),
+      setDimLogoMark: (dim) => set({ dimLogoMark: dim }),
+      resetPreferences: () => set({ ...defaultPreferences, oscillator: { ...defaultOscillator } }),
+    }),
+    {
+      name: PIPELINE_PREFERENCES_KEY,
+      storage: preferenceStorage,
+      partialize: (state) => ({
+        mirror: state.mirror,
+        maxHands: state.maxHands,
+        facingMode: state.facingMode,
+        oscillator: state.oscillator,
+        imageCover: state.imageCover,
+        imagePan: state.imagePan,
+        uiDimPercent: state.uiDimPercent,
+        dimLogoMark: state.dimLogoMark,
+      }),
+    },
+  ),
+);

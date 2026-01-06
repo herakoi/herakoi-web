@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IMAGE_SELECTION_KEY } from "../../state/persistenceKeys";
 import { usePipelineStore } from "../../state/pipelineStore";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -10,6 +11,7 @@ export const DebugPanel = () => {
   const setUiDimPercent = usePipelineStore((state) => state.setUiDimPercent);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
   const setDimLogoMark = usePipelineStore((state) => state.setDimLogoMark);
+  const resetPreferences = usePipelineStore((state) => state.resetPreferences);
   const [debugEnabled, setDebugEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     const params = new URLSearchParams(window.location.search);
@@ -29,10 +31,21 @@ export const DebugPanel = () => {
     window.dispatchEvent(new Event("herakoi-debug-toggle"));
   };
 
+  const handleResetDefaults = () => {
+    resetPreferences();
+    usePipelineStore.persist?.clearStorage?.();
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(IMAGE_SELECTION_KEY);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Button variant={debugEnabled ? "secondary" : "outline"} onClick={handleDebug}>
         {debugEnabled ? "Disable Dev HUD" : "Enable Dev HUD"}
+      </Button>
+      <Button variant="outline" onClick={handleResetDefaults}>
+        Restore Defaults
       </Button>
       <div className="space-y-2">
         <Label>UI dim level ({uiDimPercent}%)</Label>
