@@ -3,6 +3,7 @@ import { ApplicationController } from "#src/core/ApplicationController";
 import type { DetectedPoint } from "#src/core/interfaces";
 import { type DebugToneSample, setupDebugTools } from "#src/debug";
 import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
+import type { HandOverlayStyle } from "#src/detection/mediapipe/overlay";
 import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
 import { HSVImageSampler } from "#src/sampling/hsv/HSVImageSampler";
 import { OscillatorSonifier } from "#src/sonification/oscillator/OscillatorSonifier";
@@ -185,7 +186,45 @@ export const usePipeline = ({
       });
 
       if (videoOverlayRef.current && imageOverlayRef.current && detectorRef.current) {
-        bindHandsUi(detectorRef.current, [videoOverlayRef.current, imageOverlayRef.current]);
+        const imageOverlayStyle: HandOverlayStyle = {
+          connectorColor: "rgba(245, 245, 245, 0.55)",
+          connectorWidth: 1.2,
+          landmarkColor: "rgba(255, 255, 255, 0.75)",
+          landmarkWidth: 1,
+          focusColor: "rgba(255, 255, 255, 1)",
+          focusFillColor: "rgba(255, 255, 255, 0.32)",
+          focusWidth: 2,
+          focusSize: 34,
+          shadowColor: "rgba(255, 255, 255, 0.35)",
+          shadowBlur: 8,
+        };
+        const getImageOverlayPointStyle = (point: DetectedPoint): HandOverlayStyle => {
+          const sampler = samplerRef.current;
+          const sample = sampler?.sampleAt(point);
+          const hueByte = sample?.data?.hueByte;
+          if (hueByte === undefined) {
+            return imageOverlayStyle;
+          }
+          const hue = Math.round((hueByte / 255) * 360);
+          const focusColor = `hsla(${hue}, 60%, 82%, 0.95)`;
+          const focusFillColor = `hsla(${hue}, 55%, 55%, 0.38)`;
+          const shadowColor = `hsla(${hue}, 60%, 70%, 0.6)`;
+          return {
+            ...imageOverlayStyle,
+            focusColor,
+            focusFillColor,
+            shadowColor,
+            shadowBlur: 10,
+          };
+        };
+        bindHandsUi(detectorRef.current, [
+          videoOverlayRef.current,
+          {
+            canvas: imageOverlayRef.current,
+            style: imageOverlayStyle,
+            getPointStyle: getImageOverlayPointStyle,
+          },
+        ]);
       }
 
       controllerRef.current = new ApplicationController(
