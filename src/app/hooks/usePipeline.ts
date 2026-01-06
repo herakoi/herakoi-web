@@ -187,15 +187,15 @@ export const usePipeline = ({
 
       if (videoOverlayRef.current && imageOverlayRef.current && detectorRef.current) {
         const imageOverlayStyle: HandOverlayStyle = {
-          connectorColor: "rgba(245, 245, 245, 0.55)",
+          connectorColor: "rgba(200, 200, 200, 0.75)",
           connectorWidth: 1.2,
-          landmarkColor: "rgba(255, 255, 255, 0.75)",
+          landmarkColor: "rgba(210, 210, 210, 0.85)",
           landmarkWidth: 1,
-          focusColor: "rgba(255, 255, 255, 1)",
-          focusFillColor: "rgba(255, 255, 255, 0.32)",
+          focusColor: "rgba(215, 215, 215, 0.95)",
+          focusFillColor: "rgba(210, 210, 210, 0.3)",
           focusWidth: 2,
           focusSize: 34,
-          shadowColor: "rgba(255, 255, 255, 0.35)",
+          shadowColor: "rgba(210, 210, 210, 0.35)",
           shadowBlur: 8,
         };
         const getImageOverlayPointStyle = (point: DetectedPoint): HandOverlayStyle => {
