@@ -4,13 +4,13 @@ import { Camera } from "@mediapipe/camera_utils";
 import type { NormalizedLandmarkList, Results } from "@mediapipe/hands";
 import figlet from "figlet";
 import StarStripsFont from "figlet/importable-fonts/Star Strips.js";
+import { getDefaultCuratedImage } from "#src/app/data/curatedImages";
 import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { Sonifier, type ToneUpdate } from "#src/deprecated/audio/sonification";
 import { ImageSampler } from "#src/deprecated/sampling/imageEncoding";
 import { getFingerFocus } from "#src/detection/mediapipe/handGeometry";
 import { HandsDetector } from "#src/detection/mediapipe/hands";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/detection/mediapipe/overlay";
-import zodiacConstellationsUrl from "../../assets/zodiac-constellations.jpg?url";
 
 figlet.parseFont("Star Strips", StarStripsFont);
 const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
@@ -269,17 +269,23 @@ const uploadBufferImage = new Image();
 uploadBufferImage.crossOrigin = "anonymous";
 let hasUploadedSourceImage = false;
 
-// Load default zodiac constellation image (for the MEME)
+const curatedDefault = getDefaultCuratedImage();
+
+if (!curatedDefault) {
+  throw new Error("No curated images found in src/app/assets/curated.");
+}
+
+// Load default curated image (legacy demo)
 uploadBufferImage.onload = () => {
   hasUploadedSourceImage = true;
   redrawSourceImage();
 };
 
 uploadBufferImage.onerror = (error) => {
-  console.error("Failed to load default zodiac constellation image", error);
+  console.error("Failed to load default curated image", error);
 };
 
-uploadBufferImage.src = zodiacConstellationsUrl;
+uploadBufferImage.src = curatedDefault.src;
 
 const redrawSourceImage = () => {
   if (!hasUploadedSourceImage) {

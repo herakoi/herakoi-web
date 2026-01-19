@@ -9,23 +9,67 @@ export type FingerFocus = {
 export type HandOverlayLayer = {
   ctx: CanvasRenderingContext2D;
   landmarks: NormalizedLandmarkList;
+  style?: HandOverlayStyle;
+};
+
+export type HandOverlayStyle = {
+  connectorColor?: string;
+  connectorWidth?: number;
+  landmarkColor?: string;
+  landmarkWidth?: number;
+  focusColor?: string;
+  focusFillColor?: string;
+  focusWidth?: number;
+  focusSize?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
 };
 
 export function drawHands(layers: HandOverlayLayer[]): void {
-  for (const { ctx, landmarks } of layers) {
+  for (const { ctx, landmarks, style } of layers) {
+    const connectorColor = style?.connectorColor ?? "#00FF00";
+    const connectorWidth = style?.connectorWidth ?? 2;
+    const landmarkColor = style?.landmarkColor ?? "#FF0000";
+    const landmarkWidth = style?.landmarkWidth ?? 1;
+
+    ctx.save();
+    if (style?.shadowColor) {
+      ctx.shadowColor = style.shadowColor;
+      ctx.shadowBlur = style.shadowBlur ?? 0;
+    }
     drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
-      color: "#00FF00",
-      lineWidth: 2,
+      color: connectorColor,
+      lineWidth: connectorWidth,
     });
-    drawLandmarks(ctx, landmarks, { color: "#FF0000", lineWidth: 1 });
+    drawLandmarks(ctx, landmarks, { color: landmarkColor, lineWidth: landmarkWidth });
+    ctx.restore();
   }
 }
 
-export function drawFingerFocus(ctx: CanvasRenderingContext2D, focus: FingerFocus): void {
-  const boxSize = 20;
-  ctx.strokeStyle = "lime";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(focus.x - boxSize / 2, focus.y - boxSize / 2, boxSize, boxSize);
+export function drawFingerFocus(
+  ctx: CanvasRenderingContext2D,
+  focus: FingerFocus,
+  style?: HandOverlayStyle,
+): void {
+  const boxSize = style?.focusSize ?? 20;
+  const radius = boxSize / 2;
+  ctx.save();
+  if (style?.shadowColor) {
+    ctx.shadowColor = style.shadowColor;
+    ctx.shadowBlur = style.shadowBlur ?? 0;
+  }
+  if (style?.focusFillColor) {
+    ctx.fillStyle = style.focusFillColor;
+    ctx.beginPath();
+    ctx.arc(focus.x, focus.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = style?.focusColor ?? "lime";
+  ctx.lineWidth = style?.focusWidth ?? 2;
+  ctx.beginPath();
+  ctx.arc(focus.x, focus.y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export function drawFrequencyLabel(

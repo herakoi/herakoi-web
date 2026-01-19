@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
+import react from "@vitejs/plugin-react";
 import type { Plugin, ResolvedConfig } from "vite";
 import { defineConfig } from "vite";
 
@@ -31,11 +32,12 @@ function copyLegacyHtmlPlugin(): Plugin {
 
 export default defineConfig({
   base,
-  plugins: [copyLegacyHtmlPlugin()],
+  plugins: [react(), copyLegacyHtmlPlugin()],
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        app: resolve(__dirname, "app.html"),
         oneChannel: resolve(__dirname, "one-channel.html"),
         threeChannel: resolve(__dirname, "three-channel.html"),
         modular: resolve(__dirname, "modular.html"),

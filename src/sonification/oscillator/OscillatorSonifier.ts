@@ -26,9 +26,16 @@ type ToneNodes = {
   gain: GainNode;
 };
 
+export type OscillatorSonifierAnalyserOptions = {
+  fftSize?: number;
+  smoothingTimeConstant?: number;
+};
+
 export class OscillatorSonifier implements Sonifier {
   private ctx: AudioContext | null;
   private nodes = new Map<string, ToneNodes>();
+  private output: AudioNode | null = null;
+  private analyser: AnalyserNode | null = null;
   private oscillatorType: OscillatorType = "sine";
   private minFreq = 200;
   private maxFreq = 700;
@@ -123,6 +130,45 @@ export class OscillatorSonifier implements Sonifier {
     this.stopAll();
   }
 
+  /**
+   * Returns an AnalyserNode that taps the sonifier output (no mic required).
+   *
+   * Why: visualizers (e.g., a reactive logo) need spectrum/waveform data from the
+   * audio we generate, without reaching inside individual tone nodes.
+   * What: this lazily creates a single AnalyserNode and routes all tone gains
+   * through it, then connects it to `ctx.destination`.
+   * How: we switch the internal output node and reconnect any existing tones.
+   */
+  getAnalyserNode(options: OscillatorSonifierAnalyserOptions = {}): AnalyserNode {
+    const ctx = this.ensureContext();
+
+    if (!this.analyser) {
+      this.analyser = ctx.createAnalyser();
+      this.analyser.connect(ctx.destination);
+    }
+
+    if (options.fftSize !== undefined) {
+      this.analyser.fftSize = options.fftSize;
+    }
+    if (options.smoothingTimeConstant !== undefined) {
+      this.analyser.smoothingTimeConstant = options.smoothingTimeConstant;
+    }
+
+    if (this.output !== this.analyser) {
+      this.output = this.analyser;
+      for (const { gain } of this.nodes.values()) {
+        try {
+          gain.disconnect();
+        } catch {
+          // ignore - node may already be disconnected
+        }
+        gain.connect(this.output);
+      }
+    }
+
+    return this.analyser;
+  }
+
   private scale(byte: number, min: number, max: number): number {
     const clamped = Math.max(0, Math.min(255, byte));
     return min + (clamped / 255) * (max - min);
@@ -143,7 +189,7 @@ export class OscillatorSonifier implements Sonifier {
 
     osc.type = this.oscillatorType;
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.output ?? ctx.destination);
     osc.start();
 
     const toneNodes: ToneNodes = { osc, gain };
@@ -182,6 +228,7 @@ export class OscillatorSonifier implements Sonifier {
     if (!this.ctx) {
       throw new Error("OscillatorSonifier must be initialized before processing samples.");
     }
+    this.output ??= this.ctx.destination;
     return this.ctx;
   }
 

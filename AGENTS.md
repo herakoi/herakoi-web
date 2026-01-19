@@ -1,36 +1,35 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Active TypeScript lives in `src/`; `src/oneChannel` and `src/threeChannel` host the entrypoints, `src/vision` wraps MediaPipe helpers, `src/utils` carries shared types, and `src/style.css` centralizes styling. Legacy experiments remain in `legacy_html/` for baseline comparisons, with docs, ADRs, and improvement plans stored in `docs/`. Vite emits builds into `dist/`, and the root HTML files (`index.html`, `one-channel.html`, `three-channel.html`) cover lightweight hosting needs.
+Active TypeScript lives in `src/`. The React app is hosted by `app.html` and bootstrapped from `src/app/main.tsx` into `src/app/App.tsx`. UI is split into `src/app/components/header/*` (top toolbar), `src/app/components/panels/*` (settings bodies), and `src/app/components/ui/*` (primitives). App hooks live in `src/app/hooks/*` (image library, dimming, tone sampling, cover pan) and app state is in `src/app/state/pipelineStore.ts`. Curated assets and metadata live in `src/app/assets/*` and `src/app/data/*`.
+
+The in-browser pipeline is the “backend” for the UI; there is no server/API in this repo. Core contracts are in `src/core/interfaces.ts`, orchestration is in `src/core/ApplicationController.ts`, and implementations live in `src/detection/mediapipe/*`, `src/sampling/hsv/*`, and `src/sonification/oscillator/*`. Debug tooling is in `src/debug/*`. Legacy comparisons live in `legacy_html/` and `src/deprecated/*`. Vite emits to `dist/`. Root HTML entrypoints include `index.html`, `app.html`, `modular.html`, `one-channel.html`, and `three-channel.html`.
+
+Use `#src/*` import aliases when crossing folders (see ADR 003/004 under `docs/adrs/`); keep relative imports for siblings.
 
 ## Build, Test, and Development Commands
-- `pnpm dev` starts Vite with HMR for local iteration.
-- `pnpm build` emits the production bundle; follow with `pnpm preview` for a static smoke test.
-- `pnpm lint` runs Biome plus both `tsc` configs, and `pnpm format` applies Biome’s autofixes.
-- `pnpm typecheck` isolates TypeScript validation, while `pnpm test` executes Vitest suites (use `--watch` when iterating).
-- Lefthook’s `pre-commit` hook now auto-runs Biome fix → Biome lint + TypeScript (in parallel) → Vitest, so teammates get the same gate locally that CI enforces without remembering bespoke commands.
+- `pnpm dev` starts Vite with HMR; open `/app.html`.
+- `pnpm build` emits the production bundle; follow with `pnpm preview` and open `/app.html`.
+- `pnpm lint` runs Biome plus both `tsc` configs; `pnpm format` applies Biome autofixes.
+- `pnpm typecheck` isolates TypeScript validation; `pnpm test` runs Vitest (use `--watch` when iterating).
+- Lefthook’s pre-commit hook runs Biome fix -> Biome lint + TypeScript -> Vitest.
 
 ## Coding Style & Naming Conventions
-We target Node 22+, native ES modules, strict TypeScript, and 2-space indentation. Use descriptive PascalCase components (`HandsDetector`), camelCase utilities, and kebab-case CSS class names. Biome stays authoritative for lint/format—run it before committing. Comments stick to the narrative why/what/how flow so future readers understand intent and expected behavior.
+Target Node 22+, native ES modules, strict TypeScript, and 2-space indentation. Use descriptive PascalCase components (`HandsDetector`), camelCase utilities, and kebab-case CSS class names. Biome is authoritative for lint/format. Comments should explain intent and behavior (why/what/how). Prefer imperative canvas updates for high-frequency drawing to avoid React re-render churn.
 
 ## Testing Guidelines
-Treat tests as layered guardrails: fast Vitest unit specs live beside their modules with a `.test.ts` suffix, integration checks exercise MediaPipe wiring plus audio or camera mocks, and manual smoke tests confirm the demo HTML entrypoints. Wherever we stub browsers or hardware, describe the contract we expect (e.g., landmark payload shape, canvas dimensions) so future contributors can extend coverage without reverse-engineering intent. Keep targeting ~80% line coverage, and explain any purposeful gaps plus follow-up actions in the PR description.
+Treat tests as layered guardrails: unit Vitest specs live beside modules with a `.test.ts` suffix, integration checks exercise MediaPipe wiring plus audio/camera mocks, and manual smoke tests confirm the HTML entrypoints. For manual checks, verify `/app.html` (image import/selection, cover pan, transport controls), PiP camera overlays/mirror, and parity with `modular.html`/`one-channel.html` when pipeline behavior changes. Describe stubbed browser/hardware contracts (landmark payloads, canvas dimensions) in tests to make extensions predictable.
 
 ## Commit & Pull Request Guidelines
-- Stick to the `type: summary` subject pattern (e.g., `build: add three-channel Vite entry`) and keep bodies focused on intent plus any issue links.
-- Add a short “Verification” note in each PR or commit message describing what you ran or observed (commands, screenshots, audio captures) so reviewers know how you tested.
-- Lefthook already runs Biome fix, Biome lint, TypeScript, and Vitest before every commit; invoke `pnpm lint`, `pnpm test`, or `pnpm build` manually only when you want extra signal between commits.
-- `git commit` (no `-m`) now launches Commitizen through our `prepare-commit-msg` hook so we co-author conventional messages together; run `pnpm commit` directly if you want the same guided prompts outside of Git.
-- When automation or headless sessions need to supply their own message (for example release bots or this CLI), set `CI=1 git commit -m "type: summary"` and the hook will skip the Commitizen wizard while still running commitlint.
-- Reference the relevant doc or ADR whenever architecture shifts, and call out how you validated parity with the legacy HTML demos when they’re touched.
+- Use the `type: summary` subject pattern (e.g., `build: add three-channel Vite entry`) and keep bodies focused on intent plus links.
+- Add a short “Verification” note with commands or observations (commands, screenshots, audio captures).
+- Lefthook already runs Biome fix, Biome lint, TypeScript, and Vitest; run `pnpm lint`, `pnpm test`, or `pnpm build` manually only when you want extra signal.
+- `git commit` (no `-m`) launches Commitizen via `prepare-commit-msg`; run `pnpm commit` if you want the wizard directly.
+- For automation/headless commits, use `CI=1 git commit -m "type: summary"` to bypass Commitizen while keeping commitlint.
+- Reference relevant ADRs for architecture shifts and call out parity validation with legacy demos when touched.
 
 ## Task Planning & ADR Alignment
-When starting any task, first capture a short checklist-style plan (three to five steps is ideal) so reviewers can track progress as we tick off items. Reference the ADRs under `docs/` and ensure new code follows their prescribed patterns; call out the ADR you followed (or updated) in the PR description. Keep using the asset-loader helpers in `src/vision/hands.ts`, stick to `pnpm@10.20.0`, and document new permission or configuration needs alongside the plan so downstream reviewers know what to validate.
+Start each task with a short checklist-style plan (3–5 steps). Reference ADRs under `docs/adrs/` and follow their patterns. Keep using the curated asset loader pattern in `src/app/data/curatedImages.ts` (`import.meta.glob`) and the MediaPipe helpers under `src/detection/mediapipe/`. Document any new permission or configuration needs alongside the plan, especially camera/audio constraints for mobile browsers.
 
 ## README Voice & Maintenance
-Use README updates to welcome first-time contributors and explain the workflow in plain language. When editing that file:
-- Lead every section with the purpose (“why”) before listing steps or commands, and keep the tone collaborative (“we” / “our” / “teammates”).
-- Spell out what runs automatically (e.g., Lefthook’s Biome → TypeScript → Vitest chain) versus what contributors run manually, so newcomers immediately understand expectations.
-- Note important dates only when they add context, and remove stale markers as soon as they no longer help (e.g., temporary deployment notes).
-- Prefer short paragraphs over long bullet walls so the story flows: introduce the idea, describe the command, then highlight the outcome/side effect we should expect.
-- When new tooling or conventions appear, explain how to trigger them (`pnpm lint`, `pnpm commit`, etc.) and why they exist, mirroring the style used in the current “Getting Started” block.
+Use README updates to welcome first-time contributors and explain the workflow in plain language. Lead each section with the purpose (“why”) before listing steps or commands, keep the tone collaborative (“we”/“our”), and spell out what runs automatically (Lefthook chain) versus what contributors run manually. Prefer short paragraphs over long bullet walls, and explain new tooling or conventions with both how to run them and why they exist.
