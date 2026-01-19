@@ -6,7 +6,7 @@ import "./globals.css";
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("Expected #root to exist in app.html");
+  throw new Error("Expected #root to exist in index.html");
 }
 
 createRoot(rootElement).render(
