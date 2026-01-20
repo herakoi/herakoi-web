@@ -112,7 +112,7 @@ export const ImageToolbar = ({
           <button
             type="button"
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition",
+              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               importBaseClass,
               importHoverClass,
               importActive && importActiveClass,
@@ -127,7 +127,7 @@ export const ImageToolbar = ({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur transition",
+                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 imageBaseClass,
                 imageHoverClass,
                 imageOpenClass,
@@ -143,7 +143,7 @@ export const ImageToolbar = ({
           <button
             type="button"
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition",
+              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               coverBaseClass,
               coverHoverClass,
               imageCover && coverActiveClass,
@@ -167,7 +167,7 @@ export const ImageToolbar = ({
             <button
               type="button"
               className={cn(
-                "flex w-full items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm transition",
+                "flex w-full items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 importDragActive
                   ? "border-white/40 bg-white/5 text-foreground"
                   : "border-border/60 text-muted-foreground hover:border-white/25 hover:bg-white/5",
@@ -203,7 +203,7 @@ export const ImageToolbar = ({
                 key={entry.id}
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition",
+                  "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   currentImage.id === entry.id
                     ? "border-white/35 bg-white/5"
                     : "border-transparent hover:border-white/20 hover:bg-white/5",
@@ -262,7 +262,7 @@ export const ImageToolbar = ({
                   <button
                     type="button"
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg border px-3 py-2 pr-10 text-left transition",
+                      "flex w-full items-center gap-3 rounded-lg border px-3 py-2 pr-10 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       currentImage.id === entry.id
                         ? "border-white/35 bg-white/5"
                         : "border-transparent hover:border-white/20 hover:bg-white/5",
@@ -282,7 +282,7 @@ export const ImageToolbar = ({
                   </button>
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground"
+                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label={`Remove ${entry.title}`}
                     onClick={(event) => {
                       event.stopPropagation();

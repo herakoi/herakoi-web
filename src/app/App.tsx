@@ -135,12 +135,19 @@ const App = () => {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0">
-        <canvas ref={imageCanvasRef} className="h-full w-full" />
+        <canvas
+          ref={imageCanvasRef}
+          className="h-full w-full"
+          role="img"
+          aria-label="Herakoi audio-visualizer output"
+        />
+        {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
         <canvas
           ref={imageOverlayRef}
           className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
         />
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/55"
@@ -150,6 +157,7 @@ const App = () => {
             transitionDuration: uiFadeStyle.transitionDuration,
             transitionTimingFunction: uiFadeStyle.transitionTimingFunction,
           }}
+          aria-hidden="true"
         />
       </div>
 
@@ -226,7 +234,7 @@ const App = () => {
           cameraSelectRef={cameraSelectRef}
         />
       </div>
-    </div>
+    </main>
   );
 };
 

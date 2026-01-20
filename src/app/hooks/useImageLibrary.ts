@@ -83,13 +83,17 @@ export const useImageLibrary = ({
     restoreSelectionRef.current = true;
     try {
       localStorage.setItem(IMAGE_SELECTION_KEY, JSON.stringify({ id }));
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, []);
 
   const persistUploads = useCallback((nextUploads: ImageEntry[]) => {
     try {
       localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(nextUploads));
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, []);
 
   const handleImageFile = useCallback(
@@ -139,7 +143,9 @@ export const useImageLibrary = ({
       setCurrentImage({ id: entry.id, title: entry.title });
       try {
         await loadImageSource(entry.src);
-      } catch {}
+      } catch {
+        // ignore
+      }
       if (selectionTokenRef.current !== token) return;
       persistSelection(entry.id);
       setImageHydrated(true);

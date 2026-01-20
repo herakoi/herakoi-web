@@ -90,7 +90,7 @@ export const ControlPanel = <K extends string>({
             <Button
               variant="ghost"
               className={cn(
-                "gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
+                "gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 settingsBaseClass,
                 settingsHoverClass,
                 open && settingsActiveClass,
@@ -121,7 +121,7 @@ export const ControlPanel = <K extends string>({
                       <TabsTrigger
                         key={section.key}
                         value={section.key}
-                        className="flex items-center justify-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline"
+                        className="flex items-center justify-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {section.icon ? (
                           <span className="flex h-3 w-3 items-center justify-center text-white/70">
@@ -150,7 +150,7 @@ export const ControlPanel = <K extends string>({
               variant="ghost"
               size="icon"
               className={cn(
-                "rounded-full border backdrop-blur transition",
+                "rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 helpBaseClass,
                 helpHoverClass,
                 helpOpen && helpActiveClass,

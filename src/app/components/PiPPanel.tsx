@@ -207,7 +207,7 @@ export const PiPPanel = ({
         <Button
           variant="ghost"
           className={cn(
-            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
+            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             cameraBaseClass,
             cameraHoverClass,
             open && cameraActiveClass,
@@ -226,7 +226,7 @@ export const PiPPanel = ({
           <SelectTrigger
             aria-label="Camera facing"
             className={cn(
-              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus:ring-1 focus:ring-ring/60 focus:ring-offset-0",
+              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               selectBaseClass,
               selectHoverClass,
               selectOpenClass,
@@ -274,7 +274,7 @@ export const PiPPanel = ({
               <button
                 type="button"
                 aria-label="Start pipeline"
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-sm transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-sm transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={(event) => {
                   event.stopPropagation();
                   onStart();
@@ -291,7 +291,7 @@ export const PiPPanel = ({
               <button
                 type="button"
                 aria-label="Stop pipeline"
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-sm opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-sm opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={(event) => {
                   event.stopPropagation();
                   onStop();
@@ -305,7 +305,7 @@ export const PiPPanel = ({
           <button
             type="button"
             aria-label="Hide picture-in-picture"
-            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();
               onToggle();
@@ -318,7 +318,7 @@ export const PiPPanel = ({
             aria-label={mirror ? "Disable mirror" : "Enable mirror"}
             aria-pressed={mirror}
             className={cn(
-              "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25",
+              "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               mirror
                 ? "bg-black/55 text-white/80 hover:bg-black/70"
                 : "bg-white/85 text-black shadow-sm ring-1 ring-black/20 hover:bg-white/95",
@@ -336,7 +336,7 @@ export const PiPPanel = ({
           <button
             type="button"
             aria-label="Cycle max hands"
-            className="absolute bottom-2 left-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70"
+            className="absolute bottom-2 left-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();
               const nextHands = maxHands >= 4 ? 1 : maxHands + 1;
