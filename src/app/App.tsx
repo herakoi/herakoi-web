@@ -153,6 +153,18 @@ const App = () => {
         />
       </div>
 
+      <div
+        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center transition-opacity duration-700"
+        style={{ opacity: isRunning && !handDetected ? 1 : 0 }}
+      >
+        <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur">
+          <Hand className="h-5 w-5 text-white/70" />
+          <span className="font-sans text-sm font-medium tracking-wide text-white/80">
+            Show your hands to the camera
+          </span>
+        </div>
+      </div>
+
       <header className="pointer-events-none absolute left-1 right-4 top-4 z-10 flex items-center">
         <BrandMark
           analyserRef={analyser}
