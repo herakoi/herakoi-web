@@ -62,6 +62,7 @@ export const ImagePanel = ({
       </div>
       <button
         type="button"
+        aria-label="Upload image: drop here or click to browse"
         className={cn(
           "flex w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground transition",
           dragActive
@@ -86,7 +87,14 @@ export const ImagePanel = ({
         <div className="text-sm font-medium text-foreground">Drop image here</div>
         <div className="text-xs text-muted-foreground">or click to browse</div>
       </button>
-      <Input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <Input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        aria-label="Choose image file"
+        onChange={handleFile}
+      />
     </div>
   );
 };

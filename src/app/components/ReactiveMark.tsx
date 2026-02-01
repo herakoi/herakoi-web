@@ -54,6 +54,7 @@ export function ReactiveMark({ analyserRef, size, className, tone = "light" }: P
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let rafId = 0;
 
     const resize = () => {
@@ -62,6 +63,10 @@ export function ReactiveMark({ analyserRef, size, className, tone = "light" }: P
       canvas.height = Math.floor(size * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       mark.updateConfig(makeConfig(size, tone));
+    };
+
+    const drawStatic = () => {
+      mark.draw(ctx, size, size, null, "spectrum");
     };
 
     const loop = () => {
@@ -81,11 +86,32 @@ export function ReactiveMark({ analyserRef, size, className, tone = "light" }: P
       rafId = requestAnimationFrame(loop);
     };
 
-    resize();
-    rafId = requestAnimationFrame(loop);
+    const startLoop = () => {
+      cancelAnimationFrame(rafId);
+      if (motionQuery.matches) {
+        drawStatic();
+      } else {
+        rafId = requestAnimationFrame(loop);
+      }
+    };
 
-    return () => cancelAnimationFrame(rafId);
+    resize();
+    startLoop();
+
+    motionQuery.addEventListener("change", startLoop);
+    return () => {
+      cancelAnimationFrame(rafId);
+      motionQuery.removeEventListener("change", startLoop);
+    };
   }, [analyserRef, mark, size, tone]);
 
-  return <canvas ref={canvasRef} className={className} style={{ width: size, height: size }} />;
+  return (
+    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: Decorative canvas is not interactive
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    />
+  );
 }

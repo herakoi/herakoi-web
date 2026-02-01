@@ -57,13 +57,17 @@ export const useUiDimmer = ({
   }, [handDetected, scheduleUiDimCheck]);
 
   useEffect(() => {
-    const handleMouseMove = () => {
+    const handleActivity = () => {
       lastMouseMoveRef.current = now();
       setUiDimmed(false);
       scheduleUiDimCheck();
     };
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+    };
   }, [scheduleUiDimCheck]);
 
   const uiOpacity = uiDimmed ? uiDimPercent / 100 : 1;

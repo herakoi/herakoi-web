@@ -133,6 +133,7 @@ export const ImageToolbar = ({
                 imageOpenClass,
               )}
               title={currentImage.title}
+              aria-label={`Select image: ${currentImage.title}`}
               ref={imageButtonRef}
             >
               <ImageIcon className="h-4 w-4" />
@@ -202,6 +203,7 @@ export const ImageToolbar = ({
               <button
                 key={entry.id}
                 type="button"
+                aria-current={currentImage.id === entry.id ? "true" : undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   currentImage.id === entry.id
@@ -229,8 +231,9 @@ export const ImageToolbar = ({
               <button
                 key={entry.id}
                 type="button"
+                aria-current={currentImage.id === entry.id ? "true" : undefined}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition",
+                  "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   currentImage.id === entry.id
                     ? "border-white/35 bg-white/5"
                     : "border-transparent hover:border-white/20 hover:bg-white/5",
@@ -261,6 +264,7 @@ export const ImageToolbar = ({
                 <div key={entry.id} className="relative">
                   <button
                     type="button"
+                    aria-current={currentImage.id === entry.id ? "true" : undefined}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg border px-3 py-2 pr-10 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       currentImage.id === entry.id
@@ -302,6 +306,7 @@ export const ImageToolbar = ({
         type="file"
         accept="image/*"
         className="hidden"
+        aria-label="Choose image file"
         onChange={handleImageInput}
       />
     </Popover>

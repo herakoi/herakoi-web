@@ -96,7 +96,6 @@ export const ControlPanel = <K extends string>({
                 open && settingsActiveClass,
               )}
               aria-label="Toggle controls panel"
-              tabIndex={0}
               ref={settingsButtonRef}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -138,7 +137,11 @@ export const ControlPanel = <K extends string>({
                     </TabsContent>
                   ))}
                 </Tabs>
-                {error ? <p className="text-xs text-red-200">Error: {error}</p> : null}
+                {error ? (
+                  <p className="text-xs text-red-200" role="alert">
+                    Error: {error}
+                  </p>
+                ) : null}
               </CardContent>
             </PopoverContent>
           ) : null}

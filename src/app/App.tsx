@@ -9,6 +9,7 @@ import { AudioPanel } from "./components/panels/AudioPanel";
 import { DebugPanel } from "./components/panels/DebugPanel";
 import { ImagePanel } from "./components/panels/ImagePanel";
 import { InputPanel } from "./components/panels/InputPanel";
+import { ScreenReaderAnnouncer } from "./components/ScreenReaderAnnouncer";
 import { curatedImages } from "./data/curatedImages";
 import { howItWorksImages } from "./data/howItWorksImages";
 import { type ToneTarget, useHeaderTone } from "./hooks/useHeaderTone";
@@ -52,6 +53,23 @@ const App = () => {
   const isRunning = status === "running";
   const isInitializing = status === "initializing";
   const isActive = isRunning || isInitializing;
+
+  const statusAnnouncement = useMemo(() => {
+    switch (status) {
+      case "initializing":
+        return "Pipeline initializing";
+      case "running":
+        return "Pipeline running";
+      case "error":
+        return `Pipeline error: ${error ?? "unknown"}`;
+      case "idle":
+        return "Pipeline stopped";
+      default:
+        return "";
+    }
+  }, [status, error]);
+
+  const handAnnouncement = handDetected ? "Hand detected" : "";
 
   const {
     currentImage,
@@ -136,9 +154,17 @@ const App = () => {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <a
+        href="#herakoi-main-canvas"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       <div className="absolute inset-0">
         <canvas
           ref={imageCanvasRef}
+          id="herakoi-main-canvas"
+          tabIndex={-1}
           className="h-full w-full"
           role="img"
           aria-label="Herakoi audio-visualizer output"
@@ -234,6 +260,9 @@ const App = () => {
           cameraSelectRef={cameraSelectRef}
         />
       </div>
+
+      <ScreenReaderAnnouncer message={statusAnnouncement} politeness="assertive" />
+      <ScreenReaderAnnouncer message={handAnnouncement} />
     </main>
   );
 };
