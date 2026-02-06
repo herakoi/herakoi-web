@@ -37,7 +37,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
         <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted">
           <SliderPrimitive.Range className="absolute h-full bg-primary" />
         </SliderPrimitive.Track>
-        {labels.map((label, _index) => (
+        {labels.map((label) => (
           <SliderPrimitive.Thumb
             key={label}
             aria-label={label}

@@ -1,5 +1,5 @@
 import { FlipHorizontal, Hand, Loader2, MoveDiagonal2, Play, Square, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../lib/utils";
 import type { FacingMode } from "../state/pipelineStore";
 import { Button } from "./ui/button";
@@ -178,6 +178,72 @@ export const PiPPanel = ({
     };
   }, [onPointerMove, onPointerUp]);
 
+  const handleMoveKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const step = event.shiftKey ? 40 : 10;
+      let dx = 0;
+      let dy = 0;
+      switch (event.key) {
+        case "ArrowLeft":
+          dx = -step;
+          break;
+        case "ArrowRight":
+          dx = step;
+          break;
+        case "ArrowUp":
+          dy = -step;
+          break;
+        case "ArrowDown":
+          dy = step;
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+      setPip((prev) => {
+        const height = (prev.width * 9) / 16;
+        const maxY = getMaxPipY(height);
+        return {
+          x: Math.max(4, Math.min(prev.x + dx, window.innerWidth - prev.width - 4)),
+          y: Math.max(4, Math.min(prev.y + dy, maxY)),
+          width: prev.width,
+        };
+      });
+    },
+    [getMaxPipY, setPip],
+  );
+
+  const handleResizeKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const step = event.shiftKey ? 40 : 10;
+      let dw = 0;
+      switch (event.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+          dw = step;
+          break;
+        case "ArrowLeft":
+        case "ArrowUp":
+          dw = -step;
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+      setPip((prev) => {
+        const nextWidth = Math.max(180, Math.min(prev.width + dw, window.innerWidth - 32));
+        const height = (nextWidth * 9) / 16;
+        const maxY = getMaxPipY(height);
+        return {
+          x: prev.x,
+          y: Math.max(4, Math.min(prev.y, maxY)),
+          width: nextWidth,
+        };
+      });
+    },
+    [getMaxPipY, setPip],
+  );
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -207,7 +273,7 @@ export const PiPPanel = ({
         <Button
           variant="ghost"
           className={cn(
-            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border",
+            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             cameraBaseClass,
             cameraHoverClass,
             open && cameraActiveClass,
@@ -226,7 +292,7 @@ export const PiPPanel = ({
           <SelectTrigger
             aria-label="Camera facing"
             className={cn(
-              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus:ring-1 focus:ring-ring/60 focus:ring-offset-0",
+              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               selectBaseClass,
               selectHoverClass,
               selectOpenClass,
@@ -258,13 +324,22 @@ export const PiPPanel = ({
             autoPlay
             muted
             playsInline
+            aria-label="Camera feed"
             className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
             style={mirror && videoReady && isRunning ? { transform: "scaleX(-1)" } : undefined}
           />
-          <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
-          <div
-            className="absolute inset-0 cursor-move"
+          {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
+          <canvas
+            ref={overlayRef}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            aria-label="Move picture-in-picture window"
+            className="absolute inset-0 cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             onPointerDown={(event) => onPointerDown("move", event)}
+            onKeyDown={handleMoveKeyDown}
           />
           {isRunning ? (
             <div className="pointer-events-none absolute inset-0 bg-black/35 opacity-0 transition group-hover:opacity-100" />
@@ -274,7 +349,7 @@ export const PiPPanel = ({
               <button
                 type="button"
                 aria-label="Start pipeline"
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-sm transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-sm transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={(event) => {
                   event.stopPropagation();
                   onStart();
@@ -291,7 +366,7 @@ export const PiPPanel = ({
               <button
                 type="button"
                 aria-label="Stop pipeline"
-                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-sm opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-sm opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={(event) => {
                   event.stopPropagation();
                   onStop();
@@ -305,7 +380,7 @@ export const PiPPanel = ({
           <button
             type="button"
             aria-label="Hide picture-in-picture"
-            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();
               onToggle();
@@ -318,7 +393,7 @@ export const PiPPanel = ({
             aria-label={mirror ? "Disable mirror" : "Enable mirror"}
             aria-pressed={mirror}
             className={cn(
-              "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25",
+              "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               mirror
                 ? "bg-black/55 text-white/80 hover:bg-black/70"
                 : "bg-white/85 text-black shadow-sm ring-1 ring-black/20 hover:bg-white/95",
@@ -336,7 +411,7 @@ export const PiPPanel = ({
           <button
             type="button"
             aria-label="Cycle max hands"
-            className="absolute bottom-2 left-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70"
+            className="absolute bottom-2 left-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();
               const nextHands = maxHands >= 4 ? 1 : maxHands + 1;
@@ -347,15 +422,19 @@ export const PiPPanel = ({
             }}
           >
             <Hand className="h-3.5 w-3.5" />
-            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-[9px] font-semibold text-black">
+            <span
+              className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-[9px] font-semibold text-black"
+              aria-hidden="true"
+            >
               {maxHands}
             </span>
+            <span className="sr-only">Max hands: {maxHands}</span>
           </button>
           <button
             type="button"
             aria-label="Resize picture-in-picture"
             className={cn(
-              "absolute bottom-2 right-2 flex h-7 w-7 cursor-se-resize items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70",
+              "absolute bottom-2 right-2 flex h-7 w-7 cursor-se-resize items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               isResizing &&
                 "bg-white/85 text-black ring-1 ring-black/20 hover:bg-white/85 hover:text-black",
             )}
@@ -363,6 +442,7 @@ export const PiPPanel = ({
               event.stopPropagation();
               onPointerDown("resize", event);
             }}
+            onKeyDown={handleResizeKeyDown}
           >
             <MoveDiagonal2 className="h-3.5 w-3.5" />
           </button>

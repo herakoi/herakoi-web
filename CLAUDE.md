@@ -15,8 +15,9 @@ Herakoi is a motion-sensing sonification experiment that tracks hand movements v
 - `pnpm preview` - Preview production build locally
 
 ### Quality Checks
-- `pnpm lint` - Run both Biome linter and TypeScript checks across all configs
+- `pnpm lint` - Run Biome linter, ESLint a11y checks, and TypeScript checks across all configs
 - `pnpm lint:biome` - Run Biome linter only
+- `pnpm lint:a11y` - Run ESLint for accessibility checks only
 - `pnpm lint:biome:fix` - Auto-fix Biome issues (runs with --unsafe flag)
 - `pnpm format` - Format code with Biome
 - `pnpm typecheck` - Run TypeScript compiler checks on `tsconfig.json` and `tsconfig.node.json`
@@ -122,8 +123,12 @@ Both use strict mode, ES2022 target, and ESNext modules.
 ### Commit Message Format
 Use conventional commits format: `type: summary` where type is one of: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`. Include verification notes describing commands run or behavior observed.
 
-### Biome as Authoritative Linter
-Biome handles both linting and formatting. Configuration in `biome.jsonc`. Run Biome fix before committing (happens automatically via pre-commit hook).
+### Linting Strategy: Biome + ESLint for Accessibility
+Biome is the primary linter and formatter for general code quality. Configuration in `biome.jsonc`.
+
+**Exception for Accessibility**: ESLint with `eslint-plugin-jsx-a11y` handles accessibility linting due to Biome's incomplete a11y rule implementation. Both linters run via the `pnpm lint` command and are enforced by pre-commit hooks.
+
+See ADR 005 (`docs/adrs/005-dual-linting-biome-eslint-a11y.md`) for the rationale behind this hybrid approach.
 
 ### Code Style
 - 2-space indentation

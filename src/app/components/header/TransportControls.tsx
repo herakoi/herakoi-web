@@ -44,7 +44,7 @@ export const TransportControls = ({
       <button
         type="button"
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition",
+          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           restartBaseClass,
           restartHoverClass,
           restartActive && restartActiveClass,
@@ -63,7 +63,7 @@ export const TransportControls = ({
       <button
         type="button"
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition",
+          "flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           isActive
             ? transportTone === "dark"
               ? "border-red-500/50 bg-black/40 text-red-200 hover:bg-black/55"
