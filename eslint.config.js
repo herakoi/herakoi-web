@@ -1,3 +1,12 @@
+/**
+ * ESLint configuration for accessibility linting only.
+ *
+ * This project primarily uses Biome for linting/formatting, but maintains
+ * ESLint specifically for accessibility checks via eslint-plugin-jsx-a11y.
+ * Biome's a11y rules are not yet mature enough to replace this tooling.
+ *
+ * See docs/adrs/005-dual-linting-biome-eslint-a11y.md for rationale.
+ */
 import js from "@eslint/js";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
