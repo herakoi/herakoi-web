@@ -108,7 +108,7 @@ export const ImageToolbar = ({
   return (
     <Popover>
       <PopoverAnchor asChild>
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             className={cn(
@@ -137,7 +137,9 @@ export const ImageToolbar = ({
               ref={imageButtonRef}
             >
               <ImageIcon className="h-4 w-4" />
-              <span className="max-w-[220px] truncate">{currentImage.title}</span>
+              <span className="hidden truncate sm:inline sm:max-w-[140px] md:max-w-[220px]">
+                {currentImage.title}
+              </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
             </button>
           </PopoverTrigger>
@@ -161,7 +163,7 @@ export const ImageToolbar = ({
       <PopoverContent
         align="center"
         sideOffset={10}
-        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[360px] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur [scrollbar-gutter:stable]"
+        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur sm:w-[360px] [scrollbar-gutter:stable]"
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
