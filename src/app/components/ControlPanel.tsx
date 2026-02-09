@@ -75,7 +75,10 @@ export const ControlPanel = <K extends string>({
 
   return (
     <div
-      className={cn("fixed bottom-4 right-4 z-10 flex flex-col items-end gap-2", className)}
+      className={cn(
+        "fixed bottom-3 right-2 z-10 flex flex-col items-end gap-2 sm:bottom-4 sm:right-4",
+        className,
+      )}
       style={style}
     >
       <div className="flex items-center gap-2">
@@ -90,7 +93,9 @@ export const ControlPanel = <K extends string>({
             <Button
               variant="ghost"
               className={cn(
-                "gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "rounded-full backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2",
+                "text-xs font-semibold uppercase tracking-wide",
                 settingsBaseClass,
                 settingsHoverClass,
                 open && settingsActiveClass,
@@ -99,7 +104,7 @@ export const ControlPanel = <K extends string>({
               ref={settingsButtonRef}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              <span>Settings</span>
+              <span className="hidden sm:inline">Settings</span>
             </Button>
           </PopoverTrigger>
           {defaultKey && value ? (
@@ -107,7 +112,7 @@ export const ControlPanel = <K extends string>({
               align="end"
               side="top"
               sideOffset={8}
-              className="h-[290px] w-[400px] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur"
+              className="h-[290px] w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur sm:w-[400px]"
             >
               <CardContent className="flex h-full flex-col gap-3 pt-4">
                 <Tabs
@@ -168,7 +173,7 @@ export const ControlPanel = <K extends string>({
             align="end"
             side="top"
             sideOffset={8}
-            className="w-[340px] border border-border/60 bg-card/90 p-4 text-card-foreground shadow-card backdrop-blur"
+            className="w-[calc(100vw-1rem)] border border-border/60 bg-card/90 p-4 text-card-foreground shadow-card backdrop-blur sm:w-[340px]"
           >
             <HelpPanelContent />
           </PopoverContent>
