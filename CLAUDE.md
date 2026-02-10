@@ -11,6 +11,7 @@ Herakoi is a motion-sensing sonification experiment that tracks hand movements v
 ### Development
 - `pnpm install` - Install dependencies (auto-runs `lefthook install` via postinstall hook)
 - `pnpm dev` - Start Vite dev server with HMR
+- `pnpm dev:https` - Start HTTPS dev server (required for camera access on mobile devices over LAN)
 - `pnpm build` - Build production bundle to `dist/`
 - `pnpm preview` - Preview production build locally
 

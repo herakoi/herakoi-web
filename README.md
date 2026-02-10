@@ -18,6 +18,7 @@ Herakoi is a **motion-sensing sonification experiment**: a webcam tracks your ha
 ```bash
 pnpm install
 pnpm dev          # launches Vite dev server
+pnpm dev:https    # HTTPS dev server (required for camera access on mobile devices)
 pnpm lint         # biome + tsc
 pnpm typecheck    # explicit project + config checks
 pnpm test         # vitest (full suite by default; hooks pass --changed)

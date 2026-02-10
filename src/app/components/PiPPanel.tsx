@@ -1,4 +1,13 @@
-import { FlipHorizontal, Hand, Loader2, MoveDiagonal2, Play, Square, X } from "lucide-react";
+import {
+  Camera,
+  FlipHorizontal,
+  Hand,
+  Loader2,
+  MoveDiagonal2,
+  Play,
+  Square,
+  X,
+} from "lucide-react";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../lib/utils";
 import type { FacingMode } from "../state/pipelineStore";
@@ -268,12 +277,14 @@ export const PiPPanel = ({
   }, [videoRef]);
 
   return (
-    <div className="fixed bottom-4 left-4 z-10 flex flex-col gap-2">
-      <div ref={controlsRef} className="flex items-center gap-2">
+    <div className="fixed bottom-3 left-2 z-10 flex flex-col gap-2 sm:bottom-4 sm:left-4">
+      <div ref={controlsRef} className="flex items-center gap-1.5 sm:gap-2">
         <Button
           variant="ghost"
           className={cn(
-            "rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "rounded-full backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:px-4 sm:py-2",
+            "text-xs font-semibold uppercase tracking-wide",
             cameraBaseClass,
             cameraHoverClass,
             open && cameraActiveClass,
@@ -283,7 +294,8 @@ export const PiPPanel = ({
           onClick={onToggle}
           ref={cameraToggleRef}
         >
-          Camera
+          <Camera className="h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">Camera</span>
         </Button>
         <Select
           value={facingMode}
@@ -292,7 +304,7 @@ export const PiPPanel = ({
           <SelectTrigger
             aria-label="Camera facing"
             className={cn(
-              "h-9 w-[150px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               selectBaseClass,
               selectHoverClass,
               selectOpenClass,

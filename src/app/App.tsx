@@ -1,4 +1,4 @@
-import { Bug, Hand, Image as ImageIcon, Waves } from "lucide-react";
+import { Bug, Hand, Image as ImageIcon, Pointer, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CameraDock } from "./components/CameraDock";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
@@ -69,7 +69,12 @@ const App = () => {
     }
   }, [status, error]);
 
-  const handAnnouncement = handDetected ? "Hand detected" : "";
+  const showHandPrompt = isRunning && !handDetected;
+  const handAnnouncement = handDetected
+    ? "Hand detected"
+    : showHandPrompt
+      ? "Move your index finger in front of the camera to play"
+      : "";
 
   const {
     currentImage,
@@ -188,27 +193,30 @@ const App = () => {
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center transition-opacity duration-700"
-        style={{ opacity: isRunning && !handDetected ? 1 : 0 }}
+        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-4 transition-opacity duration-700"
+        style={{ opacity: showHandPrompt ? 1 : 0 }}
+        aria-hidden="true"
       >
         <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur">
-          <Hand className="h-5 w-5 text-white/70" />
+          <Pointer className="h-5 w-5 shrink-0 text-white/70" />
           <span className="font-sans text-sm font-medium tracking-wide text-white/80">
-            Show your hands to the camera
+            Move your index finger in front of the camera to play
           </span>
         </div>
       </div>
 
-      <header className="pointer-events-none absolute left-1 right-4 top-4 z-10 flex items-center">
-        <BrandMark
-          analyserRef={analyser}
-          logoTone={logoTone}
-          dimLogoMark={dimLogoMark}
-          uiFadeStyle={uiFadeStyle}
-          logoRef={logoRef}
-        />
+      <header className="pointer-events-none absolute left-2 right-2 top-3 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:left-1 sm:right-4 sm:top-4 sm:gap-2">
+        <div className="justify-self-start">
+          <BrandMark
+            analyserRef={analyser}
+            logoTone={logoTone}
+            dimLogoMark={dimLogoMark}
+            uiFadeStyle={uiFadeStyle}
+            logoRef={logoRef}
+          />
+        </div>
         <div
-          className="pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center justify-center transition-opacity"
+          className="pointer-events-auto flex items-center justify-center transition-opacity"
           style={uiFadeStyle}
         >
           <ImageToolbar
@@ -230,7 +238,7 @@ const App = () => {
           />
         </div>
         <div
-          className="pointer-events-auto ml-auto flex items-center justify-end gap-2 transition-opacity"
+          className="pointer-events-auto flex items-center justify-self-end gap-1.5 transition-opacity sm:gap-2"
           style={uiFadeStyle}
         >
           <TransportControls
