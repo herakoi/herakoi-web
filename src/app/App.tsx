@@ -1,14 +1,13 @@
-import { Bug, Hand, Image as ImageIcon, Pointer, Waves } from "lucide-react";
+import { Bug } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CameraDock } from "./components/CameraDock";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { BrandMark } from "./components/header/BrandMark";
 import { ImageToolbar } from "./components/header/ImageToolbar";
 import { TransportControls } from "./components/header/TransportControls";
-import { AudioPanel } from "./components/panels/AudioPanel";
+import { PluginNotifications } from "./components/PluginNotifications";
+import { PluginSelector } from "./components/PluginSelector";
 import { DebugPanel } from "./components/panels/DebugPanel";
 import { ImagePanel } from "./components/panels/ImagePanel";
-import { InputPanel } from "./components/panels/InputPanel";
 import { ScreenReaderAnnouncer } from "./components/ScreenReaderAnnouncer";
 import { curatedImages } from "./data/curatedImages";
 import { howItWorksImages } from "./data/howItWorksImages";
@@ -16,14 +15,13 @@ import { type ToneTarget, useHeaderTone } from "./hooks/useHeaderTone";
 import { useImageCoverPan } from "./hooks/useImageCoverPan";
 import { useImageLibrary } from "./hooks/useImageLibrary";
 import { usePipeline } from "./hooks/usePipeline";
-import { useUiDimmer } from "./hooks/useUiDimmer";
+import { useUiDimFade } from "./hooks/useUiDimFade";
+import { pipelineConfig } from "./pipelineConfig";
 import { usePipelineStore } from "./state/pipelineStore";
 
 const App = () => {
-  type PanelKey = "audio" | "image" | "input" | "debug";
+  type PanelKey = string; // Dynamic based on plugins
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoOverlayRef = useRef<HTMLCanvasElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLButtonElement>(null);
@@ -34,22 +32,26 @@ const App = () => {
   const restartButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
-  const cameraToggleRef = useRef<HTMLButtonElement>(null);
-  const cameraSelectRef = useRef<HTMLButtonElement>(null);
-  const { start, stop, status, error, loadImageFile, loadImageSource, analyser } = usePipeline({
-    videoRef,
-    videoOverlayRef,
-    imageCanvasRef,
-    imageOverlayRef,
-  });
+
+  const { start, stop, status, error, loadImageFile, loadImageSource, analyser } = usePipeline(
+    pipelineConfig,
+    { imageCanvasRef, imageOverlayRef },
+  );
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
   const imageCover = usePipelineStore((state) => state.imageCover);
   const setImageCover = usePipelineStore((state) => state.setImageCover);
   const imagePan = usePipelineStore((state) => state.imagePan);
   const setImagePan = usePipelineStore((state) => state.setImagePan);
-  const handDetected = usePipelineStore((state) => state.handDetected);
-  const uiDimPercent = usePipelineStore((state) => state.uiDimPercent);
+  const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
+
+  const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
+  const setActiveDetectionId = usePipelineStore((state) => state.setActiveDetectionId);
+  const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
+  const setActiveSamplingId = usePipelineStore((state) => state.setActiveSamplingId);
+  const activeSonificationId = usePipelineStore((state) => state.activeSonificationId);
+  const setActiveSonificationId = usePipelineStore((state) => state.setActiveSonificationId);
+
   const isRunning = status === "running";
   const isInitializing = status === "initializing";
   const isActive = isRunning || isInitializing;
@@ -69,13 +71,6 @@ const App = () => {
     }
   }, [status, error]);
 
-  const showHandPrompt = isRunning && !handDetected;
-  const handAnnouncement = handDetected
-    ? "Hand detected"
-    : showHandPrompt
-      ? "Move your index finger in front of the camera to play"
-      : "";
-
   const {
     currentImage,
     entries,
@@ -91,7 +86,7 @@ const App = () => {
     loadImageSource,
   });
 
-  const { uiFadeStyle, uiDimmed } = useUiDimmer({ handDetected, uiDimPercent });
+  const { uiFadeStyle, uiDimmed } = useUiDimFade();
   const toneTargets = useMemo<ToneTarget[]>(
     () => [
       { key: "import", ref: importButtonRef },
@@ -99,8 +94,6 @@ const App = () => {
       { key: "restart", ref: restartButtonRef },
       { key: "settings", ref: settingsButtonRef },
       { key: "help", ref: helpButtonRef },
-      { key: "cameraToggle", ref: cameraToggleRef },
-      { key: "cameraSelect", ref: cameraSelectRef },
     ],
     [],
   );
@@ -121,41 +114,145 @@ const App = () => {
     return () => stop();
   }, [imageHydrated, start, stop]);
 
-  const sections: ControlPanelSection<PanelKey>[] = [
-    {
-      key: "audio",
-      label: "Audio",
-      icon: <Waves className="h-3.5 w-3.5" />,
-      render: () => <AudioPanel />,
-    },
-    {
-      key: "image",
-      label: "Image",
-      icon: <ImageIcon className="h-3.5 w-3.5" />,
-      render: () => (
-        <ImagePanel
-          onFile={handleImageFile}
-          entries={entries}
-          currentImageId={currentImage.id}
-          onSelectImage={handleSelectImage}
-          imageCover={imageCover}
-          setImageCover={setImageCover}
-        />
-      ),
-    },
-    {
-      key: "input",
-      label: "Input",
-      icon: <Hand className="h-3.5 w-3.5" />,
-      render: () => <InputPanel />,
-    },
-    {
+  // TODO: simplify this block
+  // Build sections dynamically from plugins
+  const sections: ControlPanelSection<PanelKey>[] = useMemo(() => {
+    const pluginSections: ControlPanelSection<PanelKey>[] = [];
+
+    // Sonification plugin settings
+    const activeSonification = pipelineConfig.sonification.find(
+      (p) => p.id === activeSonificationId,
+    );
+    if (activeSonification?.settingsTab && activeSonification.ui.SettingsPanel) {
+      const Panel = activeSonification.ui.SettingsPanel;
+      pluginSections.push({
+        key: activeSonification.settingsTab.key,
+        label: activeSonification.settingsTab.label,
+        icon: activeSonification.settingsTab.icon,
+        render: () => (
+          <>
+            <PluginSelector
+              label="Sonification"
+              plugins={pipelineConfig.sonification.map((p) => ({
+                id: p.id,
+                displayName: p.displayName,
+              }))}
+              activeId={activeSonificationId}
+              onSelect={(id) => {
+                stop();
+                setActiveSonificationId(id);
+                void start();
+              }}
+            />
+            <Panel />
+          </>
+        ),
+      });
+    }
+
+    // Sampling plugin settings
+    const activeSampling = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
+    if (activeSampling?.settingsTab) {
+      const Panel = activeSampling.ui.SettingsPanel;
+      pluginSections.push({
+        key: activeSampling.settingsTab.key,
+        label: activeSampling.settingsTab.label,
+        icon: activeSampling.settingsTab.icon,
+        render: () => {
+          return (
+            <>
+              <PluginSelector
+                label="Sampling"
+                plugins={pipelineConfig.sampling.map((p) => ({
+                  id: p.id,
+                  displayName: p.displayName,
+                }))}
+                activeId={activeSamplingId}
+                onSelect={(id) => {
+                  stop();
+                  setActiveSamplingId(id);
+                  void start();
+                }}
+              />
+              {/* Stub: ImagePanel still needs props from useImageLibrary */}
+              {Panel ? (
+                <Panel />
+              ) : (
+                <ImagePanel
+                  onFile={handleImageFile}
+                  entries={entries}
+                  currentImageId={currentImage.id}
+                  onSelectImage={handleSelectImage}
+                  imageCover={imageCover}
+                  setImageCover={setImageCover}
+                />
+              )}
+            </>
+          );
+        },
+      });
+    }
+
+    // Detection plugin settings
+    const activeDetection = pipelineConfig.detection.find((p) => p.id === activeDetectionId);
+    if (activeDetection?.settingsTab && activeDetection.ui.SettingsPanel) {
+      const Panel = activeDetection.ui.SettingsPanel;
+      pluginSections.push({
+        key: activeDetection.settingsTab.key,
+        label: activeDetection.settingsTab.label,
+        icon: activeDetection.settingsTab.icon,
+        render: () => (
+          <>
+            <PluginSelector
+              label="Detection"
+              plugins={pipelineConfig.detection.map((p) => ({
+                id: p.id,
+                displayName: p.displayName,
+              }))}
+              activeId={activeDetectionId}
+              onSelect={(id) => {
+                stop();
+                setActiveDetectionId(id);
+                void start();
+              }}
+            />
+            <Panel />
+          </>
+        ),
+      });
+    }
+
+    // Debug panel (always present)
+    pluginSections.push({
       key: "debug",
       label: "Debug",
       icon: <Bug className="h-3.5 w-3.5" />,
       render: () => <DebugPanel />,
-    },
-  ];
+    });
+
+    return pluginSections;
+  }, [
+    activeSonificationId,
+    activeSamplingId,
+    activeDetectionId,
+    setActiveSonificationId,
+    setActiveSamplingId,
+    setActiveDetectionId,
+    start,
+    stop,
+    handleImageFile,
+    entries,
+    currentImage.id,
+    handleSelectImage,
+    imageCover,
+    setImageCover,
+  ]);
+
+  // Render active detection plugin's dock panel
+  const activeDetection = pipelineConfig.detection.find((p) => p.id === activeDetectionId);
+  const DockPanel = activeDetection?.ui.DockPanel;
+
+  // TODO: end of simplify this block
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -192,18 +289,7 @@ const App = () => {
         />
       </div>
 
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-4 transition-opacity duration-700"
-        style={{ opacity: showHandPrompt ? 1 : 0 }}
-        aria-hidden="true"
-      >
-        <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur">
-          <Pointer className="h-5 w-5 shrink-0 text-white/70" />
-          <span className="font-sans text-sm font-medium tracking-wide text-white/80">
-            Move your index finger in front of the camera to play
-          </span>
-        </div>
-      </div>
+      <PluginNotifications />
 
       <header className="pointer-events-none absolute left-2 right-2 top-3 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:left-1 sm:right-4 sm:top-4 sm:gap-2">
         <div className="justify-self-start">
@@ -268,21 +354,20 @@ const App = () => {
         style={uiFadeStyle}
       />
 
-      <div className="transition-opacity" style={uiFadeStyle}>
-        <CameraDock
-          videoRef={videoRef}
-          overlayRef={videoOverlayRef}
-          onStart={() => void start()}
-          onStop={() => stop()}
-          cameraTone={extraTones.cameraToggle ?? "light"}
-          cameraSelectTone={extraTones.cameraSelect ?? "light"}
-          cameraToggleRef={cameraToggleRef}
-          cameraSelectRef={cameraSelectRef}
-        />
-      </div>
+      {/* Render detection plugin's dock panel (if it has one) */}
+      {DockPanel ? (
+        <div className="transition-opacity" style={uiFadeStyle}>
+          <DockPanel
+            isRunning={isRunning}
+            isInitializing={isInitializing}
+            onStart={() => void start()}
+            onStop={() => stop()}
+            setUiOpacity={setUiOpacity}
+          />
+        </div>
+      ) : null}
 
       <ScreenReaderAnnouncer message={statusAnnouncement} politeness="assertive" />
-      <ScreenReaderAnnouncer message={handAnnouncement} />
     </main>
   );
 };

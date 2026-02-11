@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { pipelineConfig } from "../pipelineConfig";
 import { PIPELINE_PREFERENCES_KEY } from "./persistenceKeys";
-
-export type FacingMode = "user" | "environment";
 
 export type PipelineStatus = "idle" | "initializing" | "running" | "error";
 
+// Temporary: keep oscillator settings here until sonification plugin is fully extracted
 export type OscillatorSettings = {
   minFreq: number;
   maxFreq: number;
@@ -14,32 +14,45 @@ export type OscillatorSettings = {
   oscillatorType: OscillatorType;
 };
 
+/**
+ * Shell-level pipeline state.
+ *
+ * Plugin-specific state (mirror, maxHands, facingMode) has been moved to
+ * plugin stores. Only shell concerns and active plugin selections remain here.
+ */
 type PipelineState = {
+  // Pipeline lifecycle
   status: PipelineStatus;
   error?: string;
-  mirror: boolean;
-  maxHands: number;
-  facingMode: FacingMode;
-  oscillator: OscillatorSettings;
+
+  // Active plugin selections (persisted)
+  activeDetectionId: string;
+  activeSamplingId: string;
+  activeSonificationId: string;
+
+  // Pipeline signals (written by plugins via shell callbacks)
   imageReady: boolean;
+
+  // Temporary: sampling/sonification state until fully extracted
+  oscillator: OscillatorSettings;
   imageCover: boolean;
   imagePan: { x: number; y: number };
-  handDetected: boolean;
-  uiDimPercent: number;
+
+  // Shell UI state
+  uiOpacity: number; // 0 = fully dimmed, 1 = fully visible
   dimLogoMark: boolean;
 };
 
 type PipelineActions = {
   setStatus: (status: PipelineStatus, error?: string) => void;
-  setMirror: (mirror: boolean) => void;
-  setMaxHands: (maxHands: number) => void;
-  setFacingMode: (facingMode: FacingMode) => void;
-  setOscillator: (settings: Partial<OscillatorSettings>) => void;
+  setActiveDetectionId: (id: string) => void;
+  setActiveSamplingId: (id: string) => void;
+  setActiveSonificationId: (id: string) => void;
   setImageReady: (ready: boolean) => void;
+  setOscillator: (settings: Partial<OscillatorSettings>) => void;
   setImageCover: (cover: boolean) => void;
   setImagePan: (pan: { x: number; y: number }) => void;
-  setHandDetected: (hasHands: boolean) => void;
-  setUiDimPercent: (percent: number) => void;
+  setUiOpacity: (opacity: number) => void;
   setDimLogoMark: (dim: boolean) => void;
   resetPreferences: () => void;
 };
@@ -53,13 +66,14 @@ const defaultOscillator: OscillatorSettings = {
 };
 
 const defaultPreferences = {
-  mirror: true,
-  maxHands: 2,
-  facingMode: "user" as FacingMode,
+  // Default to first plugin in each slot
+  activeDetectionId: pipelineConfig.detection[0]?.id ?? "",
+  activeSamplingId: pipelineConfig.sampling[0]?.id ?? "",
+  activeSonificationId: pipelineConfig.sonification[0]?.id ?? "",
   oscillator: defaultOscillator,
   imageCover: false,
   imagePan: { x: 0, y: 0 },
-  uiDimPercent: 25,
+  uiOpacity: 1,
   dimLogoMark: false,
 };
 
@@ -72,18 +86,16 @@ export const usePipelineStore = create<PipelineState & PipelineActions>()(
       status: "idle",
       ...defaultPreferences,
       imageReady: false,
-      handDetected: false,
       setStatus: (status, error) => set({ status, error }),
-      setMirror: (mirror) => set({ mirror }),
-      setMaxHands: (maxHands) => set({ maxHands }),
-      setFacingMode: (facingMode) => set({ facingMode }),
+      setActiveDetectionId: (id) => set({ activeDetectionId: id }),
+      setActiveSamplingId: (id) => set({ activeSamplingId: id }),
+      setActiveSonificationId: (id) => set({ activeSonificationId: id }),
+      setImageReady: (ready) => set({ imageReady: ready }),
       setOscillator: (settings) =>
         set((state) => ({ oscillator: { ...state.oscillator, ...settings } })),
-      setImageReady: (ready) => set({ imageReady: ready }),
       setImageCover: (cover) => set({ imageCover: cover }),
       setImagePan: (pan) => set({ imagePan: pan }),
-      setHandDetected: (hasHands) => set({ handDetected: hasHands }),
-      setUiDimPercent: (percent) => set({ uiDimPercent: percent }),
+      setUiOpacity: (opacity) => set({ uiOpacity: opacity }),
       setDimLogoMark: (dim) => set({ dimLogoMark: dim }),
       resetPreferences: () => set({ ...defaultPreferences, oscillator: { ...defaultOscillator } }),
     }),
@@ -91,13 +103,13 @@ export const usePipelineStore = create<PipelineState & PipelineActions>()(
       name: PIPELINE_PREFERENCES_KEY,
       storage: preferenceStorage,
       partialize: (state) => ({
-        mirror: state.mirror,
-        maxHands: state.maxHands,
-        facingMode: state.facingMode,
+        activeDetectionId: state.activeDetectionId,
+        activeSamplingId: state.activeSamplingId,
+        activeSonificationId: state.activeSonificationId,
         oscillator: state.oscillator,
         imageCover: state.imageCover,
         imagePan: state.imagePan,
-        uiDimPercent: state.uiDimPercent,
+        uiOpacity: state.uiOpacity,
         dimLogoMark: state.dimLogoMark,
       }),
     },

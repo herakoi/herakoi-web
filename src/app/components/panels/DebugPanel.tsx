@@ -7,8 +7,8 @@ import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 
 export const DebugPanel = () => {
-  const uiDimPercent = usePipelineStore((state) => state.uiDimPercent);
-  const setUiDimPercent = usePipelineStore((state) => state.setUiDimPercent);
+  const uiOpacity = usePipelineStore((state) => state.uiOpacity);
+  const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
   const setDimLogoMark = usePipelineStore((state) => state.setDimLogoMark);
   const resetPreferences = usePipelineStore((state) => state.resetPreferences);
@@ -39,6 +39,9 @@ export const DebugPanel = () => {
     }
   };
 
+  // Convert 0-1 opacity to 0-100 percent for display
+  const opacityPercent = Math.round(uiOpacity * 100);
+
   return (
     <div className="space-y-4">
       <Button variant={debugEnabled ? "secondary" : "outline"} onClick={handleDebug}>
@@ -48,14 +51,14 @@ export const DebugPanel = () => {
         Restore Defaults
       </Button>
       <div className="space-y-2">
-        <Label>UI dim level ({uiDimPercent}%)</Label>
+        <Label>UI opacity ({opacityPercent}%)</Label>
         <Slider
           min={0}
           max={100}
           step={5}
-          value={[uiDimPercent]}
-          aria-label="UI dim level"
-          onValueChange={([value]) => setUiDimPercent(value)}
+          value={[opacityPercent]}
+          aria-label="UI opacity level"
+          onValueChange={([value]) => setUiOpacity(value / 100)}
         />
       </div>
       <div className="flex items-center justify-between gap-3">

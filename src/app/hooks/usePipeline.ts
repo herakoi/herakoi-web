@@ -1,18 +1,14 @@
-import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { ApplicationController } from "#src/core/ApplicationController";
 import type { DetectedPoint } from "#src/core/interfaces";
+import type { PipelineConfig } from "#src/core/plugin";
 import { type DebugToneSample, setupDebugTools } from "#src/debug";
-import { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
-import type { HandOverlayStyle } from "#src/detection/mediapipe/overlay";
-import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
-import { HSVImageSampler } from "#src/sampling/hsv/HSVImageSampler";
-import { OscillatorSonifier } from "#src/sonification/oscillator/OscillatorSonifier";
+import { registerOverlayRef } from "#src/detection/mediapipe/refs";
 import { curatedImages } from "../data/curatedImages";
+import { useNotificationStore } from "../state/notificationStore";
 import { usePipelineStore } from "../state/pipelineStore";
 
 type Refs = {
-  videoRef: RefObject<HTMLVideoElement>;
-  videoOverlayRef: RefObject<HTMLCanvasElement>;
   imageCanvasRef: RefObject<HTMLCanvasElement>;
   imageOverlayRef: RefObject<HTMLCanvasElement>;
 };
@@ -56,40 +52,37 @@ const drawImageToCanvas = (
   return true;
 };
 
-export const usePipeline = ({
-  videoRef,
-  videoOverlayRef,
-  imageCanvasRef,
-  imageOverlayRef,
-}: Refs) => {
+export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverlayRef }: Refs) => {
   const status = usePipelineStore((state) => state.status);
   const error = usePipelineStore((state) => state.error);
   const imageReady = usePipelineStore((state) => state.imageReady);
   const setStatus = usePipelineStore((state) => state.setStatus);
   const setImageReady = usePipelineStore((state) => state.setImageReady);
   const setImagePan = usePipelineStore((state) => state.setImagePan);
-  const setHandDetected = usePipelineStore((state) => state.setHandDetected);
-  const mirror = usePipelineStore((state) => state.mirror);
-  const maxHands = usePipelineStore((state) => state.maxHands);
-  const facingMode = usePipelineStore((state) => state.facingMode);
-  const oscillator = usePipelineStore((state) => state.oscillator);
   const imageCover = usePipelineStore((state) => state.imageCover);
   const imagePan = usePipelineStore((state) => state.imagePan);
+  const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
+  const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
+  const activeSonificationId = usePipelineStore((state) => state.activeSonificationId);
 
-  const detectorRef = useRef<MediaPipePointDetector | null>(null);
-  const samplerRef = useRef<HSVImageSampler | null>(null);
-  const sonifierRef = useRef<OscillatorSonifier | null>(null);
-  const controllerRef = useRef<ApplicationController | null>(null);
+  const detectorHandleRef = useRef<ReturnType<
+    (typeof config.detection)[0]["createDetector"]
+  > | null>(null);
+  const samplerHandleRef = useRef<ReturnType<(typeof config.sampling)[0]["createSampler"]> | null>(
+    null,
+  );
+  const sonifierHandleRef = useRef<ReturnType<
+    (typeof config.sonification)[0]["createSonifier"]
+  > | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const controllerRef = useRef<ApplicationController | null>(null);
   const imageBufferRef = useRef<HTMLImageElement | null>(null);
   const debugToolsRef = useRef<ReturnType<typeof setupDebugTools> | null>(null);
-  const handDetectedRef = useRef(false);
 
   const ensureCanvasesSized = useCallback(() => {
-    if (videoOverlayRef.current) resizeCanvasToContainer(videoOverlayRef.current);
     if (imageCanvasRef.current) resizeCanvasToContainer(imageCanvasRef.current);
     if (imageOverlayRef.current) resizeCanvasToContainer(imageOverlayRef.current);
-  }, [videoOverlayRef, imageCanvasRef, imageOverlayRef]);
+  }, [imageCanvasRef, imageOverlayRef]);
 
   const syncDebugPanel = useCallback(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -131,7 +124,7 @@ export const usePipeline = ({
       if (!drawn) {
         throw new Error("Unable to acquire 2D context for image canvas");
       }
-      await samplerRef.current?.loadImage(canvas);
+      await samplerHandleRef.current?.sampler.loadImage(canvas);
       setImageReady(true);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("herakoi-image-rendered"));
@@ -160,83 +153,49 @@ export const usePipeline = ({
   );
 
   const start = useCallback(async () => {
-    if (!videoRef.current || !imageCanvasRef.current) {
+    if (!imageCanvasRef.current) {
       return;
     }
     try {
       setStatus("initializing");
-      const snapshot = usePipelineStore.getState();
-      samplerRef.current = new HSVImageSampler();
-      sonifierRef.current = new OscillatorSonifier(undefined, {
-        minFreq: snapshot.oscillator.minFreq,
-        maxFreq: snapshot.oscillator.maxFreq,
-        minVol: snapshot.oscillator.minVol,
-        maxVol: snapshot.oscillator.maxVol,
-        oscillatorType: snapshot.oscillator.oscillatorType,
-      });
-      detectorRef.current = new MediaPipePointDetector(videoRef.current, {
-        maxHands: snapshot.maxHands,
-        mirrorX: snapshot.mirror,
-        facingMode: snapshot.facingMode,
-        mediaPipeOptions: {
-          modelComplexity: 1,
-          minDetectionConfidence: 0.7,
-          minTrackingConfidence: 0.7,
-        },
-      });
 
-      if (videoOverlayRef.current && imageOverlayRef.current && detectorRef.current) {
-        const imageOverlayStyle: HandOverlayStyle = {
-          connectorColor: "rgba(200, 200, 200, 0.85)",
-          connectorWidth: 1.2,
-          landmarkColor: "rgba(210, 210, 210, 0.95)",
-          landmarkWidth: 1,
-          focusColor: "rgba(215, 215, 215, 0.95)",
-          focusFillColor: "rgba(210, 210, 210, 0.3)",
-          focusWidth: 2,
-          focusSize: 34,
-          shadowColor: "rgba(210, 210, 210, 0.35)",
-          shadowBlur: 8,
-        };
-        const getImageOverlayPointStyle = (point: DetectedPoint): HandOverlayStyle => {
-          const sampler = samplerRef.current;
-          const sample = sampler?.sampleAt(point);
-          const hueByte = sample?.data?.hueByte;
-          if (hueByte === undefined) {
-            return imageOverlayStyle;
-          }
-          const hue = Math.round((hueByte / 255) * 360);
-          const focusColor = `hsla(${hue}, 60%, 82%, 0.95)`;
-          const focusFillColor = `hsla(${hue}, 55%, 55%, 0.38)`;
-          const shadowColor = `hsla(${hue}, 60%, 70%, 0.6)`;
-          return {
-            ...imageOverlayStyle,
-            focusColor,
-            focusFillColor,
-            shadowColor,
-            shadowBlur: 10,
-          };
-        };
-        bindHandsUi(detectorRef.current, [
-          videoOverlayRef.current,
-          {
-            canvas: imageOverlayRef.current,
-            style: imageOverlayStyle,
-            getPointStyle: getImageOverlayPointStyle,
-          },
-        ]);
+      // Resolve active plugins
+      const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
+      const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
+      const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
+
+      if (!activeDetection || !activeSampling || !activeSonification) {
+        throw new Error(
+          "Invalid active plugin configuration. Check pipelineConfig and active IDs in store.",
+        );
       }
 
-      controllerRef.current = new ApplicationController(
-        detectorRef.current,
-        samplerRef.current,
-        sonifierRef.current,
-      );
+      // Register image overlay ref for detection plugin
+      if (imageOverlayRef.current) {
+        registerOverlayRef("imageOverlay", imageOverlayRef);
+      }
 
-      handDetectedRef.current = false;
-      setHandDetected(false);
+      // Create plugin instances
+      const dh = activeDetection.createDetector();
+      const sh = activeSampling.createSampler();
+      const soh = activeSonification.createSonifier();
+
+      detectorHandleRef.current = dh;
+      samplerHandleRef.current = sh;
+      sonifierHandleRef.current = soh;
+
+      // Wire up pipeline events
+      activeDetection.bindPipelineEvents(dh.detector, {
+        showNotification: useNotificationStore.getState().show,
+        hideNotification: useNotificationStore.getState().hide,
+      });
+
+      // Create and start controller
+      const controller = new ApplicationController(dh.detector, sh.sampler, soh.sonifier);
+      controllerRef.current = controller;
       syncDebugPanel();
 
+      // Debug logging
       const logDebugSamples = (points: DetectedPoint[]) => {
         const debugEnabled = new URLSearchParams(window.location.search).has("dev");
         if (!debugEnabled) {
@@ -250,7 +209,7 @@ export const usePipeline = ({
         const debugTools = debugToolsRef.current;
         if (!debugTools) return;
 
-        const sampler = samplerRef.current;
+        const sampler = samplerHandleRef.current?.sampler;
         const state = usePipelineStore.getState();
         if (!sampler || !state.imageReady) {
           debugTools.logToneSamples([]);
@@ -292,15 +251,7 @@ export const usePipeline = ({
         debugTools.logToneSamples(debugToneSamples);
       };
 
-      if (detectorRef.current) {
-        detectorRef.current.onPointsDetected(logDebugSamples);
-        detectorRef.current.onPointsDetected((points) => {
-          const hasHands = points.length > 0;
-          if (handDetectedRef.current === hasHands) return;
-          handDetectedRef.current = hasHands;
-          setHandDetected(hasHands);
-        });
-      }
+      dh.detector.onPointsDetected(logDebugSamples);
 
       ensureCanvasesSized();
       if (imageBufferRef.current && imageCanvasRef.current) {
@@ -310,7 +261,7 @@ export const usePipeline = ({
         if (!drawn) {
           throw new Error("Unable to acquire 2D context for image canvas");
         }
-        await samplerRef.current?.loadImage(canvas);
+        await sh.sampler.loadImage(canvas);
         setImageReady(true);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("herakoi-image-rendered"));
@@ -324,11 +275,27 @@ export const usePipeline = ({
         }
       }
 
-      await controllerRef.current.start();
-      analyserRef.current = sonifierRef.current.getAnalyserNode({
-        fftSize: 2048,
-        smoothingTimeConstant: 0.65,
-      });
+      await controller.start();
+
+      // Run post-initialize hooks
+      dh.postInitialize?.();
+
+      // Initialize analyser after controller has started and sonifier is ready
+      if (
+        sonifierHandleRef.current?.extras?.getAnalyser &&
+        typeof sonifierHandleRef.current.extras.getAnalyser === "function"
+      ) {
+        analyserRef.current = (
+          sonifierHandleRef.current.extras.getAnalyser as (options?: {
+            fftSize?: number;
+            smoothingTimeConstant?: number;
+          }) => AnalyserNode | null
+        )({
+          fftSize: 2048,
+          smoothingTimeConstant: 0.65,
+        });
+      }
+
       setStatus("running");
     } catch (error) {
       const message =
@@ -337,49 +304,31 @@ export const usePipeline = ({
       console.error("Pipeline start failed:", error);
     }
   }, [
+    config,
+    activeDetectionId,
+    activeSamplingId,
+    activeSonificationId,
     ensureCanvasesSized,
     imageCanvasRef,
-    loadImage,
-    videoOverlayRef,
     imageOverlayRef,
-    videoRef,
+    loadImage,
     setStatus,
     setImageReady,
     syncDebugPanel,
-    setHandDetected,
   ]);
 
   const stop = useCallback(() => {
     controllerRef.current?.stop();
+    detectorHandleRef.current?.cleanup?.();
+    samplerHandleRef.current?.cleanup?.();
+    sonifierHandleRef.current?.cleanup?.();
+    analyserRef.current = null;
+    useNotificationStore.getState().clearAll();
+    usePipelineStore.getState().setUiOpacity(1);
     setStatus("idle");
-    handDetectedRef.current = false;
-    setHandDetected(false);
-  }, [setHandDetected, setStatus]);
+  }, [setStatus]);
 
-  useEffect(() => {
-    if (detectorRef.current) {
-      detectorRef.current.setMirror(mirror);
-    }
-  }, [mirror]);
-
-  useEffect(() => {
-    if (detectorRef.current) {
-      detectorRef.current.setMaxHands(maxHands);
-    }
-  }, [maxHands]);
-
-  useEffect(() => {
-    if (detectorRef.current) {
-      void detectorRef.current.restartCamera(facingMode);
-    }
-  }, [facingMode]);
-
-  useEffect(() => {
-    if (sonifierRef.current) {
-      sonifierRef.current.configure(oscillator);
-    }
-  }, [oscillator]);
-
+  // Window resize handler
   useEffect(() => {
     const handleResize = () => ensureCanvasesSized();
     const rerenderImage = () => {
@@ -397,19 +346,21 @@ export const usePipeline = ({
     };
   }, [ensureCanvasesSized, imageCanvasRef, imageCover, imagePan]);
 
+  // Re-render image when cover or pan changes
   useEffect(() => {
     if (!imageBufferRef.current || !imageCanvasRef.current) return;
     const canvas = imageCanvasRef.current;
     resizeCanvasToContainer(canvas);
     const drawn = drawImageToCanvas(canvas, imageBufferRef.current, imageCover, imagePan);
     if (drawn) {
-      void samplerRef.current?.loadImage(canvas);
+      void samplerHandleRef.current?.sampler.loadImage(canvas);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("herakoi-image-rendered"));
       }
     }
   }, [imageCover, imageCanvasRef, imagePan]);
 
+  // Debug panel toggle
   useEffect(() => {
     if (typeof window === "undefined") return;
     syncDebugPanel();
@@ -418,25 +369,15 @@ export const usePipeline = ({
     return () => window.removeEventListener("herakoi-debug-toggle", handleToggle);
   }, [syncDebugPanel]);
 
-  const surfaceRefs = useMemo(
-    () => ({
-      videoRef,
-      videoOverlayRef,
-      imageCanvasRef,
-      imageOverlayRef,
-    }),
-    [videoRef, videoOverlayRef, imageCanvasRef, imageOverlayRef],
-  );
-
   return {
     start,
     stop,
-    surfaceRefs,
     status,
     error,
     imageReady,
     loadImageFile,
     loadImageSource,
+    // Expose analyser access for visualizations
     analyser: analyserRef,
   };
 };
