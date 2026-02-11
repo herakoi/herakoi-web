@@ -18,7 +18,7 @@ import { OscillatorControls } from "#src/sonification/oscillator/uiControls";
 import { requireElement } from "#src/utils/dom";
 import "./style.css";
 
-import { getDefaultCuratedImage } from "#src/app/data/curatedImages";
+import { getDefaultCuratedImage } from "#src/sampling/hsv/data/curatedImages";
 
 // --- DOM lookups ------------------------------------------------------------
 

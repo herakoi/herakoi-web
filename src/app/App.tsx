@@ -1,19 +1,14 @@
 import { Bug } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useImageCoverPan } from "#src/sampling/hsv/hooks/useImageCoverPan";
 import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { BrandMark } from "./components/header/BrandMark";
-import { ImageToolbar } from "./components/header/ImageToolbar";
 import { TransportControls } from "./components/header/TransportControls";
 import { PluginNotifications } from "./components/PluginNotifications";
 import { PluginSelector } from "./components/PluginSelector";
 import { DebugPanel } from "./components/panels/DebugPanel";
-import { ImagePanel } from "./components/panels/ImagePanel";
 import { ScreenReaderAnnouncer } from "./components/ScreenReaderAnnouncer";
-import { curatedImages } from "./data/curatedImages";
-import { howItWorksImages } from "./data/howItWorksImages";
 import { type ToneTarget, useHeaderTone } from "./hooks/useHeaderTone";
-import { useImageCoverPan } from "./hooks/useImageCoverPan";
-import { useImageLibrary } from "./hooks/useImageLibrary";
 import { usePipeline } from "./hooks/usePipeline";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
@@ -25,23 +20,16 @@ const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLButtonElement>(null);
-  const coverButtonRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
-  const importButtonRef = useRef<HTMLButtonElement>(null);
-  const imageButtonRef = useRef<HTMLButtonElement>(null);
   const restartButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, error, loadImageFile, loadImageSource, analyser } = usePipeline(
-    pipelineConfig,
-    { imageCanvasRef, imageOverlayRef },
-  );
+  const { start, stop, status, error, analyser } = usePipeline(pipelineConfig, {
+    imageCanvasRef,
+    imageOverlayRef,
+  });
   const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
-  const imageCover = usePipelineStore((state) => state.imageCover);
-  const setImageCover = usePipelineStore((state) => state.setImageCover);
-  const imagePan = usePipelineStore((state) => state.imagePan);
-  const setImagePan = usePipelineStore((state) => state.setImagePan);
   const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
 
@@ -71,26 +59,9 @@ const App = () => {
     }
   }, [status, error]);
 
-  const {
-    currentImage,
-    entries,
-    uploads,
-    imageHydrated,
-    handleImageFile,
-    handleSelectImage,
-    handleDeleteUpload,
-  } = useImageLibrary({
-    curatedImages,
-    howItWorksImages,
-    loadImageFile,
-    loadImageSource,
-  });
-
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
   const toneTargets = useMemo<ToneTarget[]>(
     () => [
-      { key: "import", ref: importButtonRef },
-      { key: "image", ref: imageButtonRef },
       { key: "restart", ref: restartButtonRef },
       { key: "settings", ref: settingsButtonRef },
       { key: "help", ref: helpButtonRef },
@@ -98,23 +69,25 @@ const App = () => {
     [],
   );
 
-  const { logoTone, coverTone, transportTone, extraTones } = useHeaderTone({
+  const { logoTone, transportTone, extraTones } = useHeaderTone({
     imageCanvasRef,
     logoRef,
-    coverButtonRef,
     transportButtonRef,
     extraTargets: toneTargets,
   });
 
-  useImageCoverPan({ imageCanvasRef, imageCover, imagePan, setImagePan });
+  // Plugin-owned cover/pan interaction on the image canvas
+  useImageCoverPan();
 
   useEffect(() => {
-    if (!imageHydrated) return;
     void start();
     return () => stop();
-  }, [imageHydrated, start, stop]);
+  }, [start, stop]);
 
-  // TODO: simplify this block
+  // Resolve active sampling plugin for toolbar
+  const activeSampling = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
+  const SamplingToolbar = activeSampling?.ui.ToolbarItems;
+
   // Build sections dynamically from plugins
   const sections: ControlPanelSection<PanelKey>[] = useMemo(() => {
     const pluginSections: ControlPanelSection<PanelKey>[] = [];
@@ -151,45 +124,31 @@ const App = () => {
     }
 
     // Sampling plugin settings
-    const activeSampling = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
-    if (activeSampling?.settingsTab) {
-      const Panel = activeSampling.ui.SettingsPanel;
+    const activeSamplingPlugin = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
+    if (activeSamplingPlugin?.settingsTab) {
+      const Panel = activeSamplingPlugin.ui.SettingsPanel;
       pluginSections.push({
-        key: activeSampling.settingsTab.key,
-        label: activeSampling.settingsTab.label,
-        icon: activeSampling.settingsTab.icon,
-        render: () => {
-          return (
-            <>
-              <PluginSelector
-                label="Sampling"
-                plugins={pipelineConfig.sampling.map((p) => ({
-                  id: p.id,
-                  displayName: p.displayName,
-                }))}
-                activeId={activeSamplingId}
-                onSelect={(id) => {
-                  stop();
-                  setActiveSamplingId(id);
-                  void start();
-                }}
-              />
-              {/* Stub: ImagePanel still needs props from useImageLibrary */}
-              {Panel ? (
-                <Panel />
-              ) : (
-                <ImagePanel
-                  onFile={handleImageFile}
-                  entries={entries}
-                  currentImageId={currentImage.id}
-                  onSelectImage={handleSelectImage}
-                  imageCover={imageCover}
-                  setImageCover={setImageCover}
-                />
-              )}
-            </>
-          );
-        },
+        key: activeSamplingPlugin.settingsTab.key,
+        label: activeSamplingPlugin.settingsTab.label,
+        icon: activeSamplingPlugin.settingsTab.icon,
+        render: () => (
+          <>
+            <PluginSelector
+              label="Sampling"
+              plugins={pipelineConfig.sampling.map((p) => ({
+                id: p.id,
+                displayName: p.displayName,
+              }))}
+              activeId={activeSamplingId}
+              onSelect={(id) => {
+                stop();
+                setActiveSamplingId(id);
+                void start();
+              }}
+            />
+            {Panel && <Panel />}
+          </>
+        ),
       });
     }
 
@@ -240,19 +199,11 @@ const App = () => {
     setActiveDetectionId,
     start,
     stop,
-    handleImageFile,
-    entries,
-    currentImage.id,
-    handleSelectImage,
-    imageCover,
-    setImageCover,
   ]);
 
   // Render active detection plugin's dock panel
   const activeDetection = pipelineConfig.detection.find((p) => p.id === activeDetectionId);
   const DockPanel = activeDetection?.ui.DockPanel;
-
-  // TODO: end of simplify this block
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -305,23 +256,7 @@ const App = () => {
           className="pointer-events-auto flex items-center justify-center transition-opacity"
           style={uiFadeStyle}
         >
-          <ImageToolbar
-            currentImage={currentImage}
-            howItWorksImages={howItWorksImages}
-            curatedImages={curatedImages}
-            uploads={uploads}
-            imageCover={imageCover}
-            coverTone={coverTone}
-            importTone={extraTones.import ?? "light"}
-            imageTone={extraTones.image ?? "light"}
-            onToggleCover={() => setImageCover(!imageCover)}
-            onFile={handleImageFile}
-            onSelectImage={handleSelectImage}
-            onDeleteUpload={handleDeleteUpload}
-            coverButtonRef={coverButtonRef}
-            importButtonRef={importButtonRef}
-            imageButtonRef={imageButtonRef}
-          />
+          {SamplingToolbar && <SamplingToolbar />}
         </div>
         <div
           className="pointer-events-auto flex items-center justify-self-end gap-1.5 transition-opacity sm:gap-2"

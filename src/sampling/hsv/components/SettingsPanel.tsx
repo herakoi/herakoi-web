@@ -1,53 +1,67 @@
 import { Upload } from "lucide-react";
 import { type ChangeEvent, useRef, useState } from "react";
-import { cn } from "../../lib/utils";
-import type { ImageEntry } from "../../types/image";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Switch } from "../ui/switch";
+import { Input } from "#src/app/components/ui/input";
+import { Label } from "#src/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "#src/app/components/ui/select";
+import { Switch } from "#src/app/components/ui/switch";
+import { cn } from "#src/app/lib/utils";
+import { curatedImages } from "../data/curatedImages";
+import { howItWorksImages } from "../data/howItWorksImages";
+import { useImageLibrary } from "../hooks/useImageLibrary";
+import { useHSVSamplingStore } from "../store";
+import type { ImageEntry } from "../types/image";
 
-type ImagePanelProps = {
-  onFile: (file: File) => Promise<void>;
-  entries: ImageEntry[];
-  currentImageId: string;
-  onSelectImage: (entry: ImageEntry) => void;
-  imageCover: boolean;
-  setImageCover: (cover: boolean) => void;
-};
-
-export const ImagePanel = ({
-  onFile,
-  entries,
-  currentImageId,
-  onSelectImage,
-  imageCover,
-  setImageCover,
-}: ImagePanelProps) => {
+export const HSVSettingsPanel = () => {
+  const imageCover = useHSVSamplingStore((state) => state.imageCover);
+  const setImageCover = useHSVSamplingStore((state) => state.setImageCover);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  const { currentImage, entries, handleImageFile, handleSelectImage } = useImageLibrary({
+    curatedImages,
+    howItWorksImages,
+    loadImageFile: async (file) => {
+      // Image loading is handled by the plugin's postInitialize store subscription
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        useHSVSamplingStore.getState().setCurrentImageSrc(objectUrl);
+      } finally {
+        // Don't revoke yet — postInitialize subscription needs to load it
+        // The URL will be replaced by a data URL in handleImageFile's persistUploads
+      }
+    },
+    loadImageSource: async (src) => {
+      useHSVSamplingStore.getState().setCurrentImageSrc(src);
+    },
+  });
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    await onFile(file);
+    await handleImageFile(file);
   };
 
   return (
     <div className="flex h-full flex-col gap-3">
       <Select
-        value={currentImageId}
+        value={currentImage.id}
         onValueChange={(value) => {
-          const entry = entries.find((item) => item.id === value);
+          const entry = entries.find((item: ImageEntry) => item.id === value);
           if (!entry) return;
-          void onSelectImage(entry);
+          void handleSelectImage(entry);
         }}
       >
         <SelectTrigger id="active-image" aria-label="Active image">
           <SelectValue placeholder="Active image" />
         </SelectTrigger>
         <SelectContent>
-          {entries.map((entry) => (
+          {entries.map((entry: ImageEntry) => (
             <SelectItem key={entry.id} value={entry.id}>
               {entry.title}
             </SelectItem>
@@ -80,7 +94,7 @@ export const ImagePanel = ({
           setDragActive(false);
           const file = event.dataTransfer.files?.[0];
           if (!file) return;
-          await onFile(file);
+          await handleImageFile(file);
         }}
       >
         <Upload className="h-4 w-4" />

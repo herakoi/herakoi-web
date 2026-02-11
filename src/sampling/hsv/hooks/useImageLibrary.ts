@@ -5,9 +5,9 @@ import {
   loadImageDimensions,
   readFileAsDataUrl,
 } from "../lib/imageUtils";
-import { IMAGE_SELECTION_KEY } from "../state/persistenceKeys";
 import type { ImageEntry } from "../types/image";
 
+const IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
 const IMAGE_CACHE_KEY = "herakoi.image-cache.v1";
 
 type CurrentImage = {

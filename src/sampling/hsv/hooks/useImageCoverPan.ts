@@ -1,18 +1,11 @@
-import { type RefObject, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { hsvSamplingRefs } from "../refs";
+import { useHSVSamplingStore } from "../store";
 
-type UseImageCoverPanArgs = {
-  imageCanvasRef: RefObject<HTMLCanvasElement>;
-  imageCover: boolean;
-  imagePan: { x: number; y: number };
-  setImagePan: (pan: { x: number; y: number }) => void;
-};
-
-export const useImageCoverPan = ({
-  imageCanvasRef,
-  imageCover,
-  imagePan,
-  setImagePan,
-}: UseImageCoverPanArgs) => {
+export const useImageCoverPan = () => {
+  const imageCover = useHSVSamplingStore((state) => state.imageCover);
+  const imagePan = useHSVSamplingStore((state) => state.imagePan);
+  const setImagePan = useHSVSamplingStore((state) => state.setImagePan);
   const imagePanRef = useRef(imagePan);
 
   useEffect(() => {
@@ -20,7 +13,7 @@ export const useImageCoverPan = ({
   }, [imagePan]);
 
   useEffect(() => {
-    const canvas = imageCanvasRef.current;
+    const canvas = hsvSamplingRefs.imageCanvas?.current;
     if (!canvas) return;
 
     canvas.style.cursor = imageCover ? "grab" : "default";
@@ -94,5 +87,5 @@ export const useImageCoverPan = ({
       canvas.style.touchAction = "auto";
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [imageCanvasRef, imageCover, setImagePan]);
+  }, [imageCover, setImagePan]);
 };

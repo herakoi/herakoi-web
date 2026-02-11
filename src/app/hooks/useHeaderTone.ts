@@ -10,7 +10,6 @@ export type ToneTarget = {
 type UseHeaderToneArgs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
   logoRef: RefObject<HTMLElement>;
-  coverButtonRef: RefObject<HTMLButtonElement>;
   transportButtonRef: RefObject<HTMLButtonElement>;
   extraTargets?: ToneTarget[];
 };
@@ -18,14 +17,12 @@ type UseHeaderToneArgs = {
 export const useHeaderTone = ({
   imageCanvasRef,
   logoRef,
-  coverButtonRef,
   transportButtonRef,
   extraTargets,
 }: UseHeaderToneArgs) => {
   const logoSampleRef = useRef<HTMLCanvasElement | null>(null);
   const headerToneRafRef = useRef<number | null>(null);
   const [logoTone, setLogoTone] = useState<Tone>("light");
-  const [coverTone, setCoverTone] = useState<Tone>("light");
   const [transportTone, setTransportTone] = useState<Tone>("light");
   const [extraTones, setExtraTones] = useState<Record<string, Tone>>(() => {
     if (!extraTargets?.length) return {};
@@ -92,11 +89,6 @@ export const useHeaderTone = ({
       setLogoTone((prev) => (prev === nextLogoTone ? prev : nextLogoTone));
     }
 
-    const nextCoverTone = sampleElementTone(coverButtonRef.current);
-    if (nextCoverTone) {
-      setCoverTone((prev) => (prev === nextCoverTone ? prev : nextCoverTone));
-    }
-
     const nextTransportTone = sampleElementTone(transportButtonRef.current);
     if (nextTransportTone) {
       setTransportTone((prev) => (prev === nextTransportTone ? prev : nextTransportTone));
@@ -117,7 +109,7 @@ export const useHeaderTone = ({
         return changed ? next : prev;
       });
     }
-  }, [coverButtonRef, extraTargets, logoRef, sampleElementTone, transportButtonRef]);
+  }, [extraTargets, logoRef, sampleElementTone, transportButtonRef]);
 
   useEffect(() => {
     if (headerToneRafRef.current !== null) {
@@ -159,5 +151,5 @@ export const useHeaderTone = ({
     return () => window.removeEventListener("herakoi-image-rendered", handleImageRendered);
   }, [updateHeaderTones]);
 
-  return { logoTone, coverTone, transportTone, extraTones };
+  return { logoTone, transportTone, extraTones };
 };
