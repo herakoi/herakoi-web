@@ -1,7 +1,19 @@
+/**
+ * @deprecated This file is deprecated. The camera dock is now provided by the
+ * detection plugin itself. See src/detection/mediapipe/components/DockPanel.tsx
+ * for the MediaPipe detection plugin's dock panel.
+ *
+ * This file remains for historical reference only and should not be imported.
+ */
+
 import { useState } from "react";
+import { useMediaPipeDetectionStore } from "#src/detection/mediapipe/store";
 import { usePipelineStore } from "../state/pipelineStore";
 import { PiPPanel, type PiPState } from "./PiPPanel";
 
+/**
+ * @deprecated Use detection plugin's DockPanel instead
+ */
 type CameraDockProps = {
   videoRef: React.RefObject<HTMLVideoElement>;
   overlayRef: React.RefObject<HTMLCanvasElement>;
@@ -13,6 +25,9 @@ type CameraDockProps = {
   cameraSelectRef: React.RefObject<HTMLButtonElement>;
 };
 
+/**
+ * @deprecated Use detection plugin's DockPanel instead
+ */
 export const CameraDock = ({
   videoRef,
   overlayRef,
@@ -23,12 +38,12 @@ export const CameraDock = ({
   cameraToggleRef,
   cameraSelectRef,
 }: CameraDockProps) => {
-  const mirror = usePipelineStore((state) => state.mirror);
-  const setMirror = usePipelineStore((state) => state.setMirror);
-  const maxHands = usePipelineStore((state) => state.maxHands);
-  const setMaxHands = usePipelineStore((state) => state.setMaxHands);
-  const facingMode = usePipelineStore((state) => state.facingMode);
-  const setFacingMode = usePipelineStore((state) => state.setFacingMode);
+  const mirror = useMediaPipeDetectionStore((state) => state.mirror);
+  const setMirror = useMediaPipeDetectionStore((state) => state.setMirror);
+  const maxHands = useMediaPipeDetectionStore((state) => state.maxHands);
+  const setMaxHands = useMediaPipeDetectionStore((state) => state.setMaxHands);
+  const facingMode = useMediaPipeDetectionStore((state) => state.facingMode);
+  const setFacingMode = useMediaPipeDetectionStore((state) => state.setFacingMode);
   const status = usePipelineStore((state) => state.status);
   const isRunning = status === "running";
   const isInitializing = status === "initializing";
