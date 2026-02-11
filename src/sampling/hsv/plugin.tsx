@@ -67,6 +67,10 @@ export const hsvSamplingPlugin: SamplingPlugin = {
 
     return {
       sampler,
+      extras: {
+        regionLuminance: (x: number, y: number, w: number, h: number) =>
+          sampler.regionLuminance(x, y, w, h),
+      },
 
       async postInitialize() {
         const canvas = getCanvas();

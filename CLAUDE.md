@@ -139,6 +139,7 @@ See ADR 005 (`docs/adrs/005-dual-linting-biome-eslint-a11y.md`) for the rational
 - Target Node 22+ (see `engines` in `package.json`)
 - Native ES modules only (`"type": "module"`)
 - Strict TypeScript
+- Name functions with actionable verbs that describe what they do (`resolveElementContrast`, `getElementCoordinatesOverCanvas`). Avoid domain-ambiguous nouns — e.g. in a sonification app, "tone" and "sample" already have audio meanings, so prefer "contrast" for light/dark decisions.
 
 ### Documentation Comments
 Use narrative why/what/how comments that explain intent and expected behavior. See examples in `src/vision/hands.ts` and `src/audio/sonification.ts`.

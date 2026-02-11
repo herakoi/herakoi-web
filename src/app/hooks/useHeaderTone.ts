@@ -7,20 +7,47 @@ export type ToneTarget = {
   ref: RefObject<HTMLElement>;
 };
 
+type RegionLuminanceFn = (x: number, y: number, w: number, h: number) => number | null;
+
 type UseHeaderToneArgs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
   logoRef: RefObject<HTMLElement>;
   transportButtonRef: RefObject<HTMLButtonElement>;
   extraTargets?: ToneTarget[];
+  samplerExtrasRef?: RefObject<Record<string, unknown> | null>;
 };
+
+function getElementCoordinatesOverCanvas(
+  canvas: HTMLCanvasElement,
+  element: HTMLElement,
+): { x: number; y: number; w: number; h: number } | null {
+  const canvasRect = canvas.getBoundingClientRect();
+  const targetRect = element.getBoundingClientRect();
+  if (canvasRect.width === 0 || canvasRect.height === 0) return null;
+
+  const scaleX = canvas.width / canvasRect.width;
+  const scaleY = canvas.height / canvasRect.height;
+  const x = Math.max(0, Math.floor((targetRect.left - canvasRect.left) * scaleX));
+  const y = Math.max(0, Math.floor((targetRect.top - canvasRect.top) * scaleY));
+  const w = Math.min(canvas.width - x, Math.floor(targetRect.width * scaleX));
+  const h = Math.min(canvas.height - y, Math.floor(targetRect.height * scaleY));
+  if (w <= 0 || h <= 0) return null;
+
+  return { x, y, w, h };
+}
+
+function decideLuminanceContrast(luminance: number | null): Tone | null {
+  if (luminance === null) return null;
+  return luminance > 0.62 ? "dark" : "light";
+}
 
 export const useHeaderTone = ({
   imageCanvasRef,
   logoRef,
   transportButtonRef,
   extraTargets,
+  samplerExtrasRef,
 }: UseHeaderToneArgs) => {
-  const logoSampleRef = useRef<HTMLCanvasElement | null>(null);
   const headerToneRafRef = useRef<number | null>(null);
   const [logoTone, setLogoTone] = useState<Tone>("light");
   const [transportTone, setTransportTone] = useState<Tone>("light");
@@ -44,52 +71,31 @@ export const useHeaderTone = ({
     });
   }, [extraTargets]);
 
-  const sampleElementTone = useCallback(
+  const resolveElementContrast = useCallback(
     (element: HTMLElement | null) => {
       const canvas = imageCanvasRef.current;
       if (!canvas || !element) return null;
 
-      const canvasRect = canvas.getBoundingClientRect();
-      const targetRect = element.getBoundingClientRect();
-      if (canvasRect.width === 0 || canvasRect.height === 0) return null;
+      const region = getElementCoordinatesOverCanvas(canvas, element);
+      if (!region) return null;
 
-      const scaleX = canvas.width / canvasRect.width;
-      const scaleY = canvas.height / canvasRect.height;
-      const sx = Math.max(0, Math.floor((targetRect.left - canvasRect.left) * scaleX));
-      const sy = Math.max(0, Math.floor((targetRect.top - canvasRect.top) * scaleY));
-      const sw = Math.min(canvas.width - sx, Math.floor(targetRect.width * scaleX));
-      const sh = Math.min(canvas.height - sy, Math.floor(targetRect.height * scaleY));
-      if (sw <= 0 || sh <= 0) return null;
+      const regionLuminance = samplerExtrasRef?.current?.regionLuminance as
+        | RegionLuminanceFn
+        | undefined;
+      if (!regionLuminance) return null;
 
-      const sampleCanvas = logoSampleRef.current ?? document.createElement("canvas");
-      logoSampleRef.current = sampleCanvas;
-      const sampleW = Math.max(12, Math.min(64, sw));
-      const sampleH = Math.max(12, Math.min(32, sh));
-      sampleCanvas.width = sampleW;
-      sampleCanvas.height = sampleH;
-
-      const sampleCtx = sampleCanvas.getContext("2d");
-      if (!sampleCtx) return null;
-      sampleCtx.clearRect(0, 0, sampleW, sampleH);
-      sampleCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sampleW, sampleH);
-      const data = sampleCtx.getImageData(0, 0, sampleW, sampleH).data;
-      let total = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        total += data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
-      }
-      const avg = total / (255 * (data.length / 4));
-      return avg > 0.62 ? "dark" : "light";
+      return decideLuminanceContrast(regionLuminance(region.x, region.y, region.w, region.h));
     },
-    [imageCanvasRef],
+    [imageCanvasRef, samplerExtrasRef],
   );
 
   const updateHeaderTones = useCallback(() => {
-    const nextLogoTone = sampleElementTone(logoRef.current);
+    const nextLogoTone = resolveElementContrast(logoRef.current);
     if (nextLogoTone) {
       setLogoTone((prev) => (prev === nextLogoTone ? prev : nextLogoTone));
     }
 
-    const nextTransportTone = sampleElementTone(transportButtonRef.current);
+    const nextTransportTone = resolveElementContrast(transportButtonRef.current);
     if (nextTransportTone) {
       setTransportTone((prev) => (prev === nextTransportTone ? prev : nextTransportTone));
     }
@@ -99,7 +105,7 @@ export const useHeaderTone = ({
         let changed = false;
         const next = { ...prev };
         for (const { key, ref } of extraTargets) {
-          const nextTone = sampleElementTone(ref.current);
+          const nextTone = resolveElementContrast(ref.current);
           if (!nextTone) continue;
           if (next[key] !== nextTone) {
             next[key] = nextTone;
@@ -109,7 +115,7 @@ export const useHeaderTone = ({
         return changed ? next : prev;
       });
     }
-  }, [extraTargets, logoRef, sampleElementTone, transportButtonRef]);
+  }, [extraTargets, logoRef, resolveElementContrast, transportButtonRef]);
 
   useEffect(() => {
     if (headerToneRafRef.current !== null) {

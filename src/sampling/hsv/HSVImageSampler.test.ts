@@ -109,4 +109,57 @@ describe("HSVImageSampler", () => {
     expect(sampler.sampleAt({ id: "over", x: 1.1, y: 0.5 })).toBeNull();
     expect(sampler.sampleAt({ id: "overY", x: 0.5, y: 1.4 })).toBeNull();
   });
+
+  describe("regionLuminance", () => {
+    it("returns null when no image is loaded", () => {
+      const sampler = new HSVImageSampler();
+      expect(sampler.regionLuminance(0, 0, 1, 1)).toBeNull();
+    });
+
+    it("computes average perceptual luminance over a region", async () => {
+      // 2x2 image: pure white (lum=1), pure black (lum=0), pure red, pure green
+      const pixels = [
+        // (0,0) white → luminance ≈ 1.0
+        255, 255, 255, 255,
+        // (1,0) black → luminance = 0.0
+        0, 0, 0, 255,
+        // (0,1) red → luminance ≈ 0.2126
+        255, 0, 0, 255,
+        // (1,1) green → luminance ≈ 0.7152
+        0, 255, 0, 255,
+      ];
+
+      const input = makeImageData(pixels, 2, 2);
+      const canvas = makeFakeCanvas(input) as unknown as HTMLCanvasElement;
+      const sampler = new HSVImageSampler();
+      await sampler.loadImage(canvas);
+
+      // Single pixel: white
+      const whiteLum = sampler.regionLuminance(0, 0, 1, 1);
+      expect(whiteLum).toBeCloseTo(1.0, 1);
+
+      // Single pixel: black
+      const blackLum = sampler.regionLuminance(1, 0, 1, 1);
+      expect(blackLum).toBeCloseTo(0.0, 1);
+
+      // Whole image: average of all four pixels
+      const avgAll = sampler.regionLuminance(0, 0, 2, 2);
+      // (1.0 + 0.0 + 0.2126 + 0.7152) / 4 ≈ 0.4820
+      expect(avgAll).toBeCloseTo(0.482, 1);
+    });
+
+    it("clamps to image bounds", async () => {
+      const pixels = [128, 128, 128, 255]; // single gray pixel
+      const input = makeImageData(pixels, 1, 1);
+      const canvas = makeFakeCanvas(input) as unknown as HTMLCanvasElement;
+      const sampler = new HSVImageSampler();
+      await sampler.loadImage(canvas);
+
+      // Oversized rect still returns single pixel luminance
+      const lum = sampler.regionLuminance(0, 0, 100, 100);
+      expect(lum).not.toBeNull();
+      // Gray (128,128,128) → luminance = 128/255 ≈ 0.502
+      expect(lum).toBeCloseTo(0.502, 1);
+    });
+  });
 });

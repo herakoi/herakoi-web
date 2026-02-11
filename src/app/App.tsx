@@ -25,7 +25,7 @@ const App = () => {
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, error, analyser } = usePipeline(pipelineConfig, {
+  const { start, stop, status, error, analyser, samplerExtras } = usePipeline(pipelineConfig, {
     imageCanvasRef,
     imageOverlayRef,
   });
@@ -74,6 +74,7 @@ const App = () => {
     logoRef,
     transportButtonRef,
     extraTargets: toneTargets,
+    samplerExtrasRef: samplerExtras,
   });
 
   // Plugin-owned cover/pan interaction on the image canvas

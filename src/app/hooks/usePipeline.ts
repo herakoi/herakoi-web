@@ -43,6 +43,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     (typeof config.sonification)[0]["createSonifier"]
   > | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const samplerExtrasRef = useRef<Record<string, unknown> | null>(null);
   const controllerRef = useRef<ApplicationController | null>(null);
   const debugToolsRef = useRef<ReturnType<typeof setupDebugTools> | null>(null);
 
@@ -109,6 +110,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
 
       // Run sampling plugin post-initialize (loads image, draws to canvas, encodes HSV)
       await sh.postInitialize?.();
+      samplerExtrasRef.current = sh.extras ?? null;
 
       // Create and start controller
       const controller = new ApplicationController(dh.detector, sh.sampler, soh.sonifier);
@@ -195,6 +197,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     samplerHandleRef.current?.cleanup?.();
     sonifierHandleRef.current?.cleanup?.();
     analyserRef.current = null;
+    samplerExtrasRef.current = null;
     useNotificationStore.getState().clearAll();
     usePipelineStore.getState().setUiOpacity(1);
     setStatus("idle");
@@ -226,5 +229,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     imageReady,
     // Expose analyser access for visualizations
     analyser: analyserRef,
+    // Expose sampler extras (e.g., regionLuminance) for header tone sampling
+    samplerExtras: samplerExtrasRef,
   };
 };

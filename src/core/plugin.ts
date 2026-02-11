@@ -115,6 +115,8 @@ export interface DetectionPlugin {
 /** Handle returned by a sampling plugin's factory. */
 export type SamplerHandle = {
   sampler: ImageSampler;
+  /** Expose implementation-specific extras (e.g., regionLuminance). */
+  extras?: Record<string, unknown>;
   /**
    * Optional setup that runs after sampler creation.
    * For HSV this restores the persisted image and draws it to canvas.
