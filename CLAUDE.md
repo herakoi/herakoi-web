@@ -146,6 +146,6 @@ Use narrative why/what/how comments that explain intent and expected behavior. S
 ## Reference Materials
 
 - `AGENTS.md` - Collaboration guidelines for AI agents, includes module organization and development flow details
-- `docs/adrs/` - Architecture Decision Records documenting tsconfig strategy, import aliases, and blame-ignore rationale
+- `docs/adrs/` - Architecture Decision Records documenting tsconfig strategy, import aliases, linting strategy, and plugin architecture principles (see ADR 006 for plugin development guidelines)
 - `docs/improvement-plan-pr1.md` - Initial TypeScript migration plan
 - `README.md` - User-facing getting started guide
