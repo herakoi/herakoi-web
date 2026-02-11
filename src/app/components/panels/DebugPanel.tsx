@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+  defaultOscillatorSettings,
+  useOscillatorSonificationStore,
+} from "#src/sonification/oscillator/store";
 import { IMAGE_SELECTION_KEY } from "../../state/persistenceKeys";
 import { usePipelineStore } from "../../state/pipelineStore";
 import { Button } from "../ui/button";
@@ -33,6 +37,7 @@ export const DebugPanel = () => {
 
   const handleResetDefaults = () => {
     resetPreferences();
+    useOscillatorSonificationStore.getState().setSettings(defaultOscillatorSettings);
     usePipelineStore.persist?.clearStorage?.();
     if (typeof window !== "undefined") {
       localStorage.removeItem(IMAGE_SELECTION_KEY);

@@ -1,11 +1,11 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { ApplicationController } from "#src/core/ApplicationController";
-import type { DetectedPoint } from "#src/core/interfaces";
 import type { PipelineConfig } from "#src/core/plugin";
 import { type DebugToneSample, setupDebugTools } from "#src/debug";
 import { registerOverlayRef } from "#src/detection/mediapipe/refs";
 import { registerImageCanvasRef } from "#src/sampling/hsv/refs";
 import { useHSVSamplingStore } from "#src/sampling/hsv/store";
+import type { DebugFrameSample } from "#src/sonification/oscillator/OscillatorSonifier";
 import { useNotificationStore } from "../state/notificationStore";
 import { usePipelineStore } from "../state/pipelineStore";
 
@@ -115,12 +115,10 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
       controllerRef.current = controller;
       syncDebugPanel();
 
-      // Debug logging
-      const logDebugSamples = (points: DetectedPoint[]) => {
+      // Debug logging — reads pre-computed data from the sonifier
+      const logDebugSamples = () => {
         const debugEnabled = new URLSearchParams(window.location.search).has("dev");
-        if (!debugEnabled) {
-          return;
-        }
+        if (!debugEnabled) return;
 
         if (!debugToolsRef.current) {
           debugToolsRef.current = setupDebugTools();
@@ -129,44 +127,19 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
         const debugTools = debugToolsRef.current;
         if (!debugTools) return;
 
-        const sampler = samplerHandleRef.current?.sampler;
-        const imageReady = useHSVSamplingStore.getState().imageReady;
-        if (!sampler || !imageReady) {
+        const getLastFrameDebug = sonifierHandleRef.current?.extras?.getLastFrameDebug as
+          | (() => Map<string, DebugFrameSample>)
+          | undefined;
+
+        if (!getLastFrameDebug) {
           debugTools.logToneSamples([]);
           return;
         }
 
-        const pipelineState = usePipelineStore.getState();
+        const frameDebug = getLastFrameDebug();
         const debugToneSamples: DebugToneSample[] = [];
-        for (const point of points) {
-          const sample = sampler.sampleAt(point) as {
-            data?: {
-              hueByte?: number;
-              saturationByte?: number;
-              valueByte?: number;
-            };
-          } | null;
-          if (!sample?.data) {
-            continue;
-          }
-
-          const hueByte = sample.data.hueByte ?? 0;
-          const valueByte = sample.data.valueByte ?? 0;
-          const frequency =
-            pipelineState.oscillator.minFreq +
-            (hueByte / 255) * (pipelineState.oscillator.maxFreq - pipelineState.oscillator.minFreq);
-          const volume =
-            pipelineState.oscillator.minVol +
-            (valueByte / 255) * (pipelineState.oscillator.maxVol - pipelineState.oscillator.minVol);
-
-          debugToneSamples.push({
-            toneId: point.id,
-            frequency,
-            volume,
-            hueByte,
-            saturationByte: sample.data.saturationByte ?? 0,
-            valueByte,
-          });
+        for (const [toneId, data] of frameDebug) {
+          debugToneSamples.push({ toneId, ...data });
         }
 
         debugTools.logToneSamples(debugToneSamples);

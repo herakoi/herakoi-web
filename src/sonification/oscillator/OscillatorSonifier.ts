@@ -31,6 +31,14 @@ export type OscillatorSonifierAnalyserOptions = {
   smoothingTimeConstant?: number;
 };
 
+export type DebugFrameSample = {
+  frequency: number;
+  volume: number;
+  hueByte: number;
+  saturationByte: number;
+  valueByte: number;
+};
+
 export class OscillatorSonifier implements Sonifier {
   private ctx: AudioContext | null;
   private nodes = new Map<string, ToneNodes>();
@@ -44,6 +52,7 @@ export class OscillatorSonifier implements Sonifier {
   private fadeMs = 100;
   private initialized = false;
   private stopped = false;
+  private lastFrameDebug = new Map<string, DebugFrameSample>();
 
   constructor(ctx?: AudioContext, options: OscillatorSonifierOptions = {}) {
     this.ctx = ctx ?? null;
@@ -101,6 +110,7 @@ export class OscillatorSonifier implements Sonifier {
     }
 
     const seen = new Set<string>();
+    const frameDebug = new Map<string, DebugFrameSample>();
 
     for (const [id, sample] of samples) {
       const hueByte = this.pickNumber(sample.data, ["hueByte", "hue", "h"]);
@@ -110,12 +120,23 @@ export class OscillatorSonifier implements Sonifier {
         continue; // Skip samples missing required fields
       }
 
+      const saturationByte = this.pickNumber(sample.data, ["saturationByte", "saturation", "s"]);
       const frequency = this.scale(hueByte, this.minFreq, this.maxFreq);
       const volume = this.scale(valueByte, this.minVol, this.maxVol);
+
+      frameDebug.set(id, {
+        frequency,
+        volume,
+        hueByte,
+        saturationByte: saturationByte ?? 0,
+        valueByte,
+      });
 
       this.updateTone(id, frequency, volume);
       seen.add(id);
     }
+
+    this.lastFrameDebug = frameDebug;
 
     // Stop any tones that were not present in this frame
     for (const id of Array.from(this.nodes.keys())) {
@@ -130,6 +151,10 @@ export class OscillatorSonifier implements Sonifier {
     this.stopAll();
   }
 
+  getLastFrameDebug(): Map<string, DebugFrameSample> {
+    return this.lastFrameDebug;
+  }
+
   /**
    * Returns an AnalyserNode that taps the sonifier output (no mic required).
    *
@@ -139,8 +164,10 @@ export class OscillatorSonifier implements Sonifier {
    * through it, then connects it to `ctx.destination`.
    * How: we switch the internal output node and reconnect any existing tones.
    */
-  getAnalyserNode(options: OscillatorSonifierAnalyserOptions = {}): AnalyserNode {
-    const ctx = this.ensureContext();
+  getAnalyserNode(options: OscillatorSonifierAnalyserOptions = {}): AnalyserNode | null {
+    if (!this.ctx) return null;
+    const ctx = this.ctx;
+    this.output ??= ctx.destination;
 
     if (!this.analyser) {
       this.analyser = ctx.createAnalyser();
