@@ -36,7 +36,7 @@ function getElementCoordinatesOverCanvas(
   return { x, y, w, h };
 }
 
-function decideLuminanceContrast(luminance: number | null): Tone | null {
+function decideColorSchemeForLuminance(luminance: number | null): Tone | null {
   if (luminance === null) return null;
   return luminance > 0.62 ? "dark" : "light";
 }
@@ -71,7 +71,7 @@ export const useHeaderTone = ({
     });
   }, [extraTargets]);
 
-  const resolveElementContrast = useCallback(
+  const resolveColorScheme = useCallback(
     (element: HTMLElement | null) => {
       const canvas = imageCanvasRef.current;
       if (!canvas || !element) return null;
@@ -79,23 +79,24 @@ export const useHeaderTone = ({
       const region = getElementCoordinatesOverCanvas(canvas, element);
       if (!region) return null;
 
-      const regionLuminance = samplerExtrasRef?.current?.regionLuminance as
-        | RegionLuminanceFn
-        | undefined;
-      if (!regionLuminance) return null;
+      const resolveLuminanceInVisualRegion = samplerExtrasRef?.current
+        ?.resolveLuminanceInVisualRegion as RegionLuminanceFn | undefined;
+      if (!resolveLuminanceInVisualRegion) return null;
 
-      return decideLuminanceContrast(regionLuminance(region.x, region.y, region.w, region.h));
+      return decideColorSchemeForLuminance(
+        resolveLuminanceInVisualRegion(region.x, region.y, region.w, region.h),
+      );
     },
     [imageCanvasRef, samplerExtrasRef],
   );
 
   const updateHeaderTones = useCallback(() => {
-    const nextLogoTone = resolveElementContrast(logoRef.current);
+    const nextLogoTone = resolveColorScheme(logoRef.current);
     if (nextLogoTone) {
       setLogoTone((prev) => (prev === nextLogoTone ? prev : nextLogoTone));
     }
 
-    const nextTransportTone = resolveElementContrast(transportButtonRef.current);
+    const nextTransportTone = resolveColorScheme(transportButtonRef.current);
     if (nextTransportTone) {
       setTransportTone((prev) => (prev === nextTransportTone ? prev : nextTransportTone));
     }
@@ -105,7 +106,7 @@ export const useHeaderTone = ({
         let changed = false;
         const next = { ...prev };
         for (const { key, ref } of extraTargets) {
-          const nextTone = resolveElementContrast(ref.current);
+          const nextTone = resolveColorScheme(ref.current);
           if (!nextTone) continue;
           if (next[key] !== nextTone) {
             next[key] = nextTone;
@@ -115,7 +116,7 @@ export const useHeaderTone = ({
         return changed ? next : prev;
       });
     }
-  }, [extraTargets, logoRef, resolveElementContrast, transportButtonRef]);
+  }, [extraTargets, logoRef, resolveColorScheme, transportButtonRef]);
 
   useEffect(() => {
     if (headerToneRafRef.current !== null) {

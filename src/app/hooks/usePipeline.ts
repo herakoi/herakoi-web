@@ -229,7 +229,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     imageReady,
     // Expose analyser access for visualizations
     analyser: analyserRef,
-    // Expose sampler extras (e.g., regionLuminance) for header tone sampling
+    // Expose sampler extras (e.g., resolveLuminanceInVisualRegion) for header tone sampling
     samplerExtras: samplerExtrasRef,
   };
 };

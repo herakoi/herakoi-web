@@ -120,7 +120,7 @@ export class HSVImageSampler implements ImageSamplerInterface {
    * Average perceptual luminance (0–1) over a pixel-coordinate rectangle.
    * Returns null if no image is loaded or the rect is fully outside bounds.
    */
-  regionLuminance(x: number, y: number, w: number, h: number): number | null {
+  resolveLuminanceInVisualRegion(x: number, y: number, w: number, h: number): number | null {
     if (!this.encoded) return null;
     const { width, height, luminance } = this.encoded;
     if (width === 0 || height === 0) return null;

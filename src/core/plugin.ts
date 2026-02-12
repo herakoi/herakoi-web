@@ -115,7 +115,7 @@ export interface DetectionPlugin {
 /** Handle returned by a sampling plugin's factory. */
 export type SamplerHandle = {
   sampler: ImageSampler;
-  /** Expose implementation-specific extras (e.g., regionLuminance). */
+  /** Expose implementation-specific extras (e.g., resolveLuminanceInVisualRegion). */
   extras?: Record<string, unknown>;
   /**
    * Optional setup that runs after sampler creation.

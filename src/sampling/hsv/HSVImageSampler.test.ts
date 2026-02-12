@@ -110,10 +110,10 @@ describe("HSVImageSampler", () => {
     expect(sampler.sampleAt({ id: "overY", x: 0.5, y: 1.4 })).toBeNull();
   });
 
-  describe("regionLuminance", () => {
+  describe("resolveLuminanceInVisualRegion", () => {
     it("returns null when no image is loaded", () => {
       const sampler = new HSVImageSampler();
-      expect(sampler.regionLuminance(0, 0, 1, 1)).toBeNull();
+      expect(sampler.resolveLuminanceInVisualRegion(0, 0, 1, 1)).toBeNull();
     });
 
     it("computes average perceptual luminance over a region", async () => {
@@ -135,15 +135,15 @@ describe("HSVImageSampler", () => {
       await sampler.loadImage(canvas);
 
       // Single pixel: white
-      const whiteLum = sampler.regionLuminance(0, 0, 1, 1);
+      const whiteLum = sampler.resolveLuminanceInVisualRegion(0, 0, 1, 1);
       expect(whiteLum).toBeCloseTo(1.0, 1);
 
       // Single pixel: black
-      const blackLum = sampler.regionLuminance(1, 0, 1, 1);
+      const blackLum = sampler.resolveLuminanceInVisualRegion(1, 0, 1, 1);
       expect(blackLum).toBeCloseTo(0.0, 1);
 
       // Whole image: average of all four pixels
-      const avgAll = sampler.regionLuminance(0, 0, 2, 2);
+      const avgAll = sampler.resolveLuminanceInVisualRegion(0, 0, 2, 2);
       // (1.0 + 0.0 + 0.2126 + 0.7152) / 4 ≈ 0.4820
       expect(avgAll).toBeCloseTo(0.482, 1);
     });
@@ -156,7 +156,7 @@ describe("HSVImageSampler", () => {
       await sampler.loadImage(canvas);
 
       // Oversized rect still returns single pixel luminance
-      const lum = sampler.regionLuminance(0, 0, 100, 100);
+      const lum = sampler.resolveLuminanceInVisualRegion(0, 0, 100, 100);
       expect(lum).not.toBeNull();
       // Gray (128,128,128) → luminance = 128/255 ≈ 0.502
       expect(lum).toBeCloseTo(0.502, 1);
