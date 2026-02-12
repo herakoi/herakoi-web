@@ -2,7 +2,7 @@ import { Loader2, Play, RotateCcw, Square } from "lucide-react";
 import { type RefObject, useState } from "react";
 import { cn } from "../../lib/utils";
 
-type TransportControlsProps = {
+type ControlsProps = {
   isActive: boolean;
   isInitializing: boolean;
   onRestart: () => void;
@@ -11,14 +11,14 @@ type TransportControlsProps = {
   transportButtonRef: RefObject<HTMLButtonElement>;
 };
 
-export const TransportControls = ({
+export const Controls = ({
   isActive,
   isInitializing,
   onRestart,
   onStart,
   onStop,
   transportButtonRef,
-}: TransportControlsProps) => {
+}: ControlsProps) => {
   const [restartActive, setRestartActive] = useState(false);
 
   return (

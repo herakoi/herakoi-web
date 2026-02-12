@@ -1,59 +1,40 @@
 import { Bug } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useImageCoverPan } from "#src/sampling/hsv/hooks/useImageCoverPan";
-import { ControlPanel, type ControlPanelSection } from "./components/ControlPanel";
 import { BrandMark } from "./components/header/BrandMark";
-import { TransportControls } from "./components/header/TransportControls";
+import { Controls } from "./components/header/Controls";
+import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
-import { PluginSelector } from "./components/PluginSelector";
 import { DebugPanel } from "./components/panels/DebugPanel";
-import { ScreenReaderAnnouncer } from "./components/ScreenReaderAnnouncer";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { usePipeline } from "./hooks/usePipeline";
+import { usePluginUi } from "./hooks/usePluginUi";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
 import { usePipelineStore } from "./state/pipelineStore";
 
 const App = () => {
-  type PanelKey = string; // Dynamic based on plugins
-
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, error, analyser } = usePipeline(pipelineConfig, {
+  const { start, stop, status, analyser } = usePipeline(pipelineConfig, {
     imageCanvasRef,
     imageOverlayRef,
   });
-  const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
   const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
 
-  const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
-  const setActiveDetectionId = usePipelineStore((state) => state.setActiveDetectionId);
-  const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
-  const setActiveSamplingId = usePipelineStore((state) => state.setActiveSamplingId);
-  const activeSonificationId = usePipelineStore((state) => state.activeSonificationId);
-  const setActiveSonificationId = usePipelineStore((state) => state.setActiveSonificationId);
+  const { sections, SamplingToolbar, DockPanel } = usePluginUi({
+    config: pipelineConfig,
+    start,
+    stop,
+  });
 
-  const isRunning = status === "running";
-  const isInitializing = status === "initializing";
+  const isRunning = status.status === "running";
+  const isInitializing = status.status === "initializing";
   const isActive = isRunning || isInitializing;
-
-  const statusAnnouncement = useMemo(() => {
-    switch (status) {
-      case "initializing":
-        return "Pipeline initializing";
-      case "running":
-        return "Pipeline running";
-      case "error":
-        return `Pipeline error: ${error ?? "unknown"}`;
-      case "idle":
-        return "Pipeline stopped";
-      default:
-        return "";
-    }
-  }, [status, error]);
 
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
 
@@ -65,126 +46,19 @@ const App = () => {
     return () => stop();
   }, [start, stop]);
 
-  // Resolve active sampling plugin for toolbar
-  const activeSampling = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
-  const SamplingToolbar = activeSampling?.ui.ToolbarItems;
-
-  // Build sections dynamically from plugins
-  const sections: ControlPanelSection<PanelKey>[] = useMemo(() => {
-    const pluginSections: ControlPanelSection<PanelKey>[] = [];
-
-    // Sonification plugin settings
-    const activeSonification = pipelineConfig.sonification.find(
-      (p) => p.id === activeSonificationId,
-    );
-    if (activeSonification?.settingsTab && activeSonification.ui.SettingsPanel) {
-      const Panel = activeSonification.ui.SettingsPanel;
-      pluginSections.push({
-        key: activeSonification.settingsTab.key,
-        label: activeSonification.settingsTab.label,
-        icon: activeSonification.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Sonification"
-              plugins={pipelineConfig.sonification.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeSonificationId}
-              onSelect={(id) => {
-                stop();
-                setActiveSonificationId(id);
-                void start();
-              }}
-            />
-            <Panel />
-          </>
-        ),
-      });
-    }
-
-    // Sampling plugin settings
-    const activeSamplingPlugin = pipelineConfig.sampling.find((p) => p.id === activeSamplingId);
-    if (activeSamplingPlugin?.settingsTab) {
-      const Panel = activeSamplingPlugin.ui.SettingsPanel;
-      pluginSections.push({
-        key: activeSamplingPlugin.settingsTab.key,
-        label: activeSamplingPlugin.settingsTab.label,
-        icon: activeSamplingPlugin.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Sampling"
-              plugins={pipelineConfig.sampling.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeSamplingId}
-              onSelect={(id) => {
-                stop();
-                setActiveSamplingId(id);
-                void start();
-              }}
-            />
-            {Panel && <Panel />}
-          </>
-        ),
-      });
-    }
-
-    // Detection plugin settings
-    const activeDetection = pipelineConfig.detection.find((p) => p.id === activeDetectionId);
-    if (activeDetection?.settingsTab && activeDetection.ui.SettingsPanel) {
-      const Panel = activeDetection.ui.SettingsPanel;
-      pluginSections.push({
-        key: activeDetection.settingsTab.key,
-        label: activeDetection.settingsTab.label,
-        icon: activeDetection.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Detection"
-              plugins={pipelineConfig.detection.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeDetectionId}
-              onSelect={(id) => {
-                stop();
-                setActiveDetectionId(id);
-                void start();
-              }}
-            />
-            <Panel />
-          </>
-        ),
-      });
-    }
-
-    // Debug panel (always present)
-    pluginSections.push({
-      key: "debug",
-      label: "Debug",
-      icon: <Bug className="h-3.5 w-3.5" />,
-      render: () => <DebugPanel />,
-    });
-
-    return pluginSections;
-  }, [
-    activeSonificationId,
-    activeSamplingId,
-    activeDetectionId,
-    setActiveSonificationId,
-    setActiveSamplingId,
-    setActiveDetectionId,
-    start,
-    stop,
-  ]);
-
-  // Render active detection plugin's dock panel
-  const activeDetection = pipelineConfig.detection.find((p) => p.id === activeDetectionId);
-  const DockPanel = activeDetection?.ui.DockPanel;
+  // Add debug panel to plugin sections
+  const sectionsWithDebug = useMemo(
+    () => [
+      ...sections,
+      {
+        key: "debug",
+        label: "Debug",
+        icon: <Bug className="h-3.5 w-3.5" />,
+        render: () => <DebugPanel />,
+      },
+    ],
+    [sections],
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -242,7 +116,7 @@ const App = () => {
           className="pointer-events-auto flex items-center justify-self-end gap-1.5 transition-opacity sm:gap-2"
           style={uiFadeStyle}
         >
-          <TransportControls
+          <Controls
             isActive={isActive}
             isInitializing={isInitializing}
             onRestart={() => void start()}
@@ -253,11 +127,9 @@ const App = () => {
         </div>
       </header>
 
-      <ControlPanel
-        error={error ?? null}
-        openSection={openPanel}
-        setOpenSection={setOpenPanel}
-        sections={sections}
+      <SettingsPanel
+        error={status.status === "error" ? status.errorMessage : null}
+        sections={sectionsWithDebug}
         className="transition-opacity"
         style={uiFadeStyle}
       />
@@ -275,7 +147,7 @@ const App = () => {
         </div>
       ) : null}
 
-      <ScreenReaderAnnouncer message={statusAnnouncement} politeness="assertive" />
+      <PipelineStatusAnnouncer status={status} />
     </main>
   );
 };

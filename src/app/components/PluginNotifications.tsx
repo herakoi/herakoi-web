@@ -5,7 +5,7 @@ import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 export const PluginNotifications = () => {
   const notifications = useNotificationStore((s) => s.notifications);
-  const isRunning = usePipelineStore((s) => s.status) === "running";
+  const isRunning = usePipelineStore((s) => s.status.status === "running");
 
   // Only show visual notifications when pipeline is running
   if (!isRunning || notifications.size === 0) return null;

@@ -25,7 +25,6 @@ type Refs = {
 
 export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverlayRef }: Refs) => {
   const status = usePipelineStore((state) => state.status);
-  const error = usePipelineStore((state) => state.error);
   const setStatus = usePipelineStore((state) => state.setStatus);
   const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
   const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
@@ -73,7 +72,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
       return;
     }
     try {
-      setStatus("initializing");
+      setStatus({ status: "initializing" });
 
       // Resolve active plugins
       const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
@@ -170,11 +169,11 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
         });
       }
 
-      setStatus("running");
+      setStatus({ status: "running" });
     } catch (error) {
-      const message =
+      const errorMessage =
         error instanceof Error ? error.message : "Unknown error while starting pipeline";
-      setStatus("error", message);
+      setStatus({ status: "error", errorMessage });
       console.error("Pipeline start failed:", error);
     }
   }, [
@@ -197,7 +196,7 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     analyserRef.current = null;
     useNotificationStore.getState().clearAll();
     usePipelineStore.getState().setUiOpacity(1);
-    setStatus("idle");
+    setStatus({ status: "idle" });
   }, [setStatus]);
 
   // Window resize handler (overlay canvas only — image canvas is handled by sampling plugin)
@@ -222,7 +221,6 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     start,
     stop,
     status,
-    error,
     imageReady,
     // Expose analyser access for visualizations
     analyser: analyserRef,

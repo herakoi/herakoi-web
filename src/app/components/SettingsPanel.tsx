@@ -7,7 +7,7 @@ import { CardContent } from "./ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
-export type ControlPanelSection<K extends string = string> = {
+export type SettingsPanelSection<K extends string = string> = {
   key: K;
   label: string;
   title?: string;
@@ -15,27 +15,24 @@ export type ControlPanelSection<K extends string = string> = {
   render: () => React.ReactNode;
 };
 
-type ControlPanelProps<K extends string> = {
+type SettingsPanelProps<K extends string> = {
   error: string | null;
   className?: string;
   style?: React.CSSProperties;
-  openSection: K | null;
-  setOpenSection: React.Dispatch<React.SetStateAction<K | null>>;
-  sections: ControlPanelSection<K>[];
+  sections: SettingsPanelSection<K>[];
 };
 
-export const ControlPanel = <K extends string>({
+export const SettingsPanel = <K extends string>({
   error,
   className,
   style,
-  openSection,
-  setOpenSection,
   sections,
-}: ControlPanelProps<K>) => {
+}: SettingsPanelProps<K>) => {
   const defaultKey = useMemo(() => {
     return sections[0]?.key ?? null;
   }, [sections]);
 
+  const [openSection, setOpenSection] = useState<K | null>(null);
   const open = Boolean(openSection);
   const value = openSection ?? defaultKey;
   const [helpOpen, setHelpOpen] = useState(false);
@@ -66,7 +63,7 @@ export const ControlPanel = <K extends string>({
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 open && "border-white/40 bg-white/10 text-white",
               )}
-              aria-label="Toggle controls panel"
+              aria-label="Toggle settings panel"
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>

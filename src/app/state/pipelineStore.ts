@@ -3,7 +3,11 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { pipelineConfig } from "../pipelineConfig";
 import { PIPELINE_PREFERENCES_KEY } from "./persistenceKeys";
 
-export type PipelineStatus = "idle" | "initializing" | "running" | "error";
+export type PipelineStatus =
+  | { status: "idle" }
+  | { status: "initializing" }
+  | { status: "running" }
+  | { status: "error"; errorMessage: string };
 
 /**
  * Shell-level pipeline state.
@@ -14,7 +18,6 @@ export type PipelineStatus = "idle" | "initializing" | "running" | "error";
 type PipelineState = {
   // Pipeline lifecycle
   status: PipelineStatus;
-  error?: string;
 
   // Active plugin selections (persisted)
   activeDetectionId: string;
@@ -27,7 +30,7 @@ type PipelineState = {
 };
 
 type PipelineActions = {
-  setStatus: (status: PipelineStatus, error?: string) => void;
+  setStatus: (status: PipelineStatus) => void;
   setActiveDetectionId: (id: string) => void;
   setActiveSamplingId: (id: string) => void;
   setActiveSonificationId: (id: string) => void;
@@ -51,9 +54,9 @@ const preferenceStorage =
 export const usePipelineStore = create<PipelineState & PipelineActions>()(
   persist(
     (set) => ({
-      status: "idle",
+      status: { status: "idle" },
       ...defaultPreferences,
-      setStatus: (status, error) => set({ status, error }),
+      setStatus: (status) => set({ status }),
       setActiveDetectionId: (id) => set({ activeDetectionId: id }),
       setActiveSamplingId: (id) => set({ activeSamplingId: id }),
       setActiveSonificationId: (id) => set({ activeSonificationId: id }),
