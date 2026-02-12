@@ -67,10 +67,6 @@ export const hsvSamplingPlugin: SamplingPlugin = {
 
     return {
       sampler,
-      extras: {
-        resolveLuminanceInVisualRegion: (x: number, y: number, w: number, h: number) =>
-          sampler.resolveLuminanceInVisualRegion(x, y, w, h),
-      },
 
       async postInitialize() {
         const canvas = getCanvas();

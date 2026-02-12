@@ -22,10 +22,6 @@ type ControlPanelProps<K extends string> = {
   openSection: K | null;
   setOpenSection: React.Dispatch<React.SetStateAction<K | null>>;
   sections: ControlPanelSection<K>[];
-  settingsTone: "light" | "dark";
-  helpTone: "light" | "dark";
-  settingsButtonRef: React.RefObject<HTMLButtonElement>;
-  helpButtonRef: React.RefObject<HTMLButtonElement>;
 };
 
 export const ControlPanel = <K extends string>({
@@ -35,10 +31,6 @@ export const ControlPanel = <K extends string>({
   openSection,
   setOpenSection,
   sections,
-  settingsTone,
-  helpTone,
-  settingsButtonRef,
-  helpButtonRef,
 }: ControlPanelProps<K>) => {
   const defaultKey = useMemo(() => {
     return sections[0]?.key ?? null;
@@ -47,31 +39,6 @@ export const ControlPanel = <K extends string>({
   const open = Boolean(openSection);
   const value = openSection ?? defaultKey;
   const [helpOpen, setHelpOpen] = useState(false);
-
-  const settingsBaseClass =
-    settingsTone === "dark"
-      ? "border-black/30 bg-black/40 text-white/90"
-      : "border-border/50 bg-black/50 text-muted-foreground";
-  const settingsHoverClass =
-    settingsTone === "dark"
-      ? "hover:bg-black/55 hover:text-white"
-      : "hover:bg-black/70 hover:text-foreground";
-  const settingsActiveClass =
-    settingsTone === "dark"
-      ? "border-black/50 bg-black/70 text-white"
-      : "border-white/40 bg-white/10 text-white";
-  const helpBaseClass =
-    helpTone === "dark"
-      ? "border-black/30 bg-black/40 text-white/90"
-      : "border-border/50 bg-black/50 text-muted-foreground";
-  const helpHoverClass =
-    helpTone === "dark"
-      ? "hover:bg-black/55 hover:text-white"
-      : "hover:bg-black/70 hover:text-foreground";
-  const helpActiveClass =
-    helpTone === "dark"
-      ? "border-black/50 bg-black/70 text-white"
-      : "border-white/40 bg-white/10 text-white";
 
   return (
     <div
@@ -96,12 +63,10 @@ export const ControlPanel = <K extends string>({
                 "rounded-full backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2",
                 "text-xs font-semibold uppercase tracking-wide",
-                settingsBaseClass,
-                settingsHoverClass,
-                open && settingsActiveClass,
+                "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
+                open && "border-white/40 bg-white/10 text-white",
               )}
               aria-label="Toggle controls panel"
-              ref={settingsButtonRef}
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -159,12 +124,10 @@ export const ControlPanel = <K extends string>({
               size="icon"
               className={cn(
                 "rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                helpBaseClass,
-                helpHoverClass,
-                helpOpen && helpActiveClass,
+                "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
+                helpOpen && "border-white/40 bg-white/10 text-white",
               )}
               aria-label="Open help panel"
-              ref={helpButtonRef}
             >
               <CircleHelp className="h-4 w-4" />
             </Button>

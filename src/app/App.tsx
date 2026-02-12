@@ -8,7 +8,6 @@ import { PluginNotifications } from "./components/PluginNotifications";
 import { PluginSelector } from "./components/PluginSelector";
 import { DebugPanel } from "./components/panels/DebugPanel";
 import { ScreenReaderAnnouncer } from "./components/ScreenReaderAnnouncer";
-import { type ToneTarget, useHeaderTone } from "./hooks/useHeaderTone";
 import { usePipeline } from "./hooks/usePipeline";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
@@ -21,11 +20,8 @@ const App = () => {
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
-  const restartButtonRef = useRef<HTMLButtonElement>(null);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  const helpButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, error, analyser, samplerExtras } = usePipeline(pipelineConfig, {
+  const { start, stop, status, error, analyser } = usePipeline(pipelineConfig, {
     imageCanvasRef,
     imageOverlayRef,
   });
@@ -60,22 +56,6 @@ const App = () => {
   }, [status, error]);
 
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
-  const toneTargets = useMemo<ToneTarget[]>(
-    () => [
-      { key: "restart", ref: restartButtonRef },
-      { key: "settings", ref: settingsButtonRef },
-      { key: "help", ref: helpButtonRef },
-    ],
-    [],
-  );
-
-  const { logoTone, transportTone, extraTones } = useHeaderTone({
-    imageCanvasRef,
-    logoRef,
-    transportButtonRef,
-    extraTargets: toneTargets,
-    samplerExtrasRef: samplerExtras,
-  });
 
   // Plugin-owned cover/pan interaction on the image canvas
   useImageCoverPan();
@@ -247,7 +227,6 @@ const App = () => {
         <div className="justify-self-start">
           <BrandMark
             analyserRef={analyser}
-            logoTone={logoTone}
             dimLogoMark={dimLogoMark}
             uiFadeStyle={uiFadeStyle}
             logoRef={logoRef}
@@ -266,13 +245,10 @@ const App = () => {
           <TransportControls
             isActive={isActive}
             isInitializing={isInitializing}
-            transportTone={transportTone}
-            restartTone={extraTones.restart ?? transportTone}
             onRestart={() => void start()}
             onStart={() => void start()}
             onStop={() => stop()}
             transportButtonRef={transportButtonRef}
-            restartButtonRef={restartButtonRef}
           />
         </div>
       </header>
@@ -282,10 +258,6 @@ const App = () => {
         openSection={openPanel}
         setOpenSection={setOpenPanel}
         sections={sections}
-        settingsTone={extraTones.settings ?? "light"}
-        helpTone={extraTones.help ?? "light"}
-        settingsButtonRef={settingsButtonRef}
-        helpButtonRef={helpButtonRef}
         className="transition-opacity"
         style={uiFadeStyle}
       />

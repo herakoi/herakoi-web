@@ -18,15 +18,12 @@ import type {
 
 type EncodedImage = {
   data: Uint8ClampedArray;
-  luminance: Uint8Array;
   width: number;
   height: number;
 };
 
 const encodeHSV = (imageData: ImageData): EncodedImage => {
   const encoded = new Uint8ClampedArray(imageData.data.length);
-  const pixelCount = imageData.data.length / 4;
-  const luminance = new Uint8Array(pixelCount);
 
   for (let i = 0; i < imageData.data.length; i += 4) {
     const r = imageData.data[i] / 255;
@@ -61,12 +58,9 @@ const encodeHSV = (imageData: ImageData): EncodedImage => {
     encoded[i + 1] = sByte;
     encoded[i + 2] = vByte;
     encoded[i + 3] = imageData.data[i + 3];
-
-    // Perceptual luminance (BT.709 coefficients), stored as 0–255 byte
-    luminance[i / 4] = Math.round((r * 0.2126 + g * 0.7152 + b * 0.0722) * 255);
   }
 
-  return { data: encoded, luminance, width: imageData.width, height: imageData.height };
+  return { data: encoded, width: imageData.width, height: imageData.height };
 };
 
 type LoadableSource = string | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
@@ -114,33 +108,6 @@ export class HSVImageSampler implements ImageSamplerInterface {
         alpha: data[i + 3],
       },
     };
-  }
-
-  /**
-   * Average perceptual luminance (0–1) over a pixel-coordinate rectangle.
-   * Returns null if no image is loaded or the rect is fully outside bounds.
-   */
-  resolveLuminanceInVisualRegion(x: number, y: number, w: number, h: number): number | null {
-    if (!this.encoded) return null;
-    const { width, height, luminance } = this.encoded;
-    if (width === 0 || height === 0) return null;
-
-    const x0 = Math.max(0, Math.min(width - 1, x));
-    const y0 = Math.max(0, Math.min(height - 1, y));
-    const x1 = Math.max(0, Math.min(width - 1, x + w - 1));
-    const y1 = Math.max(0, Math.min(height - 1, y + h - 1));
-    if (x0 > x1 || y0 > y1) return null;
-
-    let total = 0;
-    let count = 0;
-    for (let py = y0; py <= y1; py++) {
-      for (let px = x0; px <= x1; px++) {
-        total += luminance[py * width + px];
-        count++;
-      }
-    }
-    if (count === 0) return null;
-    return total / (count * 255);
   }
 
   private async toCanvas(source: LoadableSource): Promise<HTMLCanvasElement> {
