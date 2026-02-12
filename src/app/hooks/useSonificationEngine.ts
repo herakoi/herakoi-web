@@ -1,11 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
-import { ApplicationController } from "#src/core/ApplicationController";
+import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig } from "#src/core/plugin";
 import { type DebugToneSample, setupDebugTools } from "#src/debug";
-import { registerOverlayRef } from "#src/detection/mediapipe/refs";
-import { registerImageCanvasRef } from "#src/sampling/hsv/refs";
-import { useHSVSamplingStore } from "#src/sampling/hsv/store";
-import type { DebugFrameSample } from "#src/sonification/oscillator/OscillatorSonifier";
 import { useNotificationStore } from "../state/notificationStore";
 import { usePipelineStore } from "../state/pipelineStore";
 
@@ -23,14 +19,15 @@ type Refs = {
   imageOverlayRef: RefObject<HTMLCanvasElement>;
 };
 
-export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverlayRef }: Refs) => {
+export const useSonificationEngine = (
+  config: PipelineConfig,
+  { imageCanvasRef, imageOverlayRef }: Refs,
+) => {
   const status = usePipelineStore((state) => state.status);
   const setStatus = usePipelineStore((state) => state.setStatus);
   const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
   const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
   const activeSonificationId = usePipelineStore((state) => state.activeSonificationId);
-
-  const imageReady = useHSVSamplingStore((state) => state.imageReady);
 
   const detectorHandleRef = useRef<ReturnType<
     (typeof config.detection)[0]["createDetector"]
@@ -42,7 +39,6 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     (typeof config.sonification)[0]["createSonifier"]
   > | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const controllerRef = useRef<ApplicationController | null>(null);
   const debugToolsRef = useRef<ReturnType<typeof setupDebugTools> | null>(null);
 
   const ensureCanvasesSized = useCallback(() => {
@@ -85,12 +81,6 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
         );
       }
 
-      // Register refs for plugins
-      if (imageOverlayRef.current) {
-        registerOverlayRef("imageOverlay", imageOverlayRef);
-      }
-      registerImageCanvasRef(imageCanvasRef);
-
       // Create plugin instances
       const dh = activeDetection.createDetector();
       const sh = activeSampling.createSampler();
@@ -99,6 +89,10 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
       detectorHandleRef.current = dh;
       samplerHandleRef.current = sh;
       sonifierHandleRef.current = soh;
+
+      // Inject canvas refs to plugins (dependency injection)
+      dh.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
+      sh.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
 
       // Wire up pipeline events
       activeDetection.bindPipelineEvents(dh.detector, {
@@ -109,9 +103,24 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
       // Run sampling plugin post-initialize (loads image, draws to canvas, encodes HSV)
       await sh.postInitialize?.();
 
-      // Create and start controller
-      const controller = new ApplicationController(dh.detector, sh.sampler, soh.sonifier);
-      controllerRef.current = controller;
+      // Initialize detector and sonifier (inlined from ApplicationController)
+      await dh.detector.initialize();
+      await soh.sonifier.initialize();
+
+      // Register detection callback that orchestrates the sonification loop
+      dh.detector.onPointsDetected((points) => {
+        const samples = new Map<string, ImageSample>();
+
+        for (const point of points) {
+          const sample = sh.sampler.sampleAt(point);
+          if (sample) {
+            samples.set(point.id, sample);
+          }
+        }
+
+        soh.sonifier.processSamples(samples);
+      });
+
       syncDebugPanel();
 
       // Debug logging — reads pre-computed data from the sonifier
@@ -126,8 +135,16 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
         const debugTools = debugToolsRef.current;
         if (!debugTools) return;
 
+        type FrameDebugData = {
+          frequency: number;
+          volume: number;
+          hueByte: number;
+          saturationByte: number;
+          valueByte: number;
+        };
+
         const getLastFrameDebug = sonifierHandleRef.current?.extras?.getLastFrameDebug as
-          | (() => Map<string, DebugFrameSample>)
+          | (() => Map<string, FrameDebugData>)
           | undefined;
 
         if (!getLastFrameDebug) {
@@ -148,7 +165,8 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
 
       ensureCanvasesSized();
 
-      await controller.start();
+      // Start detection (inlined from ApplicationController)
+      dh.detector.start();
 
       // Run post-initialize hooks
       dh.postInitialize?.();
@@ -189,10 +207,15 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
   ]);
 
   const stop = useCallback(() => {
-    controllerRef.current?.stop();
+    // Stop detection and sonification (inlined from ApplicationController)
+    detectorHandleRef.current?.detector.stop();
+    sonifierHandleRef.current?.sonifier.stop();
+
+    // Run plugin cleanup hooks
     detectorHandleRef.current?.cleanup?.();
     samplerHandleRef.current?.cleanup?.();
     sonifierHandleRef.current?.cleanup?.();
+
     analyserRef.current = null;
     useNotificationStore.getState().clearAll();
     usePipelineStore.getState().setUiOpacity(1);
@@ -221,7 +244,6 @@ export const usePipeline = (config: PipelineConfig, { imageCanvasRef, imageOverl
     start,
     stop,
     status,
-    imageReady,
     // Expose analyser access for visualizations
     analyser: analyserRef,
   };

@@ -1,14 +1,13 @@
 import { Bug } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import { useImageCoverPan } from "#src/sampling/hsv/hooks/useImageCoverPan";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
 import { DebugPanel } from "./components/panels/DebugPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { usePipeline } from "./hooks/usePipeline";
 import { usePluginUi } from "./hooks/usePluginUi";
+import { useSonificationEngine } from "./hooks/useSonificationEngine";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
 import { usePipelineStore } from "./state/pipelineStore";
@@ -19,7 +18,7 @@ const App = () => {
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, analyser } = usePipeline(pipelineConfig, {
+  const { start, stop, status, analyser } = useSonificationEngine(pipelineConfig, {
     imageCanvasRef,
     imageOverlayRef,
   });
@@ -37,9 +36,6 @@ const App = () => {
   const isActive = isRunning || isInitializing;
 
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
-
-  // Plugin-owned cover/pan interaction on the image canvas
-  useImageCoverPan();
 
   useEffect(() => {
     void start();

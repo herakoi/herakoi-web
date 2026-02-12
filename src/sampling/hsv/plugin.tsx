@@ -43,6 +43,7 @@ export const hsvSamplingPlugin: SamplingPlugin = {
     let imageBuffer: HTMLImageElement | null = null;
     let storeUnsub: (() => void) | null = null;
     let resizeHandler: (() => void) | null = null;
+    let panZoomCleanup: (() => void) | null = null;
 
     const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
 
@@ -67,6 +68,13 @@ export const hsvSamplingPlugin: SamplingPlugin = {
 
     return {
       sampler,
+
+      setCanvasRefs: (refs) => {
+        // Register image canvas ref
+        if (refs.imageCanvas) {
+          hsvSamplingRefs.imageCanvas = refs.imageCanvas;
+        }
+      },
 
       async postInitialize() {
         const canvas = getCanvas();
@@ -115,6 +123,111 @@ export const hsvSamplingPlugin: SamplingPlugin = {
           void drawAndEncode(imageBuffer, canvas);
         };
         window.addEventListener("resize", resizeHandler);
+
+        // Image pan/zoom interaction (converted from useImageCoverPan hook)
+        const setupPanZoom = () => {
+          const canvas = getCanvas();
+          if (!canvas) return null;
+
+          const { imageCover } = useHSVSamplingStore.getState();
+
+          // Update cursor styles
+          canvas.style.cursor = imageCover ? "grab" : "default";
+          canvas.style.touchAction = imageCover ? "none" : "auto";
+
+          if (!imageCover) return null;
+
+          // Pan/drag state
+          let dragging = false;
+          let lastX = 0;
+          let lastY = 0;
+          let rafId = 0;
+          let pendingX = 0;
+          let pendingY = 0;
+
+          const applyPan = () => {
+            if (!pendingX && !pendingY) return;
+            const current = useHSVSamplingStore.getState().imagePan;
+            useHSVSamplingStore.getState().setImagePan({
+              x: current.x + pendingX,
+              y: current.y + pendingY,
+            });
+            pendingX = 0;
+            pendingY = 0;
+          };
+
+          const onPointerDown = (event: PointerEvent) => {
+            if (event.button !== 0) return;
+            dragging = true;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            canvas.style.cursor = "grabbing";
+            canvas.setPointerCapture(event.pointerId);
+          };
+
+          const onPointerMove = (event: PointerEvent) => {
+            if (!dragging) return;
+            const dx = event.clientX - lastX;
+            const dy = event.clientY - lastY;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            pendingX += dx;
+            pendingY += dy;
+            if (!rafId) {
+              rafId = requestAnimationFrame(() => {
+                rafId = 0;
+                applyPan();
+              });
+            }
+          };
+
+          const endDrag = (event: PointerEvent) => {
+            if (!dragging) return;
+            dragging = false;
+            if (canvas.hasPointerCapture(event.pointerId)) {
+              canvas.releasePointerCapture(event.pointerId);
+            }
+            canvas.style.cursor = "grab";
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = 0;
+            }
+            applyPan();
+          };
+
+          canvas.addEventListener("pointerdown", onPointerDown);
+          window.addEventListener("pointermove", onPointerMove);
+          window.addEventListener("pointerup", endDrag);
+          window.addEventListener("pointercancel", endDrag);
+
+          return () => {
+            canvas.removeEventListener("pointerdown", onPointerDown);
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("pointerup", endDrag);
+            window.removeEventListener("pointercancel", endDrag);
+            canvas.style.cursor = "default";
+            canvas.style.touchAction = "auto";
+            if (rafId) cancelAnimationFrame(rafId);
+          };
+        };
+
+        // Initial setup
+        panZoomCleanup = setupPanZoom();
+
+        // Re-setup when imageCover changes
+        const panZoomUnsub = useHSVSamplingStore.subscribe((state, prev) => {
+          if (state.imageCover !== prev.imageCover) {
+            panZoomCleanup?.();
+            panZoomCleanup = setupPanZoom();
+          }
+        });
+
+        // Combine cleanup with existing store cleanup
+        const originalStoreUnsub = storeUnsub;
+        storeUnsub = () => {
+          originalStoreUnsub?.();
+          panZoomUnsub();
+        };
       },
 
       cleanup() {
@@ -124,6 +237,8 @@ export const hsvSamplingPlugin: SamplingPlugin = {
           window.removeEventListener("resize", resizeHandler);
           resizeHandler = null;
         }
+        panZoomCleanup?.();
+        panZoomCleanup = null;
         imageBuffer = null;
         useHSVSamplingStore.getState().setImageReady(false);
       },

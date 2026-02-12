@@ -11,6 +11,7 @@ export type OscillatorSettings = {
 
 type OscillatorSonificationActions = {
   setSettings: (settings: Partial<OscillatorSettings>) => void;
+  resetToDefaults: () => void;
 };
 
 const STORAGE_KEY = "herakoi.sonification.oscillator.v1";
@@ -30,6 +31,7 @@ export const useOscillatorSonificationStore = create<
     (set) => ({
       ...defaultOscillatorSettings,
       setSettings: (settings) => set(settings),
+      resetToDefaults: () => set(defaultOscillatorSettings),
     }),
     {
       name: STORAGE_KEY,

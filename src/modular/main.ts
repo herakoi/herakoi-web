@@ -7,18 +7,17 @@
  * letting us swap detector/sampler/sonifier implementations later.
  */
 
-import { ApplicationController } from "#src/core/ApplicationController";
+import type { ImageSample } from "#src/core/interfaces";
 import { getMediaPipeDetector } from "#src/detection/mediapipe/factory";
 import { DetectorControls } from "#src/detection/mediapipe/uiControls";
 import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
 import { attachDevFrequencyLabels, buildDebugToneLogger } from "#src/modular/debugConfig";
+import { getDefaultCuratedImage } from "#src/sampling/hsv/data/curatedImages";
 import { HSVSamplerControls } from "#src/sampling/hsv/uiControls";
 import { getOscillatorSonifier } from "#src/sonification/oscillator/factory";
 import { OscillatorControls } from "#src/sonification/oscillator/uiControls";
 import { requireElement } from "#src/utils/dom";
 import "./style.css";
-
-import { getDefaultCuratedImage } from "#src/sampling/hsv/data/curatedImages";
 
 // --- DOM lookups ------------------------------------------------------------
 
@@ -52,7 +51,6 @@ const sampler = hsvControls.sampler;
 
 const sonifier = getOscillatorSonifier(oscillatorControls);
 const detector = getMediaPipeDetector(detectorControls);
-const controller = new ApplicationController(detector, sampler, sonifier);
 
 // --- UI hands drawing ----------------------------------------------------
 
@@ -82,7 +80,27 @@ attachDevFrequencyLabels(
 const startPipeline = async () => {
   statusLabel.textContent = "Initializing hands detection...";
   try {
-    await controller.start();
+    // Initialize detector and sonifier (inlined from ApplicationController)
+    await detector.initialize();
+    await sonifier.initialize();
+
+    // Register detection callback that orchestrates the sonification loop
+    detector.onPointsDetected((points) => {
+      const samples = new Map<string, ImageSample>();
+
+      for (const point of points) {
+        const sample = sampler.sampleAt(point);
+        if (sample) {
+          samples.set(point.id, sample);
+        }
+      }
+
+      sonifier.processSamples(samples);
+    });
+
+    // Start detection
+    detector.start();
+
     statusLabel.textContent = "Running - move your hands to hear sonification";
   } catch (error) {
     console.error("Failed to start detection/audio:", error);

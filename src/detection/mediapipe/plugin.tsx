@@ -55,6 +55,12 @@ export const mediaPipeDetectionPlugin: DetectionPlugin = {
 
     return {
       detector,
+      setCanvasRefs: (refs) => {
+        // Register image overlay ref if provided
+        if (refs.imageOverlay) {
+          mediaPipeRefs.imageOverlay = refs.imageOverlay;
+        }
+      },
       postInitialize: () => {
         // Bind hand overlay drawing
         const videoOverlay = mediaPipeRefs.videoOverlay?.current;

@@ -12,7 +12,7 @@
  * runtime switching via a PluginSelector dropdown.
  */
 
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode, RefObject } from "react";
 import type { ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
 
 // ──────────────────────────────────────────────────
@@ -86,6 +86,11 @@ export type DetectorHandle = {
   postInitialize?: () => void;
   /** Optional cleanup when the pipeline stops. */
   cleanup?: () => void;
+  /**
+   * Optional method to receive canvas refs from the shell.
+   * Called before postInitialize so plugins can register refs internally.
+   */
+  setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement> }) => void;
 };
 
 export interface DetectionPlugin {
@@ -124,6 +129,11 @@ export type SamplerHandle = {
   postInitialize?: () => Promise<void>;
   /** Optional cleanup when the pipeline stops. */
   cleanup?: () => void;
+  /**
+   * Optional method to receive canvas refs from the shell.
+   * Called before postInitialize so plugins can register refs internally.
+   */
+  setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement> }) => void;
 };
 
 export interface SamplingPlugin {
