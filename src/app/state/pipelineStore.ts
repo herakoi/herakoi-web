@@ -23,6 +23,7 @@ type PipelineState = {
   activeDetectionId: string;
   activeSamplingId: string;
   activeSonificationId: string;
+  activeVisualizerId: string | null;
 
   // Shell UI state
   uiOpacity: number; // 0 = fully dimmed, 1 = fully visible
@@ -34,6 +35,7 @@ type PipelineActions = {
   setActiveDetectionId: (id: string) => void;
   setActiveSamplingId: (id: string) => void;
   setActiveSonificationId: (id: string) => void;
+  setActiveVisualizerId: (id: string | null) => void;
   setUiOpacity: (opacity: number) => void;
   setDimLogoMark: (dim: boolean) => void;
   resetPreferences: () => void;
@@ -44,6 +46,7 @@ const defaultPreferences = {
   activeDetectionId: pipelineConfig.detection[0]?.id ?? "",
   activeSamplingId: pipelineConfig.sampling[0]?.id ?? "",
   activeSonificationId: pipelineConfig.sonification[0]?.id ?? "",
+  activeVisualizerId: null as string | null,
   uiOpacity: 1,
   dimLogoMark: false,
 };
@@ -60,6 +63,7 @@ export const usePipelineStore = create<PipelineState & PipelineActions>()(
       setActiveDetectionId: (id) => set({ activeDetectionId: id }),
       setActiveSamplingId: (id) => set({ activeSamplingId: id }),
       setActiveSonificationId: (id) => set({ activeSonificationId: id }),
+      setActiveVisualizerId: (id) => set({ activeVisualizerId: id }),
       setUiOpacity: (opacity) => set({ uiOpacity: opacity }),
       setDimLogoMark: (dim) => set({ dimLogoMark: dim }),
       resetPreferences: () => set({ ...defaultPreferences }),
@@ -71,6 +75,7 @@ export const usePipelineStore = create<PipelineState & PipelineActions>()(
         activeDetectionId: state.activeDetectionId,
         activeSamplingId: state.activeSamplingId,
         activeSonificationId: state.activeSonificationId,
+        activeVisualizerId: state.activeVisualizerId,
         uiOpacity: state.uiOpacity,
         dimLogoMark: state.dimLogoMark,
       }),

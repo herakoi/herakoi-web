@@ -1,7 +1,6 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { ImageSample } from "#src/core/interfaces";
-import type { PipelineConfig } from "#src/core/plugin";
-import { type DebugToneSample, setupDebugTools } from "#src/debug";
+import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
 import { useNotificationStore } from "../state/notificationStore";
 import { usePipelineStore } from "../state/pipelineStore";
 
@@ -39,29 +38,17 @@ export const useSonificationEngine = (
     (typeof config.sonification)[0]["createSonifier"]
   > | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const debugToolsRef = useRef<ReturnType<typeof setupDebugTools> | null>(null);
+
+  const visualizerFrameDataRef = useRef<VisualizerFrameData>({
+    detection: { points: [], handDetected: false },
+    sampling: { samples: new Map<string, { data: Record<string, number> }>() },
+    sonification: { tones: new Map() },
+    analyser: null,
+  });
 
   const ensureCanvasesSized = useCallback(() => {
     if (imageOverlayRef.current) resizeCanvasToContainer(imageOverlayRef.current);
   }, [imageOverlayRef]);
-
-  const syncDebugPanel = useCallback(() => {
-    if (typeof window === "undefined" || typeof document === "undefined") return;
-    const debugEnabled = new URLSearchParams(window.location.search).has("dev");
-    if (!debugEnabled) {
-      debugToolsRef.current?.logToneSamples([]);
-      debugToolsRef.current = null;
-      const panel = document.getElementById("herakoi-debug-panel");
-      if (panel) {
-        panel.remove();
-      }
-      return;
-    }
-
-    if (!debugToolsRef.current) {
-      debugToolsRef.current = setupDebugTools();
-    }
-  }, []);
 
   const start = useCallback(async () => {
     if (!imageCanvasRef.current) {
@@ -109,6 +96,12 @@ export const useSonificationEngine = (
 
       // Register detection callback that orchestrates the sonification loop
       dh.detector.onPointsDetected((points) => {
+        // Update detection data for visualizers
+        visualizerFrameDataRef.current.detection = {
+          points,
+          handDetected: points.length > 0,
+        };
+
         const samples = new Map<string, ImageSample>();
 
         for (const point of points) {
@@ -118,23 +111,12 @@ export const useSonificationEngine = (
           }
         }
 
+        // Update sampling data for visualizers
+        visualizerFrameDataRef.current.sampling = { samples };
+
         soh.sonifier.processSamples(samples);
-      });
 
-      syncDebugPanel();
-
-      // Debug logging — reads pre-computed data from the sonifier
-      const logDebugSamples = () => {
-        const debugEnabled = new URLSearchParams(window.location.search).has("dev");
-        if (!debugEnabled) return;
-
-        if (!debugToolsRef.current) {
-          debugToolsRef.current = setupDebugTools();
-        }
-
-        const debugTools = debugToolsRef.current;
-        if (!debugTools) return;
-
+        // Update sonification data for visualizers
         type FrameDebugData = {
           frequency: number;
           volume: number;
@@ -147,21 +129,11 @@ export const useSonificationEngine = (
           | (() => Map<string, FrameDebugData>)
           | undefined;
 
-        if (!getLastFrameDebug) {
-          debugTools.logToneSamples([]);
-          return;
+        if (getLastFrameDebug) {
+          const frameDebug = getLastFrameDebug();
+          visualizerFrameDataRef.current.sonification = { tones: frameDebug };
         }
-
-        const frameDebug = getLastFrameDebug();
-        const debugToneSamples: DebugToneSample[] = [];
-        for (const [toneId, data] of frameDebug) {
-          debugToneSamples.push({ toneId, ...data });
-        }
-
-        debugTools.logToneSamples(debugToneSamples);
-      };
-
-      dh.detector.onPointsDetected(logDebugSamples);
+      });
 
       ensureCanvasesSized();
 
@@ -185,6 +157,9 @@ export const useSonificationEngine = (
           fftSize: 2048,
           smoothingTimeConstant: 0.65,
         });
+
+        // Update visualizer frame data with analyser
+        visualizerFrameDataRef.current.analyser = analyserRef.current;
       }
 
       setStatus({ status: "running" });
@@ -203,7 +178,6 @@ export const useSonificationEngine = (
     imageCanvasRef,
     imageOverlayRef,
     setStatus,
-    syncDebugPanel,
   ]);
 
   const stop = useCallback(() => {
@@ -231,20 +205,13 @@ export const useSonificationEngine = (
     };
   }, [ensureCanvasesSized]);
 
-  // Debug panel toggle
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    syncDebugPanel();
-    const handleToggle = () => syncDebugPanel();
-    window.addEventListener("herakoi-debug-toggle", handleToggle);
-    return () => window.removeEventListener("herakoi-debug-toggle", handleToggle);
-  }, [syncDebugPanel]);
-
   return {
     start,
     stop,
     status,
     // Expose analyser access for visualizations
     analyser: analyserRef,
+    // Expose visualizer frame data for visualization plugins
+    visualizerFrameDataRef,
   };
 };

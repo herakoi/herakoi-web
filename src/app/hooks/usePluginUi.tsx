@@ -1,6 +1,8 @@
+import { Eye } from "lucide-react";
 import { type ComponentType, useCallback, useMemo } from "react";
-import type { DockPanelProps, PipelineConfig } from "#src/core/plugin";
+import type { DockPanelProps, PipelineConfig, VisualizerDisplayProps } from "#src/core/plugin";
 import { PluginSelector } from "../components/PluginSelector";
+import { VisualizerPanel } from "../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../components/SettingsPanel";
 import { usePipelineStore } from "../state/pipelineStore";
 
@@ -14,6 +16,7 @@ type UsePluginUiReturn = {
   sections: SettingsPanelSection[];
   SamplingToolbar: ComponentType | undefined;
   DockPanel: ComponentType<DockPanelProps> | undefined;
+  VisualizerDisplays: Array<{ id: string; Display: ComponentType<VisualizerDisplayProps> }>;
 };
 
 export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePluginUiReturn => {
@@ -114,6 +117,16 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
       });
     }
 
+    // Visualizer section (only if visualizers are available)
+    if (config.visualization.length > 0) {
+      result.push({
+        key: "visualizer",
+        label: "Visualizer",
+        icon: <Eye className="h-3.5 w-3.5" />,
+        render: () => <VisualizerPanel visualizers={config.visualization} />,
+      });
+    }
+
     return result;
   }, [
     config,
@@ -133,9 +146,22 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
   const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
   const DockPanel = activeDetection?.ui.DockPanel;
 
+  // 5. Resolve active visualizer displays
+  const activeVisualizerId = usePipelineStore((s) => s.activeVisualizerId);
+  const VisualizerDisplays = useMemo(() => {
+    if (!activeVisualizerId) return [];
+    return config.visualization
+      .filter((p) => p.id === activeVisualizerId && p.ui.VisualizerDisplay)
+      .map((p) => ({
+        id: p.id,
+        Display: p.ui.VisualizerDisplay as ComponentType<VisualizerDisplayProps>,
+      }));
+  }, [config.visualization, activeVisualizerId]);
+
   return {
     sections,
     SamplingToolbar,
     DockPanel,
+    VisualizerDisplays,
   };
 };

@@ -1,10 +1,8 @@
-import { Bug } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
-import { DebugPanel } from "./components/panels/DebugPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { usePluginUi } from "./hooks/usePluginUi";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
@@ -18,14 +16,17 @@ const App = () => {
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, analyser } = useSonificationEngine(pipelineConfig, {
-    imageCanvasRef,
-    imageOverlayRef,
-  });
+  const { start, stop, status, analyser, visualizerFrameDataRef } = useSonificationEngine(
+    pipelineConfig,
+    {
+      imageCanvasRef,
+      imageOverlayRef,
+    },
+  );
   const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
 
-  const { sections, SamplingToolbar, DockPanel } = usePluginUi({
+  const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
     config: pipelineConfig,
     start,
     stop,
@@ -41,20 +42,6 @@ const App = () => {
     void start();
     return () => stop();
   }, [start, stop]);
-
-  // Add debug panel to plugin sections
-  const sectionsWithDebug = useMemo(
-    () => [
-      ...sections,
-      {
-        key: "debug",
-        label: "Debug",
-        icon: <Bug className="h-3.5 w-3.5" />,
-        render: () => <DebugPanel />,
-      },
-    ],
-    [sections],
-  );
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -125,7 +112,7 @@ const App = () => {
 
       <SettingsPanel
         error={status.status === "error" ? status.errorMessage : null}
-        sections={sectionsWithDebug}
+        sections={sections}
         className="transition-opacity"
         style={uiFadeStyle}
       />
@@ -142,6 +129,11 @@ const App = () => {
           />
         </div>
       ) : null}
+
+      {/* Render active visualizer displays (outside dimmer) */}
+      {VisualizerDisplays.map(({ id, Display }) => (
+        <Display key={id} isRunning={isRunning} frameDataRef={visualizerFrameDataRef} />
+      ))}
 
       <PipelineStatusAnnouncer status={status} />
     </main>

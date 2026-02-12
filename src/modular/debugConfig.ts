@@ -1,14 +1,32 @@
 /**
  * Debug tooling stays near the modular entrypoint but in its own module so we
  * can swap or disable panels without touching the main wiring.
+ *
+ * NOTE: Debug functionality has been moved to the visualizer plugin system.
+ * This module is kept for backward compatibility with deprecated code.
  */
 
 import type { DetectedPoint } from "#src/core/interfaces";
-import { type DebugToneSample, isDev, setupDebugTools } from "#src/debug";
 import { drawFrequencyLabel } from "#src/detection/mediapipe/overlay";
 
-export const debugTools = setupDebugTools();
-export type { DebugToneSample };
+// Stub types and values for backward compatibility
+export type DebugToneSample = {
+  toneId: string;
+  frequency: number;
+  volume: number;
+  hueByte: number;
+  saturationByte: number;
+  valueByte: number;
+};
+
+const isDev = false; // Debug functionality now controlled via visualizer plugin
+
+export const debugTools = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  logToneSamples: (_samples: DebugToneSample[]) => {
+    // No-op: debug functionality moved to visualizer plugin
+  },
+};
 
 export const buildDebugToneLogger =
   (

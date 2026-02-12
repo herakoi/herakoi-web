@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   defaultOscillatorSettings,
   useOscillatorSonificationStore,
@@ -16,24 +15,6 @@ export const DebugPanel = () => {
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
   const setDimLogoMark = usePipelineStore((state) => state.setDimLogoMark);
   const resetPreferences = usePipelineStore((state) => state.resetPreferences);
-  const [debugEnabled, setDebugEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const params = new URLSearchParams(window.location.search);
-    return params.has("dev");
-  });
-
-  const handleDebug = () => {
-    const nextUrl = new URL(window.location.href);
-    const willEnable = !debugEnabled;
-    if (willEnable) {
-      nextUrl.searchParams.set("dev", "1");
-    } else {
-      nextUrl.searchParams.delete("dev");
-    }
-    window.history.replaceState({}, "", nextUrl.toString());
-    setDebugEnabled(willEnable);
-    window.dispatchEvent(new Event("herakoi-debug-toggle"));
-  };
 
   const handleResetDefaults = () => {
     resetPreferences();
@@ -49,9 +30,6 @@ export const DebugPanel = () => {
 
   return (
     <div className="space-y-4">
-      <Button variant={debugEnabled ? "secondary" : "outline"} onClick={handleDebug}>
-        {debugEnabled ? "Disable Dev HUD" : "Enable Dev HUD"}
-      </Button>
       <Button variant="outline" onClick={handleResetDefaults}>
         Restore Defaults
       </Button>

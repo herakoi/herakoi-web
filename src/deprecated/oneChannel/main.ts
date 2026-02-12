@@ -4,13 +4,22 @@ import { Camera } from "@mediapipe/camera_utils";
 import type { NormalizedLandmarkList, Results } from "@mediapipe/hands";
 import figlet from "figlet";
 import StarStripsFont from "figlet/importable-fonts/Star Strips.js";
-import { type DebugToneSample, setupDebugTools } from "#src/debug/index";
 import { Sonifier, type ToneUpdate } from "#src/deprecated/audio/sonification";
 import { ImageSampler } from "#src/deprecated/sampling/imageEncoding";
 import { getFingerFocus } from "#src/detection/mediapipe/handGeometry";
 import { HandsDetector } from "#src/detection/mediapipe/hands";
 import { drawFingerFocus, drawFrequencyLabel, drawHands } from "#src/detection/mediapipe/overlay";
 import { getDefaultCuratedImage } from "#src/sampling/hsv/data/curatedImages";
+
+// Stub type for deprecated debug functionality
+type DebugToneSample = {
+  toneId: string;
+  frequency: number;
+  volume: number;
+  hueByte: number;
+  saturationByte: number;
+  valueByte: number;
+};
 
 figlet.parseFont("Star Strips", StarStripsFont);
 const heraBanner = figlet.textSync("HERA", { font: "Star Strips" });
@@ -152,7 +161,13 @@ let camera: Camera | null = null;
 
 const sonifier = new Sonifier();
 sonifier.setOscillatorType(initialOscType);
-const debugTools = setupDebugTools();
+// Stub for deprecated debug functionality
+const debugTools = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  logToneSamples: (_samples: DebugToneSample[]) => {
+    // No-op: debug functionality moved to visualizer plugin
+  },
+};
 
 hands.onResults((results: Results) => {
   videoHandsOverlayCtx.save();

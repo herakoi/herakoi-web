@@ -172,6 +172,62 @@ export interface SonificationPlugin {
 }
 
 // ──────────────────────────────────────────────────
+// Visualization plugin
+// ──────────────────────────────────────────────────
+
+/**
+ * Frame data passed to visualizers from all pipeline stages.
+ * Updated each frame via ref to avoid React re-renders.
+ */
+export type VisualizerFrameData = {
+  detection: {
+    points: Array<{ id: string; x: number; y: number }>;
+    handDetected: boolean;
+  };
+  sampling: {
+    samples: Map<string, { data: Record<string, number> }>;
+  };
+  sonification: {
+    tones: Map<
+      string,
+      {
+        frequency: number;
+        volume: number;
+        hueByte: number;
+        saturationByte: number;
+        valueByte: number;
+      }
+    >;
+  };
+  analyser: AnalyserNode | null;
+};
+
+/** Props passed to a visualizer display component. */
+export type VisualizerDisplayProps = {
+  /** Whether the pipeline is currently running */
+  isRunning: boolean;
+  /** Ref to frame data updated each frame (read-only) */
+  frameDataRef: RefObject<VisualizerFrameData>;
+};
+
+export interface VisualizationPlugin {
+  readonly kind: "visualization";
+  readonly id: string;
+  readonly displayName: string;
+  /** Tab metadata for the settings panel (null = no settings tab) */
+  readonly settingsTab: PluginTabMeta | null;
+  /** UI components this plugin contributes */
+  readonly ui: {
+    /** Main visualizer display component */
+    VisualizerDisplay?: ComponentType<VisualizerDisplayProps>;
+    /** Settings panel for visualizer configuration */
+    SettingsPanel?: ComponentType;
+    /** Optional toolbar items */
+    ToolbarItems?: ComponentType;
+  };
+}
+
+// ──────────────────────────────────────────────────
 // Pipeline configuration
 // ──────────────────────────────────────────────────
 
@@ -181,9 +237,13 @@ export interface SonificationPlugin {
  * Each slot holds an array of plugins. The shell manages which plugin
  * is active per slot (persisted in pipelineStore). When only one plugin
  * is available the selector is hidden.
+ *
+ * Visualization plugins are optional and can be enabled/disabled via
+ * settings UI. Only one visualizer can be active at a time.
  */
 export type PipelineConfig = {
   detection: DetectionPlugin[];
   sampling: SamplingPlugin[];
   sonification: SonificationPlugin[];
+  visualization: VisualizationPlugin[];
 };

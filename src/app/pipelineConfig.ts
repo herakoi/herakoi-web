@@ -2,6 +2,7 @@ import type { PipelineConfig } from "#src/core/plugin";
 import { mediaPipeDetectionPlugin } from "#src/detection/mediapipe/plugin";
 import { hsvSamplingPlugin } from "#src/sampling/hsv/plugin";
 import { oscillatorSonificationPlugin } from "#src/sonification/oscillator/plugin";
+import { debugHudVisualizationPlugin } from "#src/visualization/debugHud/plugin";
 
 /**
  * Pipeline composition configuration.
@@ -20,4 +21,5 @@ export const pipelineConfig: PipelineConfig = {
   detection: [mediaPipeDetectionPlugin],
   sampling: [hsvSamplingPlugin],
   sonification: [oscillatorSonificationPlugin],
+  visualization: [debugHudVisualizationPlugin],
 };
