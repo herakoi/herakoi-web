@@ -18,8 +18,8 @@ type VisualizerPanelProps = {
 export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
   const activeVisualizerId = usePipelineStore((s) => s.activeVisualizerId);
   const setActiveVisualizerId = usePipelineStore((s) => s.setActiveVisualizerId);
-  const uiOpacity = usePipelineStore((state) => state.uiOpacity);
-  const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
+  const baseUiOpacity = usePipelineStore((state) => state.baseUiOpacity);
+  const setBaseUiOpacity = usePipelineStore((state) => state.setBaseUiOpacity);
   const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
   const setDimLogoMark = usePipelineStore((state) => state.setDimLogoMark);
   const resetPreferences = usePipelineStore((state) => state.resetPreferences);
@@ -33,7 +33,7 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
     }
   };
 
-  const opacityPercent = Math.round(uiOpacity * 100);
+  const opacityPercent = Math.round(baseUiOpacity * 100);
 
   return (
     <div className="space-y-4">
@@ -82,7 +82,7 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
             step={5}
             value={[opacityPercent]}
             aria-label="UI opacity level"
-            onValueChange={([value]) => setUiOpacity(value / 100)}
+            onValueChange={([value]) => setBaseUiOpacity(value / 100)}
           />
         </div>
         <div className="flex items-center justify-between gap-3">

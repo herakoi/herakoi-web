@@ -7,6 +7,8 @@ type UseIdleDimmerOptions = {
   active: boolean;
   /** Shell-provided action to set UI opacity */
   setUiOpacity: (opacity: number) => void;
+  /** Base opacity to return to when not dimmed (0–1), default 1 */
+  baseOpacity?: number;
   /** Target opacity when dimmed (0–1), default 0.15 */
   dimOpacity?: number;
   /** Idle delay before dimming (ms), default 5000 */
@@ -18,12 +20,13 @@ type UseIdleDimmerOptions = {
  * Plugins that want "dim on mouse idle" behavior can use this in their DockPanel.
  *
  * When `active` is true and mouse/keyboard is idle for `delayMs`, calls `setUiOpacity(dimOpacity)`.
- * On mouse move or keydown, calls `setUiOpacity(1)`.
- * When `active` is false, restores full opacity.
+ * On mouse move or keydown, calls `setUiOpacity(baseOpacity)`.
+ * When `active` is false, restores to baseOpacity.
  */
 export const useIdleDimmer = ({
   active,
   setUiOpacity,
+  baseOpacity = 1,
   dimOpacity = 0.15,
   delayMs = 5000,
 }: UseIdleDimmerOptions) => {
@@ -36,7 +39,7 @@ export const useIdleDimmer = ({
       window.clearTimeout(uiIdleTimeoutRef.current);
     }
     if (!activeRef.current) {
-      setUiOpacity(1);
+      setUiOpacity(baseOpacity);
       return;
     }
     const idleFor = now() - lastActivityRef.current;
@@ -44,7 +47,7 @@ export const useIdleDimmer = ({
       setUiOpacity(dimOpacity);
       return;
     }
-    setUiOpacity(1);
+    setUiOpacity(baseOpacity);
     uiIdleTimeoutRef.current = window.setTimeout(() => {
       if (!activeRef.current) return;
       const idleNow = now() - lastActivityRef.current;
@@ -52,7 +55,7 @@ export const useIdleDimmer = ({
         setUiOpacity(dimOpacity);
       }
     }, delayMs - idleFor);
-  }, [delayMs, dimOpacity, setUiOpacity]);
+  }, [baseOpacity, delayMs, dimOpacity, setUiOpacity]);
 
   useEffect(() => {
     activeRef.current = active;
@@ -68,7 +71,7 @@ export const useIdleDimmer = ({
   useEffect(() => {
     const handleActivity = () => {
       lastActivityRef.current = now();
-      setUiOpacity(1);
+      setUiOpacity(baseOpacity);
       scheduleUiDimCheck();
     };
     window.addEventListener("mousemove", handleActivity, { passive: true });
@@ -77,5 +80,5 @@ export const useIdleDimmer = ({
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("keydown", handleActivity);
     };
-  }, [scheduleUiDimCheck, setUiOpacity]);
+  }, [baseOpacity, scheduleUiDimCheck, setUiOpacity]);
 };
