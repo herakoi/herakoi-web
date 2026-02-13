@@ -77,6 +77,29 @@ export class OscillatorSonifier implements Sonifier {
       this.ctx = new NativeAudioContext();
     }
 
+    // Try to resume AudioContext if suspended, but don't block initialization
+    // The context will resume automatically after the first user gesture
+    if (this.ctx.state === "suspended") {
+      void this.ctx.resume().catch(() => {
+        // Resume will fail until user interaction - this is expected
+      });
+
+      // Add one-time listeners for any user interaction to resume audio
+      // These will auto-remove after first trigger due to { once: true }
+      const resumeOnInteraction = () => {
+        if (this.ctx && this.ctx.state === "suspended") {
+          void this.ctx.resume();
+        }
+      };
+
+      document.addEventListener("click", resumeOnInteraction, { once: true, capture: true });
+      document.addEventListener("keydown", resumeOnInteraction, { once: true, capture: true });
+      document.addEventListener("touchstart", resumeOnInteraction, {
+        once: true,
+        capture: true,
+      });
+    }
+
     this.initialized = true;
   }
 
@@ -107,6 +130,14 @@ export class OscillatorSonifier implements Sonifier {
 
     if (this.stopped) {
       return; // Ignore samples after stop() has been called
+    }
+
+    // Resume AudioContext if it gets suspended (e.g., after tab backgrounding or initial load)
+    // This will succeed after the first user gesture (click, tap, keypress)
+    if (this.ctx.state === "suspended") {
+      void this.ctx.resume().catch(() => {
+        // Resume will fail until user interaction - this is expected
+      });
     }
 
     const seen = new Set<string>();
