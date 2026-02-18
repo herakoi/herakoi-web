@@ -13,7 +13,6 @@ import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
-import { useMediaPipeRuntimeStore } from "./runtimeStore";
 import { bindHandsUi } from "./uiHands";
 
 const settingsTab: PluginTabMeta = {
@@ -135,13 +134,11 @@ export const mediaPipeDetectionPlugin: DetectionPlugin<"mediapipe-hands"> = {
 
   bindPipelineEvents(detector, { showNotification, hideNotification }) {
     let lastDetected = false;
-    const { setHandDetected } = useMediaPipeRuntimeStore.getState();
 
     detector.onPointsDetected((points) => {
       const hasHands = points.length > 0;
       if (hasHands !== lastDetected) {
         lastDetected = hasHands;
-        setHandDetected(hasHands); // runtime state for dimming
         if (hasHands) {
           hideNotification("mediapipe-hand-prompt");
         } else {

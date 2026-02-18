@@ -4,7 +4,7 @@ import type { PipelineConfig, ShellDockPanelProps, VisualizerDisplayProps } from
 import { PluginSelector } from "../components/PluginSelector";
 import { VisualizerPanel } from "../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../components/SettingsPanel";
-import { useActivePlugin, usePluginConfig, useUiPreferences } from "../state/appConfigStore";
+import { useActivePlugin, usePluginConfig } from "../state/appConfigStore";
 
 type UsePluginUiParams = {
   config: PipelineConfig;
@@ -19,6 +19,7 @@ type UsePluginUiReturn = {
   VisualizerDisplays: Array<{ id: string; Display: ComponentType<VisualizerDisplayProps> }>;
 };
 
+// TODO: semplifichiamo separando la creazione dei settings dal resto dell'ui?
 export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePluginUiReturn => {
   // 1. Subscribe to active plugin IDs and setters from store
   const [activeDetectionId, setActiveDetectionId] = useActivePlugin("detection");
@@ -179,7 +180,6 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
   }, [activeSampling, samplingConfig, setSamplingConfig]);
 
   const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
-  const [uiPrefs] = useUiPreferences();
 
   // Hold the latest config values in a ref so that DockPanel's component identity
   // stays stable across config changes. Recreating the component function on every
@@ -188,12 +188,10 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
   const dockConfigRef = useRef({
     config: detectionConfig,
     setConfig: setDetectionConfig,
-    baseUiOpacity: uiPrefs.baseUiOpacity,
   });
   dockConfigRef.current = {
     config: detectionConfig,
     setConfig: setDetectionConfig,
-    baseUiOpacity: uiPrefs.baseUiOpacity,
   };
 
   const DockPanel = useMemo(() => {
@@ -202,17 +200,10 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
     return function DockPanelWithConfig(shellProps: ShellDockPanelProps) {
       // Read from ref so values are always fresh without changing component identity.
       // Type assertion is safe: activeDetectionId guarantees config type matches DockPanel's expectations
-      const { config, setConfig, baseUiOpacity } = dockConfigRef.current;
-      return (
-        <RawDockPanel
-          {...shellProps}
-          config={config as never}
-          setConfig={setConfig}
-          baseUiOpacity={baseUiOpacity}
-        />
-      );
+      const { config, setConfig } = dockConfigRef.current;
+      return <RawDockPanel {...shellProps} config={config as never} setConfig={setConfig} />;
     };
-    // Intentionally omit detectionConfig / setDetectionConfig / uiPrefs.baseUiOpacity:
+    // Intentionally omit detectionConfig / setDetectionConfig:
     // those flow via dockConfigRef so they never change component identity.
   }, [activeDetection]);
 

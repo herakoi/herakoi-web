@@ -1,5 +1,7 @@
 import { ChevronDown, Crop, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
+
+// TODO: creare un path #components valido per tutte le rotte plugin
 import {
   Popover,
   PopoverAnchor,
@@ -7,6 +9,8 @@ import {
   PopoverTrigger,
 } from "#src/app/components/ui/popover";
 import { cn } from "#src/app/lib/utils";
+
+// TODO: fare in modo che i plugin non possano importare da fuori la cartella plugin
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { curatedImages } from "../data/curatedImages";

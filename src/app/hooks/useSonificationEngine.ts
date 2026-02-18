@@ -120,6 +120,9 @@ export const useSonificationEngine = (
           handDetected: points.length > 0,
         };
 
+        // Update shell runtime state for idle dimming
+        useAppRuntimeStore.getState().setHasDetectedPoints(points.length > 0);
+
         const samples = new Map<string, ImageSample>();
 
         for (const point of points) {
@@ -211,6 +214,7 @@ export const useSonificationEngine = (
     analyserRef.current = null;
     useNotificationStore.getState().clearAll();
     useAppRuntimeStore.getState().setCurrentUiOpacity(1);
+    useAppRuntimeStore.getState().setHasDetectedPoints(false);
     setStatus({ status: "idle" });
   }, [setStatus]);
 

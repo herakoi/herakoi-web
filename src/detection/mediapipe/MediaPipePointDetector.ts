@@ -65,6 +65,7 @@ export interface MediaPipePointDetectorConfig {
  * not all 21 landmarks. This matches the existing Herakoi behavior where each
  * hand produces one sonification point.
  */
+// TODO: valutare se conventirlo in un flusso meno a classe
 export class MediaPipePointDetector implements PointDetector {
   private readonly videoElement: HTMLVideoElement;
   private readonly config: MediaPipePointDetectorConfig;

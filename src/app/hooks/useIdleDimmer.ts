@@ -25,6 +25,7 @@ type UseIdleDimmerOptions = {
  */
 export const useIdleDimmer = ({
   active,
+  // TODO: possiamo usare direttamente lo store a questo punto?
   setUiOpacity,
   baseOpacity = 1,
   dimOpacity = 0.15,

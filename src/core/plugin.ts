@@ -30,8 +30,6 @@ export type ShellDockPanelProps = {
   onStart: () => void;
   /** Stop the pipeline */
   onStop: () => void;
-  /** Set UI opacity (0 = fully dimmed, 1 = fully visible) */
-  setUiOpacity: (opacity: number) => void;
 };
 
 /** Full props a plugin's DockPanel receives (shell props + plugin config). */
@@ -40,8 +38,6 @@ export type DockPanelProps<TConfig = unknown> = ShellDockPanelProps & {
   config: TConfig;
   /** Update plugin configuration (partial updates) */
   setConfig: (updates: Partial<TConfig>) => void;
-  /** Base UI opacity from shell preferences (0–1) */
-  baseUiOpacity: number;
 };
 
 /**

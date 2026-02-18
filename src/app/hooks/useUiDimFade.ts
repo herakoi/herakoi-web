@@ -5,6 +5,8 @@ import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
  * Shell-owned hook that reads UI opacity from the store and returns fade styles.
  * Pure rendering concern — no detection logic.
  */
+
+// TODO: non ho capito a che serve se c'è già l'ui dimmer
 export const useUiDimFade = () => {
   const uiOpacity = useAppRuntimeStore((s) => s.currentUiOpacity);
 

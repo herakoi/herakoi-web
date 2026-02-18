@@ -25,6 +25,8 @@ export interface AppRuntimeState {
   pipelineStatus: PipelineStatus;
   /** Current UI opacity (0-1), controlled by idle dimmer */
   currentUiOpacity: number;
+  /** Whether any detection plugin is currently detecting points (generic, plugin-agnostic) */
+  hasDetectedPoints: boolean;
 }
 
 export interface AppRuntimeActions {
@@ -32,6 +34,8 @@ export interface AppRuntimeActions {
   setStatus: (status: PipelineStatus) => void;
   /** Update current UI opacity (idle dimmer control) */
   setCurrentUiOpacity: (opacity: number) => void;
+  /** Update whether any points are detected (for idle dimming) */
+  setHasDetectedPoints: (hasPoints: boolean) => void;
 }
 
 // ──────────────────────────────────────────────────
@@ -41,6 +45,7 @@ export interface AppRuntimeActions {
 const defaultState: AppRuntimeState = {
   pipelineStatus: { status: "idle" },
   currentUiOpacity: 1,
+  hasDetectedPoints: false,
 };
 
 export const useAppRuntimeStore = create<AppRuntimeState & AppRuntimeActions>((set) => ({
@@ -49,4 +54,6 @@ export const useAppRuntimeStore = create<AppRuntimeState & AppRuntimeActions>((s
   setStatus: (status) => set({ pipelineStatus: status }),
 
   setCurrentUiOpacity: (opacity) => set({ currentUiOpacity: opacity }),
+
+  setHasDetectedPoints: (hasPoints) => set({ hasDetectedPoints: hasPoints }),
 }));

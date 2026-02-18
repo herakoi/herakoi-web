@@ -4,6 +4,7 @@ import { Controls } from "./components/header/Controls";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { useIdleDimmer } from "./hooks/useIdleDimmer";
 import { usePluginUi } from "./hooks/usePluginUi";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
 import { useUiDimFade } from "./hooks/useUiDimFade";
@@ -27,6 +28,15 @@ const App = () => {
   const setUiOpacity = useAppRuntimeStore((state) => state.setCurrentUiOpacity);
   const [uiPrefs] = useUiPreferences();
   const dimLogoMark = uiPrefs.dimLogoMark;
+
+  // Idle dimming: dim UI to 15% opacity after 5s of mouse idle when points detected
+  const hasDetectedPoints = useAppRuntimeStore((state) => state.hasDetectedPoints);
+  useIdleDimmer({
+    active: hasDetectedPoints,
+    setUiOpacity,
+    baseOpacity: uiPrefs.baseUiOpacity,
+    dimOpacity: 0.15,
+  });
 
   const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
     config: pipelineConfig,
@@ -68,6 +78,7 @@ const App = () => {
           className="pointer-events-none absolute inset-0 h-full w-full"
           aria-hidden="true"
         />
+        {/* cos è sto div?? */}
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/55"
           style={{
@@ -127,7 +138,6 @@ const App = () => {
             isInitializing={isInitializing}
             onStart={() => void start()}
             onStop={() => stop()}
-            setUiOpacity={setUiOpacity}
           />
         </div>
       ) : null}

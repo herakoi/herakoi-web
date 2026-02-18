@@ -17,12 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#src/app/components/ui/select";
-import { useIdleDimmer } from "#src/app/hooks/useIdleDimmer";
 import { cn } from "#src/app/lib/utils";
 import type { DockPanelProps } from "#src/core/plugin";
 import type { MediaPipeConfig } from "#src/core/pluginConfig";
 import { registerOverlayRef, registerVideoRef } from "../refs";
-import { useMediaPipeRuntimeStore } from "../runtimeStore";
 
 type PiPState = { x: number; y: number; width: number };
 
@@ -38,15 +36,10 @@ export const MediaPipeDockPanel = ({
   isInitializing,
   onStart,
   onStop,
-  setUiOpacity,
   config,
   setConfig,
-  baseUiOpacity,
 }: DockPanelProps<MediaPipeConfig>) => {
   const { mirror, maxHands, facingMode } = config;
-
-  // Read runtime state
-  const handDetected = useMediaPipeRuntimeStore((state) => state.handDetected);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -63,14 +56,6 @@ export const MediaPipeDockPanel = ({
   const [isResizing, setIsResizing] = useState(false);
 
   const isActive = isRunning || isInitializing;
-
-  // Idle dimming: dim UI to 15% opacity after 5s of mouse idle when hands detected
-  useIdleDimmer({
-    active: handDetected,
-    setUiOpacity,
-    baseOpacity: baseUiOpacity,
-    dimOpacity: 0.15,
-  });
 
   // Register refs for plugin factory to access
   useEffect(() => {

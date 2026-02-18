@@ -129,6 +129,7 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
           }
         });
 
+        // TODO: possiamo spostare questo flusso in un'altra parte della logica?
         // Window resize handler
         resizeHandler = () => {
           const canvas = getCanvas();
