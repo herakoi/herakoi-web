@@ -4,7 +4,7 @@
  * Manages transient state that changes during execution but should NOT persist
  * across sessions. This includes image readiness indicator.
  *
- * Configuration (imageCover, imagePan, currentImageSrc) is managed by the
+ * Configuration (imageCover, imagePan, currentImageId) is managed by the
  * framework in appConfigStore.
  */
 

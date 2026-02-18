@@ -28,18 +28,8 @@ export const HSVSettingsPanel = ({
   const { currentImage, entries, handleImageFile, handleSelectImage } = useImageLibrary({
     curatedImages,
     howItWorksImages,
-    loadImageFile: async (file) => {
-      // Image loading is handled by the plugin's postInitialize config subscription
-      const objectUrl = URL.createObjectURL(file);
-      try {
-        setConfig({ currentImageSrc: objectUrl });
-      } finally {
-        // Don't revoke yet — postInitialize subscription needs to load it
-        // The URL will be replaced by a data URL in handleImageFile's persistUploads
-      }
-    },
-    loadImageSource: async (src) => {
-      setConfig({ currentImageSrc: src });
+    onSelectImage: async (entry) => {
+      setConfig({ currentImageId: entry.id });
     },
   });
 

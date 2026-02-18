@@ -33,13 +33,13 @@ export const defaultMediaPipeConfig: MediaPipeConfig = {
 export interface HSVSamplingConfig {
   imageCover: boolean;
   imagePan: { x: number; y: number };
-  currentImageSrc: string | null;
+  currentImageId: string | null;
 }
 
 export const defaultHSVSamplingConfig: HSVSamplingConfig = {
   imageCover: false,
   imagePan: { x: 0, y: 0 },
-  currentImageSrc: null,
+  currentImageId: null,
 };
 
 // ──────────────────────────────────────────────────

@@ -30,12 +30,8 @@ export const HSVToolbarItems = ({
     useImageLibrary({
       curatedImages,
       howItWorksImages,
-      loadImageFile: async (file) => {
-        const objectUrl = URL.createObjectURL(file);
-        setConfig({ currentImageSrc: objectUrl });
-      },
-      loadImageSource: async (src) => {
-        setConfig({ currentImageSrc: src });
+      onSelectImage: async (entry) => {
+        setConfig({ currentImageId: entry.id });
       },
     });
 

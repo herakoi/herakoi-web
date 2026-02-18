@@ -4,9 +4,9 @@ import type { PluginTabMeta, PluginUISlots, SamplerHandle, SamplingPlugin } from
 import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
-import { curatedImages } from "./data/curatedImages";
 import { HSVImageSampler } from "./HSVImageSampler";
 import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
+import { getDefaultImageId, resolveImageSourceById } from "./lib/imageSourceResolver";
 import { hsvSamplingRefs } from "./refs";
 import { useHSVRuntimeStore } from "./runtimeStore";
 
@@ -86,16 +86,17 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
           );
         }
 
-        // Restore image from config or load default curated
-        // TODO: trovare un modo per cui la src dell'immagine non sia salvata in config in modo da poter creare un url condivisibile
-        const { currentImageSrc } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
-        const initialSrc = currentImageSrc ?? curatedImages[0]?.src;
-        if (initialSrc) {
+        // Restore selected image by stable id; fallback to default bundled image.
+        const { currentImageId } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
+        const defaultImageId = getDefaultImageId();
+        const initialImageId = currentImageId ?? defaultImageId;
+        const initialSrc = resolveImageSourceById(initialImageId);
+        if (initialSrc && initialImageId) {
           await loadAndDraw(initialSrc);
-          if (!currentImageSrc && initialSrc) {
+          if (currentImageId !== initialImageId) {
             useAppConfigStore
               .getState()
-              .setPluginConfig("hsv-color", { currentImageSrc: initialSrc });
+              .setPluginConfig("hsv-color", { currentImageId: initialImageId });
           }
         }
 
@@ -107,13 +108,16 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
 
           const currentConfig = state.pluginConfigs["hsv-color"];
 
-          // Image source changed — load new image
+          // Selected image changed — resolve source and load.
           if (
-            currentConfig.currentImageSrc !== previousConfig.currentImageSrc &&
-            currentConfig.currentImageSrc
+            currentConfig.currentImageId !== previousConfig.currentImageId &&
+            currentConfig.currentImageId
           ) {
             previousConfig = { ...currentConfig };
-            void loadAndDraw(currentConfig.currentImageSrc);
+            const source = resolveImageSourceById(currentConfig.currentImageId);
+            if (source) {
+              void loadAndDraw(source);
+            }
             return;
           }
 

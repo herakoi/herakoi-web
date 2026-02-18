@@ -166,18 +166,33 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
 
   // 5. Resolve toolbar and dock panel from active plugins
   const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
+
+  // Keep toolbar config in a ref so the toolbar component identity does not
+  // change on every sampling config update.
+  const samplingToolbarConfigRef = useRef({
+    config: samplingConfig,
+    setConfig: setSamplingConfig,
+  });
+  samplingToolbarConfigRef.current = {
+    config: samplingConfig,
+    setConfig: setSamplingConfig,
+  };
+
   const SamplingToolbar = useMemo(() => {
     if (!activeSampling?.ui.ToolbarItems) return undefined;
     const ToolbarComponent = activeSampling.ui.ToolbarItems;
 
-    // Create wrapper that provides config props (config comes from closure)
     const ToolbarWithConfig = () => {
-      // Type assertion is safe: activePluginId guarantees config type matches ToolbarComponent's expectations
-      return <ToolbarComponent config={samplingConfig as never} setConfig={setSamplingConfig} />;
+      // Read from ref so values stay fresh while component identity remains stable.
+      // Type assertion is safe: activeSamplingId guarantees config type matches ToolbarComponent's expectations
+      const { config, setConfig } = samplingToolbarConfigRef.current;
+      return <ToolbarComponent config={config as never} setConfig={setConfig} />;
     };
 
     return ToolbarWithConfig;
-  }, [activeSampling, samplingConfig, setSamplingConfig]);
+    // Intentionally omit samplingConfig / setSamplingConfig:
+    // those flow via samplingToolbarConfigRef to avoid remount loops.
+  }, [activeSampling]);
 
   const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
 

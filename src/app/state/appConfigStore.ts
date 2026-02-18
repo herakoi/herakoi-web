@@ -15,6 +15,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 import { pluginConfigDefaults } from "#src/core/pluginConfig";
 import { pipelineConfig } from "../pipelineConfig";
+import { APP_CONFIG_KEY } from "./persistenceKeys";
 
 // ──────────────────────────────────────────────────
 // Type Definitions
@@ -104,8 +105,6 @@ const defaultConfig: AppConfigState = {
 // ──────────────────────────────────────────────────
 // Store
 // ──────────────────────────────────────────────────
-
-const STORAGE_KEY = "herakoi.app-config.v1";
 
 const configStorage =
   typeof window === "undefined" ? undefined : createJSONStorage(() => localStorage);
@@ -200,7 +199,7 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
       },
     }),
     {
-      name: STORAGE_KEY,
+      name: APP_CONFIG_KEY,
       storage: configStorage,
     },
   ),

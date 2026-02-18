@@ -18,8 +18,7 @@ type CurrentImage = {
 type UseImageLibraryArgs = {
   curatedImages: ImageEntry[];
   howItWorksImages: ImageEntry[];
-  loadImageFile: (file: File) => Promise<void>;
-  loadImageSource: (src: string) => Promise<void>;
+  onSelectImage: (entry: ImageEntry) => Promise<void>;
 };
 
 const readStoredImageId = () => {
@@ -37,8 +36,7 @@ const readStoredImageId = () => {
 export const useImageLibrary = ({
   curatedImages,
   howItWorksImages,
-  loadImageFile,
-  loadImageSource,
+  onSelectImage,
 }: UseImageLibraryArgs) => {
   const [storedImageId, setStoredImageId] = useState(readStoredImageId);
   const restoreSelectionRef = useRef(false);
@@ -103,11 +101,6 @@ export const useImageLibrary = ({
       selectionTokenRef.current = token;
       setCurrentImage({ id, title: file.name });
       try {
-        await loadImageFile(file);
-        if (selectionTokenRef.current === token) {
-          persistSelection(id);
-          setImageHydrated(true);
-        }
         const dataUrl = await readFileAsDataUrl(file);
         const { width, height } = await loadImageDimensions(dataUrl);
         const meta = `${width}x${height} - ${formatBytes(file.size)} - ${formatImageType(
@@ -127,13 +120,18 @@ export const useImageLibrary = ({
           persistUploads(next);
           return next;
         });
+        await onSelectImage(entry);
+        if (selectionTokenRef.current === token) {
+          persistSelection(id);
+          setImageHydrated(true);
+        }
       } catch {
         if (selectionTokenRef.current === token) {
           setImageHydrated(true);
         }
       }
     },
-    [loadImageFile, persistSelection, persistUploads],
+    [onSelectImage, persistSelection, persistUploads],
   );
 
   const handleSelectImage = useCallback(
@@ -142,7 +140,7 @@ export const useImageLibrary = ({
       selectionTokenRef.current = token;
       setCurrentImage({ id: entry.id, title: entry.title });
       try {
-        await loadImageSource(entry.src);
+        await onSelectImage(entry);
       } catch {
         // ignore
       }
@@ -150,7 +148,7 @@ export const useImageLibrary = ({
       persistSelection(entry.id);
       setImageHydrated(true);
     },
-    [loadImageSource, persistSelection],
+    [onSelectImage, persistSelection],
   );
 
   const handleDeleteUpload = useCallback(
