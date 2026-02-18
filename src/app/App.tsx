@@ -10,7 +10,6 @@ import { useSonificationEngine } from "./hooks/useSonificationEngine";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
 import { useUiPreferences } from "./state/appConfigStore";
-import { useAppRuntimeStore } from "./state/appRuntimeStore";
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,18 +24,11 @@ const App = () => {
       imageOverlayRef,
     },
   );
-  const setUiOpacity = useAppRuntimeStore((state) => state.setCurrentUiOpacity);
   const [uiPrefs] = useUiPreferences();
   const dimLogoMark = uiPrefs.dimLogoMark;
 
-  // Idle dimming: dim UI to 15% opacity after 5s of mouse idle when points detected
-  const hasDetectedPoints = useAppRuntimeStore((state) => state.hasDetectedPoints);
-  useIdleDimmer({
-    active: hasDetectedPoints,
-    setUiOpacity,
-    baseOpacity: uiPrefs.baseUiOpacity,
-    dimOpacity: 0.15,
-  });
+  // Idle dimming: dim UI after idle when points are detected
+  useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
 
   const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
     config: pipelineConfig,

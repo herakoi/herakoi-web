@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useAppRuntimeStore } from "../state/appRuntimeStore";
 
 const now = () => (typeof performance === "undefined" ? Date.now() : performance.now());
 
 type UseIdleDimmerOptions = {
-  /** Whether dimming is active (e.g., hands detected) */
-  active: boolean;
-  /** Shell-provided action to set UI opacity */
-  setUiOpacity: (opacity: number) => void;
-  /** Base opacity to return to when not dimmed (0–1), default 1 */
-  baseOpacity?: number;
+  /** Base opacity to restore to (0-1), typically from persisted UI preferences */
+  baseOpacity: number;
   /** Target opacity when dimmed (0–1), default 0.15 */
   dimOpacity?: number;
   /** Idle delay before dimming (ms), default 5000 */
@@ -16,21 +13,19 @@ type UseIdleDimmerOptions = {
 };
 
 /**
- * Shared utility hook for idle-based UI dimming.
- * Plugins that want "dim on mouse idle" behavior can use this in their DockPanel.
+ * App-level idle dimming policy.
  *
- * When `active` is true and mouse/keyboard is idle for `delayMs`, calls `setUiOpacity(dimOpacity)`.
- * On mouse move or keydown, calls `setUiOpacity(baseOpacity)`.
- * When `active` is false, restores to baseOpacity.
+ * Reads:
+ * - `hasDetectedPoints` from runtime store to enable/disable dimming
+ * - `setCurrentUiOpacity` from runtime store to apply opacity
  */
 export const useIdleDimmer = ({
-  active,
-  // TODO: possiamo usare direttamente lo store a questo punto?
-  setUiOpacity,
-  baseOpacity = 1,
+  baseOpacity,
   dimOpacity = 0.15,
   delayMs = 5000,
 }: UseIdleDimmerOptions) => {
+  const active = useAppRuntimeStore((state) => state.hasDetectedPoints);
+  const setUiOpacity = useAppRuntimeStore((state) => state.setCurrentUiOpacity);
   const uiIdleTimeoutRef = useRef<number | null>(null);
   const lastActivityRef = useRef(now());
   const activeRef = useRef(active);

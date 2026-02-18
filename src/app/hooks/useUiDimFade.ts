@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
 
 /**
- * Shell-owned hook that reads UI opacity from the store and returns fade styles.
- * Pure rendering concern — no detection logic.
+ * Maps runtime UI opacity to CSS fade styles used by shell layout components.
+ *
+ * `useIdleDimmer` decides *when* opacity should change (interaction policy).
+ * This hook decides *how* that value is rendered (transition timing/easing).
  */
-
-// TODO: non ho capito a che serve se c'è già l'ui dimmer
 export const useUiDimFade = () => {
   const uiOpacity = useAppRuntimeStore((s) => s.currentUiOpacity);
 
