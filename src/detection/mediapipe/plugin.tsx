@@ -1,4 +1,5 @@
 import { Hand, Pointer } from "lucide-react";
+import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPlugin,
@@ -6,12 +7,13 @@ import type {
   PluginTabMeta,
   PluginUISlots,
 } from "#src/core/plugin";
+import type { MediaPipeConfig } from "#src/core/pluginConfig";
 import { MediaPipeDockPanel } from "./components/DockPanel";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
-import { useMediaPipeDetectionStore } from "./store";
+import { useMediaPipeRuntimeStore } from "./runtimeStore";
 import { bindHandsUi } from "./uiHands";
 
 const settingsTab: PluginTabMeta = {
@@ -20,20 +22,19 @@ const settingsTab: PluginTabMeta = {
   icon: <Hand className="h-3.5 w-3.5" />,
 };
 
-const ui: PluginUISlots = {
+const ui: PluginUISlots<MediaPipeConfig> = {
   SettingsPanel: MediaPipeSettingsPanel,
   DockPanel: MediaPipeDockPanel,
 };
 
-export const mediaPipeDetectionPlugin: DetectionPlugin = {
+export const mediaPipeDetectionPlugin: DetectionPlugin<"mediapipe-hands"> = {
   kind: "detection",
   id: "mediapipe-hands",
   displayName: "MediaPipe Hands",
   settingsTab,
   ui,
 
-  createDetector(): DetectorHandle {
-    const state = useMediaPipeDetectionStore.getState();
+  createDetector(config: MediaPipeConfig): DetectorHandle {
     const videoEl = mediaPipeRefs.video?.current;
 
     if (!videoEl) {
@@ -43,9 +44,9 @@ export const mediaPipeDetectionPlugin: DetectionPlugin = {
     }
 
     const detector = new MediaPipePointDetector(videoEl, {
-      maxHands: state.maxHands,
-      mirrorX: state.mirror,
-      facingMode: state.facingMode,
+      maxHands: config.maxHands,
+      mirrorX: config.mirror,
+      facingMode: config.facingMode,
       mediaPipeOptions: {
         modelComplexity: 1,
         minDetectionConfidence: 0.7,
@@ -107,16 +108,22 @@ export const mediaPipeDetectionPlugin: DetectionPlugin = {
           bindHandsUi(detector, canvases);
         }
 
-        // Subscribe to store changes for runtime updates
-        useMediaPipeDetectionStore.subscribe((state, prev) => {
-          if (state.mirror !== prev.mirror) {
-            detector.setMirror(state.mirror);
+        // Subscribe to config changes for runtime updates
+        const prevConfig = { ...config };
+        useAppConfigStore.subscribe((state) => {
+          const currentConfig = state.pluginConfigs["mediapipe-hands"];
+
+          if (currentConfig.mirror !== prevConfig.mirror) {
+            prevConfig.mirror = currentConfig.mirror;
+            detector.setMirror(currentConfig.mirror);
           }
-          if (state.maxHands !== prev.maxHands) {
-            detector.setMaxHands(state.maxHands);
+          if (currentConfig.maxHands !== prevConfig.maxHands) {
+            prevConfig.maxHands = currentConfig.maxHands;
+            detector.setMaxHands(currentConfig.maxHands);
           }
-          if (state.facingMode !== prev.facingMode) {
-            void detector.restartCamera(state.facingMode);
+          if (currentConfig.facingMode !== prevConfig.facingMode) {
+            prevConfig.facingMode = currentConfig.facingMode;
+            void detector.restartCamera(currentConfig.facingMode);
           }
         });
       },
@@ -128,13 +135,13 @@ export const mediaPipeDetectionPlugin: DetectionPlugin = {
 
   bindPipelineEvents(detector, { showNotification, hideNotification }) {
     let lastDetected = false;
-    const { setHandDetected } = useMediaPipeDetectionStore.getState();
+    const { setHandDetected } = useMediaPipeRuntimeStore.getState();
 
     detector.onPointsDetected((points) => {
       const hasHands = points.length > 0;
       if (hasHands !== lastDetected) {
         lastDetected = hasHands;
-        setHandDetected(hasHands); // plugin-local state for dimming
+        setHandDetected(hasHands); // runtime state for dimming
         if (hasHands) {
           hideNotification("mediapipe-hand-prompt");
         } else {

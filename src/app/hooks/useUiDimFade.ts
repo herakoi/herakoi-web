@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { usePipelineStore } from "#src/app/state/pipelineStore";
+import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
 
 /**
  * Shell-owned hook that reads UI opacity from the store and returns fade styles.
  * Pure rendering concern — no detection logic.
  */
 export const useUiDimFade = () => {
-  const uiOpacity = usePipelineStore((s) => s.uiOpacity);
+  const uiOpacity = useAppRuntimeStore((s) => s.currentUiOpacity);
 
   const uiFadeStyle = useMemo(
     () => ({

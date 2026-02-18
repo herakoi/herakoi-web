@@ -14,6 +14,7 @@
 
 import type { ComponentType, ReactNode, RefObject } from "react";
 import type { ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
+import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 
 // ──────────────────────────────────────────────────
 // Shared UI slot types
@@ -34,16 +35,28 @@ export type DockPanelProps = {
 };
 
 /**
+ * Props passed to plugin settings panels.
+ * Generic over the plugin's config type.
+ */
+export type PluginSettingsPanelProps<TConfig> = {
+  /** Current plugin configuration */
+  config: TConfig;
+  /** Update plugin configuration (partial updates) */
+  setConfig: (updates: Partial<TConfig>) => void;
+};
+
+/**
  * Rendering slots the shell provides to each plugin.
  * All slots are optional — a plugin only fills the ones it needs.
+ * Generic over the plugin's config type for SettingsPanel and ToolbarItems.
  */
-export type PluginUISlots = {
+export type PluginUISlots<TConfig> = {
   /** Content rendered inside a tab in the settings popover */
-  SettingsPanel?: ComponentType;
+  SettingsPanel?: ComponentType<PluginSettingsPanelProps<TConfig>>;
   /** Floating dock content (e.g., camera PiP window) */
   DockPanel?: ComponentType<DockPanelProps>;
   /** Optional items rendered in the header toolbar area */
-  ToolbarItems?: ComponentType;
+  ToolbarItems?: ComponentType<PluginSettingsPanelProps<TConfig>>;
 };
 
 /** Metadata for a settings panel tab. */
@@ -93,17 +106,19 @@ export type DetectorHandle = {
   setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface DetectionPlugin {
+export interface DetectionPlugin<
+  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
+> {
   readonly kind: "detection";
-  readonly id: string;
+  readonly id: TPluginId;
   readonly displayName: string;
   /** Tab metadata for the settings panel (null = no settings tab) */
   readonly settingsTab: PluginTabMeta | null;
   /** UI components this plugin contributes */
-  readonly ui: PluginUISlots;
+  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
 
-  /** Create the PointDetector instance from current plugin state. */
-  createDetector(): DetectorHandle;
+  /** Create the PointDetector instance from provided configuration. */
+  createDetector(config: PluginConfigRegistry[TPluginId]): DetectorHandle;
 
   /**
    * Subscribe to pipeline-relevant events from the detector.
@@ -136,15 +151,17 @@ export type SamplerHandle = {
   setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface SamplingPlugin {
+export interface SamplingPlugin<
+  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
+> {
   readonly kind: "sampling";
-  readonly id: string;
+  readonly id: TPluginId;
   readonly displayName: string;
   readonly settingsTab: PluginTabMeta | null;
-  readonly ui: PluginUISlots;
+  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
 
-  /** Create the ImageSampler instance. */
-  createSampler(): SamplerHandle;
+  /** Create the ImageSampler instance from provided configuration. */
+  createSampler(config: PluginConfigRegistry[TPluginId]): SamplerHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -160,15 +177,17 @@ export type SonifierHandle = {
   cleanup?: () => void;
 };
 
-export interface SonificationPlugin {
+export interface SonificationPlugin<
+  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
+> {
   readonly kind: "sonification";
-  readonly id: string;
+  readonly id: TPluginId;
   readonly displayName: string;
   readonly settingsTab: PluginTabMeta | null;
-  readonly ui: PluginUISlots;
+  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
 
-  /** Create the Sonifier instance from current plugin state. */
-  createSonifier(): SonifierHandle;
+  /** Create the Sonifier instance from provided configuration. */
+  createSonifier(config: PluginConfigRegistry[TPluginId]): SonifierHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -220,7 +239,7 @@ export interface VisualizationPlugin {
   readonly ui: {
     /** Main visualizer display component */
     VisualizerDisplay?: ComponentType<VisualizerDisplayProps>;
-    /** Settings panel for visualizer configuration */
+    /** Settings panel (if visualization needs configuration) */
     SettingsPanel?: ComponentType;
     /** Optional toolbar items */
     ToolbarItems?: ComponentType;
@@ -232,18 +251,33 @@ export interface VisualizationPlugin {
 // ──────────────────────────────────────────────────
 
 /**
+ * Helper type to create a union of all plugin types for a given slot.
+ */
+type DetectionPluginUnion = {
+  [K in keyof PluginConfigRegistry]: DetectionPlugin<K>;
+}[keyof PluginConfigRegistry];
+
+type SamplingPluginUnion = {
+  [K in keyof PluginConfigRegistry]: SamplingPlugin<K>;
+}[keyof PluginConfigRegistry];
+
+type SonificationPluginUnion = {
+  [K in keyof PluginConfigRegistry]: SonificationPlugin<K>;
+}[keyof PluginConfigRegistry];
+
+/**
  * Declares all available plugins per pipeline slot.
  *
  * Each slot holds an array of plugins. The shell manages which plugin
- * is active per slot (persisted in pipelineStore). When only one plugin
+ * is active per slot (persisted in appConfigStore). When only one plugin
  * is available the selector is hidden.
  *
  * Visualization plugins are optional and can be enabled/disabled via
  * settings UI. Only one visualizer can be active at a time.
  */
 export type PipelineConfig = {
-  detection: DetectionPlugin[];
-  sampling: SamplingPlugin[];
-  sonification: SonificationPlugin[];
+  detection: DetectionPluginUnion[];
+  sampling: SamplingPluginUnion[];
+  sonification: SonificationPluginUnion[];
   visualization: VisualizationPlugin[];
 };

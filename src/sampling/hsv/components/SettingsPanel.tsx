@@ -11,15 +11,17 @@ import {
 } from "#src/app/components/ui/select";
 import { Switch } from "#src/app/components/ui/switch";
 import { cn } from "#src/app/lib/utils";
+import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
-import { useHSVSamplingStore } from "../store";
 import type { ImageEntry } from "../types/image";
 
-export const HSVSettingsPanel = () => {
-  const imageCover = useHSVSamplingStore((state) => state.imageCover);
-  const setImageCover = useHSVSamplingStore((state) => state.setImageCover);
+export const HSVSettingsPanel = ({
+  config,
+  setConfig,
+}: PluginSettingsPanelProps<HSVSamplingConfig>) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -27,17 +29,17 @@ export const HSVSettingsPanel = () => {
     curatedImages,
     howItWorksImages,
     loadImageFile: async (file) => {
-      // Image loading is handled by the plugin's postInitialize store subscription
+      // Image loading is handled by the plugin's postInitialize config subscription
       const objectUrl = URL.createObjectURL(file);
       try {
-        useHSVSamplingStore.getState().setCurrentImageSrc(objectUrl);
+        setConfig({ currentImageSrc: objectUrl });
       } finally {
         // Don't revoke yet — postInitialize subscription needs to load it
         // The URL will be replaced by a data URL in handleImageFile's persistUploads
       }
     },
     loadImageSource: async (src) => {
-      useHSVSamplingStore.getState().setCurrentImageSrc(src);
+      setConfig({ currentImageSrc: src });
     },
   });
 
@@ -72,7 +74,11 @@ export const HSVSettingsPanel = () => {
         <Label className="text-sm font-medium" htmlFor="cover-toggle">
           Cover image
         </Label>
-        <Switch id="cover-toggle" checked={imageCover} onCheckedChange={setImageCover} />
+        <Switch
+          id="cover-toggle"
+          checked={config.imageCover}
+          onCheckedChange={(checked) => setConfig({ imageCover: checked })}
+        />
       </div>
       <button
         type="button"

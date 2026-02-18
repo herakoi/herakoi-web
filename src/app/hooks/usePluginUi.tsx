@@ -4,7 +4,7 @@ import type { DockPanelProps, PipelineConfig, VisualizerDisplayProps } from "#sr
 import { PluginSelector } from "../components/PluginSelector";
 import { VisualizerPanel } from "../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../components/SettingsPanel";
-import { usePipelineStore } from "../state/pipelineStore";
+import { useActivePlugin, usePluginConfig } from "../state/appConfigStore";
 
 type UsePluginUiParams = {
   config: PipelineConfig;
@@ -21,24 +21,33 @@ type UsePluginUiReturn = {
 
 export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePluginUiReturn => {
   // 1. Subscribe to active plugin IDs and setters from store
-  const activeDetectionId = usePipelineStore((s) => s.activeDetectionId);
-  const activeSamplingId = usePipelineStore((s) => s.activeSamplingId);
-  const activeSonificationId = usePipelineStore((s) => s.activeSonificationId);
-  const setActiveDetectionId = usePipelineStore((s) => s.setActiveDetectionId);
-  const setActiveSamplingId = usePipelineStore((s) => s.setActiveSamplingId);
-  const setActiveSonificationId = usePipelineStore((s) => s.setActiveSonificationId);
+  const [activeDetectionId, setActiveDetectionId] = useActivePlugin("detection");
+  const [activeSamplingId, setActiveSamplingId] = useActivePlugin("sampling");
+  const [activeSonificationId, setActiveSonificationId] = useActivePlugin("sonification");
 
   // 2. Create plugin switch handler (stop → update → start)
   const createPluginSwitchHandler = useCallback(
-    (setActiveId: (id: string) => void) => (id: string) => {
-      stop();
-      setActiveId(id);
-      void start();
-    },
+    <T extends string>(setActiveId: (id: T) => void) =>
+      (id: string) => {
+        stop();
+        setActiveId(id as T);
+        void start();
+      },
     [start, stop],
   );
 
-  // 3. Build sections array dynamically from plugins
+  // 3. Get plugin configs at top level (hooks must be called unconditionally)
+  const [sonificationConfig, setSonificationConfig] = usePluginConfig(
+    activeSonificationId as keyof import("#src/core/pluginConfig").PluginConfigRegistry,
+  );
+  const [samplingConfig, setSamplingConfig] = usePluginConfig(
+    activeSamplingId as keyof import("#src/core/pluginConfig").PluginConfigRegistry,
+  );
+  const [detectionConfig, setDetectionConfig] = usePluginConfig(
+    activeDetectionId as keyof import("#src/core/pluginConfig").PluginConfigRegistry,
+  );
+
+  // 4. Build sections array dynamically from plugins
   const sections = useMemo(() => {
     const result: SettingsPanelSection[] = [];
 
@@ -50,20 +59,23 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
         key: activeSonification.settingsTab.key,
         label: activeSonification.settingsTab.label,
         icon: activeSonification.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Sonification"
-              plugins={config.sonification.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeSonificationId}
-              onSelect={createPluginSwitchHandler(setActiveSonificationId)}
-            />
-            <Panel />
-          </>
-        ),
+        render: () => {
+          // Type assertion is safe: activePluginId guarantees config type matches Panel's expectations
+          return (
+            <>
+              <PluginSelector
+                label="Sonification"
+                plugins={config.sonification.map((p) => ({
+                  id: p.id,
+                  displayName: p.displayName,
+                }))}
+                activeId={activeSonificationId}
+                onSelect={createPluginSwitchHandler(setActiveSonificationId)}
+              />
+              <Panel config={sonificationConfig as never} setConfig={setSonificationConfig} />
+            </>
+          );
+        },
       });
     }
 
@@ -75,20 +87,23 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
         key: activeSamplingPlugin.settingsTab.key,
         label: activeSamplingPlugin.settingsTab.label,
         icon: activeSamplingPlugin.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Sampling"
-              plugins={config.sampling.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeSamplingId}
-              onSelect={createPluginSwitchHandler(setActiveSamplingId)}
-            />
-            {Panel && <Panel />}
-          </>
-        ),
+        render: () => {
+          // Type assertion is safe: activePluginId guarantees config type matches Panel's expectations
+          return (
+            <>
+              <PluginSelector
+                label="Sampling"
+                plugins={config.sampling.map((p) => ({
+                  id: p.id,
+                  displayName: p.displayName,
+                }))}
+                activeId={activeSamplingId}
+                onSelect={createPluginSwitchHandler(setActiveSamplingId)}
+              />
+              {Panel && <Panel config={samplingConfig as never} setConfig={setSamplingConfig} />}
+            </>
+          );
+        },
       });
     }
 
@@ -100,20 +115,23 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
         key: activeDetection.settingsTab.key,
         label: activeDetection.settingsTab.label,
         icon: activeDetection.settingsTab.icon,
-        render: () => (
-          <>
-            <PluginSelector
-              label="Detection"
-              plugins={config.detection.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-              }))}
-              activeId={activeDetectionId}
-              onSelect={createPluginSwitchHandler(setActiveDetectionId)}
-            />
-            <Panel />
-          </>
-        ),
+        render: () => {
+          // Type assertion is safe: activePluginId guarantees config type matches Panel's expectations
+          return (
+            <>
+              <PluginSelector
+                label="Detection"
+                plugins={config.detection.map((p) => ({
+                  id: p.id,
+                  displayName: p.displayName,
+                }))}
+                activeId={activeDetectionId}
+                onSelect={createPluginSwitchHandler(setActiveDetectionId)}
+              />
+              <Panel config={detectionConfig as never} setConfig={setDetectionConfig} />
+            </>
+          );
+        },
       });
     }
 
@@ -137,17 +155,34 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
     setActiveSonificationId,
     setActiveSamplingId,
     setActiveDetectionId,
+    sonificationConfig,
+    setSonificationConfig,
+    samplingConfig,
+    setSamplingConfig,
+    detectionConfig,
+    setDetectionConfig,
   ]);
 
-  // 4. Resolve toolbar and dock panel from active plugins
+  // 5. Resolve toolbar and dock panel from active plugins
   const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
-  const SamplingToolbar = activeSampling?.ui.ToolbarItems;
+  const SamplingToolbar = useMemo(() => {
+    if (!activeSampling?.ui.ToolbarItems) return undefined;
+    const ToolbarComponent = activeSampling.ui.ToolbarItems;
+
+    // Create wrapper that provides config props (config comes from closure)
+    const ToolbarWithConfig = () => {
+      // Type assertion is safe: activePluginId guarantees config type matches ToolbarComponent's expectations
+      return <ToolbarComponent config={samplingConfig as never} setConfig={setSamplingConfig} />;
+    };
+
+    return ToolbarWithConfig;
+  }, [activeSampling, samplingConfig, setSamplingConfig]);
 
   const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
   const DockPanel = activeDetection?.ui.DockPanel;
 
-  // 5. Resolve active visualizer displays
-  const activeVisualizerId = usePipelineStore((s) => s.activeVisualizerId);
+  // 6. Resolve active visualizer displays
+  const [activeVisualizerId] = useActivePlugin("visualization");
   const VisualizerDisplays = useMemo(() => {
     if (!activeVisualizerId) return [];
     return config.visualization

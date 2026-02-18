@@ -8,7 +8,8 @@ import { usePluginUi } from "./hooks/usePluginUi";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
 import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
-import { usePipelineStore } from "./state/pipelineStore";
+import { useUiPreferences } from "./state/appConfigStore";
+import { useAppRuntimeStore } from "./state/appRuntimeStore";
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,8 +24,9 @@ const App = () => {
       imageOverlayRef,
     },
   );
-  const setUiOpacity = usePipelineStore((state) => state.setUiOpacity);
-  const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
+  const setUiOpacity = useAppRuntimeStore((state) => state.setCurrentUiOpacity);
+  const [uiPrefs] = useUiPreferences();
+  const dimLogoMark = uiPrefs.dimLogoMark;
 
   const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
     config: pipelineConfig,

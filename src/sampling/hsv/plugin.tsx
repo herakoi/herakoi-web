@@ -1,12 +1,14 @@
 import { Image as ImageIcon } from "lucide-react";
+import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type { PluginTabMeta, PluginUISlots, SamplerHandle, SamplingPlugin } from "#src/core/plugin";
+import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
 import { curatedImages } from "./data/curatedImages";
 import { HSVImageSampler } from "./HSVImageSampler";
 import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
 import { hsvSamplingRefs } from "./refs";
-import { useHSVSamplingStore } from "./store";
+import { useHSVRuntimeStore } from "./runtimeStore";
 
 const settingsTab: PluginTabMeta = {
   key: "image",
@@ -14,7 +16,7 @@ const settingsTab: PluginTabMeta = {
   icon: <ImageIcon className="h-3.5 w-3.5" />,
 };
 
-const ui: PluginUISlots = {
+const ui: PluginUISlots<HSVSamplingConfig> = {
   SettingsPanel: HSVSettingsPanel,
   ToolbarItems: HSVToolbarItems,
 };
@@ -31,29 +33,29 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-export const hsvSamplingPlugin: SamplingPlugin = {
+export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
   kind: "sampling",
   id: "hsv-color",
   displayName: "HSV Color",
   settingsTab,
   ui,
 
-  createSampler(): SamplerHandle {
+  createSampler(config: HSVSamplingConfig): SamplerHandle {
     const sampler = new HSVImageSampler();
     let imageBuffer: HTMLImageElement | null = null;
-    let storeUnsub: (() => void) | null = null;
+    let configUnsub: (() => void) | null = null;
     let resizeHandler: (() => void) | null = null;
     let panZoomCleanup: (() => void) | null = null;
 
     const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
 
     const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
-      const { imageCover, imagePan } = useHSVSamplingStore.getState();
+      const { imageCover, imagePan } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
       resizeCanvasToContainer(canvas);
       const drawn = drawImageToCanvas(canvas, img, imageCover, imagePan);
       if (!drawn) return;
       await sampler.loadImage(canvas);
-      useHSVSamplingStore.getState().setImageReady(true);
+      useHSVRuntimeStore.getState().setImageReady(true);
       window.dispatchEvent(new Event("herakoi-image-rendered"));
     };
 
@@ -61,7 +63,7 @@ export const hsvSamplingPlugin: SamplingPlugin = {
       const canvas = getCanvas();
       if (!canvas) return;
       const img = await loadImageElement(src);
-      useHSVSamplingStore.getState().setImagePan({ x: 0, y: 0 });
+      useAppConfigStore.getState().setPluginConfig("hsv-color", { imagePan: { x: 0, y: 0 } });
       imageBuffer = img;
       await drawAndEncode(img, canvas);
     };
@@ -84,34 +86,45 @@ export const hsvSamplingPlugin: SamplingPlugin = {
           );
         }
 
-        // Restore image from store or load default curated
-        const { currentImageSrc } = useHSVSamplingStore.getState();
+        // Restore image from config or load default curated
+        // TODO: trovare un modo per cui la src dell'immagine non sia salvata in config in modo da poter creare un url condivisibile
+        const { currentImageSrc } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
         const initialSrc = currentImageSrc ?? curatedImages[0]?.src;
         if (initialSrc) {
           await loadAndDraw(initialSrc);
           if (!currentImageSrc && initialSrc) {
-            useHSVSamplingStore.getState().setCurrentImageSrc(initialSrc);
+            useAppConfigStore
+              .getState()
+              .setPluginConfig("hsv-color", { currentImageSrc: initialSrc });
           }
         }
 
-        // Subscribe to store changes for runtime updates
-        storeUnsub = useHSVSamplingStore.subscribe((state, prev) => {
+        // Subscribe to config changes for runtime updates
+        let previousConfig = { ...config };
+        configUnsub = useAppConfigStore.subscribe((state) => {
           const canvas = getCanvas();
           if (!canvas) return;
 
+          const currentConfig = state.pluginConfigs["hsv-color"];
+
           // Image source changed — load new image
-          if (state.currentImageSrc !== prev.currentImageSrc && state.currentImageSrc) {
-            void loadAndDraw(state.currentImageSrc);
+          if (
+            currentConfig.currentImageSrc !== previousConfig.currentImageSrc &&
+            currentConfig.currentImageSrc
+          ) {
+            previousConfig = { ...currentConfig };
+            void loadAndDraw(currentConfig.currentImageSrc);
             return;
           }
 
           // Cover or pan changed — redraw current image
           if (
             imageBuffer &&
-            (state.imageCover !== prev.imageCover ||
-              state.imagePan.x !== prev.imagePan.x ||
-              state.imagePan.y !== prev.imagePan.y)
+            (currentConfig.imageCover !== previousConfig.imageCover ||
+              currentConfig.imagePan.x !== previousConfig.imagePan.x ||
+              currentConfig.imagePan.y !== previousConfig.imagePan.y)
           ) {
+            previousConfig = { ...currentConfig };
             void drawAndEncode(imageBuffer, canvas);
           }
         });
@@ -129,7 +142,7 @@ export const hsvSamplingPlugin: SamplingPlugin = {
           const canvas = getCanvas();
           if (!canvas) return null;
 
-          const { imageCover } = useHSVSamplingStore.getState();
+          const { imageCover } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
 
           // Update cursor styles
           canvas.style.cursor = imageCover ? "grab" : "default";
@@ -147,10 +160,12 @@ export const hsvSamplingPlugin: SamplingPlugin = {
 
           const applyPan = () => {
             if (!pendingX && !pendingY) return;
-            const current = useHSVSamplingStore.getState().imagePan;
-            useHSVSamplingStore.getState().setImagePan({
-              x: current.x + pendingX,
-              y: current.y + pendingY,
+            const current = useAppConfigStore.getState().pluginConfigs["hsv-color"].imagePan;
+            useAppConfigStore.getState().setPluginConfig("hsv-color", {
+              imagePan: {
+                x: current.x + pendingX,
+                y: current.y + pendingY,
+              },
             });
             pendingX = 0;
             pendingY = 0;
@@ -215,24 +230,27 @@ export const hsvSamplingPlugin: SamplingPlugin = {
         panZoomCleanup = setupPanZoom();
 
         // Re-setup when imageCover changes
-        const panZoomUnsub = useHSVSamplingStore.subscribe((state, prev) => {
-          if (state.imageCover !== prev.imageCover) {
+        let prevCover = useAppConfigStore.getState().pluginConfigs["hsv-color"].imageCover;
+        const panZoomUnsub = useAppConfigStore.subscribe((state) => {
+          const currentCover = state.pluginConfigs["hsv-color"].imageCover;
+          if (currentCover !== prevCover) {
+            prevCover = currentCover;
             panZoomCleanup?.();
             panZoomCleanup = setupPanZoom();
           }
         });
 
-        // Combine cleanup with existing store cleanup
-        const originalStoreUnsub = storeUnsub;
-        storeUnsub = () => {
-          originalStoreUnsub?.();
+        // Combine cleanup with existing config cleanup
+        const originalConfigUnsub = configUnsub;
+        configUnsub = () => {
+          originalConfigUnsub?.();
           panZoomUnsub();
         };
       },
 
       cleanup() {
-        storeUnsub?.();
-        storeUnsub = null;
+        configUnsub?.();
+        configUnsub = null;
         if (resizeHandler) {
           window.removeEventListener("resize", resizeHandler);
           resizeHandler = null;
@@ -240,7 +258,7 @@ export const hsvSamplingPlugin: SamplingPlugin = {
         panZoomCleanup?.();
         panZoomCleanup = null;
         imageBuffer = null;
-        useHSVSamplingStore.getState().setImageReady(false);
+        useHSVRuntimeStore.getState().setImageReady(false);
       },
     };
   },

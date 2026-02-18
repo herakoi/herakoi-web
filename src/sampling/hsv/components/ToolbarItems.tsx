@@ -7,16 +7,17 @@ import {
   PopoverTrigger,
 } from "#src/app/components/ui/popover";
 import { cn } from "#src/app/lib/utils";
+import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
-import { useHSVSamplingStore } from "../store";
 import type { ImageEntry } from "../types/image";
 
-export const HSVToolbarItems = () => {
-  const imageCover = useHSVSamplingStore((state) => state.imageCover);
-  const setImageCover = useHSVSamplingStore((state) => state.setImageCover);
-
+export const HSVToolbarItems = ({
+  config,
+  setConfig,
+}: PluginSettingsPanelProps<HSVSamplingConfig>) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importDragActive, setImportDragActive] = useState(false);
   const [importActive, setImportActive] = useState(false);
@@ -27,10 +28,10 @@ export const HSVToolbarItems = () => {
       howItWorksImages,
       loadImageFile: async (file) => {
         const objectUrl = URL.createObjectURL(file);
-        useHSVSamplingStore.getState().setCurrentImageSrc(objectUrl);
+        setConfig({ currentImageSrc: objectUrl });
       },
       loadImageSource: async (src) => {
-        useHSVSamplingStore.getState().setCurrentImageSrc(src);
+        setConfig({ currentImageSrc: src });
       },
     });
 
@@ -96,11 +97,11 @@ export const HSVToolbarItems = () => {
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               baseButtonClass,
-              imageCover && "border-white/40 bg-white/10 text-white shadow-sm",
+              config.imageCover && "border-white/40 bg-white/10 text-white shadow-sm",
             )}
             aria-label="Toggle cover mode"
-            aria-pressed={imageCover}
-            onClick={() => setImageCover(!imageCover)}
+            aria-pressed={config.imageCover}
+            onClick={() => setConfig({ imageCover: !config.imageCover })}
           >
             <Crop className="h-4 w-4" />
           </button>

@@ -1,2 +1,2 @@
-export const PIPELINE_PREFERENCES_KEY = "herakoi.pipeline-preferences.v1";
-export const IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
+/** Central app configuration (activePlugins, pluginConfigs, uiPreferences) */
+export const APP_CONFIG_KEY = "herakoi.app-config.v1";

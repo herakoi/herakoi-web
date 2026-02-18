@@ -7,15 +7,14 @@ import {
   SelectValue,
 } from "#src/app/components/ui/select";
 import { Slider } from "#src/app/components/ui/slider";
-import { useOscillatorSonificationStore } from "../store";
+import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import type { OscillatorConfig } from "#src/core/pluginConfig";
 
-export const OscillatorSettingsPanel = () => {
-  const minFreq = useOscillatorSonificationStore((state) => state.minFreq);
-  const maxFreq = useOscillatorSonificationStore((state) => state.maxFreq);
-  const minVol = useOscillatorSonificationStore((state) => state.minVol);
-  const maxVol = useOscillatorSonificationStore((state) => state.maxVol);
-  const oscillatorType = useOscillatorSonificationStore((state) => state.oscillatorType);
-  const setSettings = useOscillatorSonificationStore((state) => state.setSettings);
+export const OscillatorSettingsPanel = ({
+  config,
+  setConfig,
+}: PluginSettingsPanelProps<OscillatorConfig>) => {
+  const { minFreq, maxFreq, minVol, maxVol, oscillatorType } = config;
 
   return (
     <div className="space-y-4">
@@ -30,7 +29,7 @@ export const OscillatorSettingsPanel = () => {
           value={[minFreq, maxFreq]}
           aria-label="Frequency range"
           thumbLabels={["Minimum frequency", "Maximum frequency"]}
-          onValueChange={([min, max]) => setSettings({ minFreq: min, maxFreq: max })}
+          onValueChange={([min, max]) => setConfig({ minFreq: min, maxFreq: max })}
         />
       </div>
       <div className="space-y-2">
@@ -44,14 +43,14 @@ export const OscillatorSettingsPanel = () => {
           value={[minVol * 100, maxVol * 100]}
           aria-label="Volume range"
           thumbLabels={["Minimum volume", "Maximum volume"]}
-          onValueChange={([min, max]) => setSettings({ minVol: min / 100, maxVol: max / 100 })}
+          onValueChange={([min, max]) => setConfig({ minVol: min / 100, maxVol: max / 100 })}
         />
       </div>
       <div className="space-y-2">
         <Label>Waveform</Label>
         <Select
           value={oscillatorType}
-          onValueChange={(value) => setSettings({ oscillatorType: value as OscillatorType })}
+          onValueChange={(value) => setConfig({ oscillatorType: value as OscillatorType })}
         >
           <SelectTrigger aria-label="Oscillator waveform">
             <SelectValue placeholder="Waveform" />

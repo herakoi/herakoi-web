@@ -1,10 +1,5 @@
 import type { VisualizationPlugin } from "#src/core/plugin";
-import {
-  defaultOscillatorSettings,
-  useOscillatorSonificationStore,
-} from "#src/sonification/oscillator/store";
-import { IMAGE_SELECTION_KEY } from "../../state/persistenceKeys";
-import { usePipelineStore } from "../../state/pipelineStore";
+import { useActivePlugin, useAppConfigStore, useUiPreferences } from "../../state/appConfigStore";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -16,24 +11,16 @@ type VisualizerPanelProps = {
 };
 
 export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
-  const activeVisualizerId = usePipelineStore((s) => s.activeVisualizerId);
-  const setActiveVisualizerId = usePipelineStore((s) => s.setActiveVisualizerId);
-  const baseUiOpacity = usePipelineStore((state) => state.baseUiOpacity);
-  const setBaseUiOpacity = usePipelineStore((state) => state.setBaseUiOpacity);
-  const dimLogoMark = usePipelineStore((state) => state.dimLogoMark);
-  const setDimLogoMark = usePipelineStore((state) => state.setDimLogoMark);
-  const resetPreferences = usePipelineStore((state) => state.resetPreferences);
+  const [activeVisualizerId, setActiveVisualizerId] = useActivePlugin("visualization");
+  const [uiPrefs, setUiPrefs] = useUiPreferences();
+  const resetAll = useAppConfigStore((s) => s.resetAll);
 
   const handleResetDefaults = () => {
-    resetPreferences();
-    useOscillatorSonificationStore.getState().setSettings(defaultOscillatorSettings);
-    usePipelineStore.persist?.clearStorage?.();
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(IMAGE_SELECTION_KEY);
-    }
+    // Reset EVERYTHING: activePlugins, pluginConfigs, uiPreferences
+    resetAll();
   };
 
-  const opacityPercent = Math.round(baseUiOpacity * 100);
+  const opacityPercent = Math.round(uiPrefs.baseUiOpacity * 100);
 
   return (
     <div className="space-y-4">
@@ -82,14 +69,18 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
             step={5}
             value={[opacityPercent]}
             aria-label="UI opacity level"
-            onValueChange={([value]) => setBaseUiOpacity(value / 100)}
+            onValueChange={([value]) => setUiPrefs({ baseUiOpacity: value / 100 })}
           />
         </div>
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm font-medium" htmlFor="dim-logo-mark">
             Dim logo mark on idle
           </Label>
-          <Switch id="dim-logo-mark" checked={dimLogoMark} onCheckedChange={setDimLogoMark} />
+          <Switch
+            id="dim-logo-mark"
+            checked={uiPrefs.dimLogoMark}
+            onCheckedChange={(checked) => setUiPrefs({ dimLogoMark: checked })}
+          />
         </div>
       </div>
     </div>

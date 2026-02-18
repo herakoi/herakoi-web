@@ -19,10 +19,10 @@ import {
 } from "#src/app/components/ui/select";
 import { useIdleDimmer } from "#src/app/hooks/useIdleDimmer";
 import { cn } from "#src/app/lib/utils";
-import { usePipelineStore } from "#src/app/state/pipelineStore";
+import { useAppConfigStore, useUiPreferences } from "#src/app/state/appConfigStore";
 import type { DockPanelProps } from "#src/core/plugin";
 import { registerOverlayRef, registerVideoRef } from "../refs";
-import { useMediaPipeDetectionStore } from "../store";
+import { useMediaPipeRuntimeStore } from "../runtimeStore";
 
 type PiPState = { x: number; y: number; width: number };
 
@@ -40,14 +40,19 @@ export const MediaPipeDockPanel = ({
   onStop,
   setUiOpacity,
 }: DockPanelProps) => {
-  const mirror = useMediaPipeDetectionStore((state) => state.mirror);
-  const setMirror = useMediaPipeDetectionStore((state) => state.setMirror);
-  const maxHands = useMediaPipeDetectionStore((state) => state.maxHands);
-  const setMaxHands = useMediaPipeDetectionStore((state) => state.setMaxHands);
-  const facingMode = useMediaPipeDetectionStore((state) => state.facingMode);
-  const setFacingMode = useMediaPipeDetectionStore((state) => state.setFacingMode);
-  const handDetected = useMediaPipeDetectionStore((state) => state.handDetected);
-  const baseUiOpacity = usePipelineStore((state) => state.baseUiOpacity);
+  // Read config from appConfigStore
+  const config = useAppConfigStore((state) => state.pluginConfigs["mediapipe-hands"]);
+  const setConfig = useAppConfigStore((state) => state.setPluginConfig);
+  const mirror = config.mirror;
+  const maxHands = config.maxHands;
+  const facingMode = config.facingMode;
+
+  // Read UI preferences
+  const [uiPrefs] = useUiPreferences();
+  const baseUiOpacity = uiPrefs.baseUiOpacity;
+
+  // Read runtime state
+  const handDetected = useMediaPipeRuntimeStore((state) => state.handDetected);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -292,7 +297,9 @@ export const MediaPipeDockPanel = ({
         </Button>
         <Select
           value={facingMode}
-          onValueChange={(value) => setFacingMode(value as "user" | "environment")}
+          onValueChange={(value) =>
+            setConfig("mediapipe-hands", { facingMode: value as "user" | "environment" })
+          }
         >
           <SelectTrigger
             aria-label="Camera facing"
@@ -404,7 +411,7 @@ export const MediaPipeDockPanel = ({
             )}
             onClick={(event) => {
               event.stopPropagation();
-              setMirror(!mirror);
+              setConfig("mediapipe-hands", { mirror: !mirror });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();
@@ -419,7 +426,7 @@ export const MediaPipeDockPanel = ({
             onClick={(event) => {
               event.stopPropagation();
               const nextHands = maxHands >= 4 ? 1 : maxHands + 1;
-              setMaxHands(nextHands);
+              setConfig("mediapipe-hands", { maxHands: nextHands });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();

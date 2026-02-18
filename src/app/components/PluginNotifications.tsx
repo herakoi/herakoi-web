@@ -1,11 +1,11 @@
 import { Fragment } from "react";
+import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
 import { useNotificationStore } from "#src/app/state/notificationStore";
-import { usePipelineStore } from "#src/app/state/pipelineStore";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 export const PluginNotifications = () => {
   const notifications = useNotificationStore((s) => s.notifications);
-  const isRunning = usePipelineStore((s) => s.status.status === "running");
+  const isRunning = useAppRuntimeStore((s) => s.pipelineStatus.status === "running");
 
   // Only show visual notifications when pipeline is running
   if (!isRunning || notifications.size === 0) return null;

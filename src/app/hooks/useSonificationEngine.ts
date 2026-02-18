@@ -1,8 +1,9 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
+import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
+import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";
-import { usePipelineStore } from "../state/pipelineStore";
 
 const resizeCanvasToContainer = (canvas: HTMLCanvasElement) => {
   const parent = canvas.parentElement;
@@ -22,11 +23,11 @@ export const useSonificationEngine = (
   config: PipelineConfig,
   { imageCanvasRef, imageOverlayRef }: Refs,
 ) => {
-  const status = usePipelineStore((state) => state.status);
-  const setStatus = usePipelineStore((state) => state.setStatus);
-  const activeDetectionId = usePipelineStore((state) => state.activeDetectionId);
-  const activeSamplingId = usePipelineStore((state) => state.activeSamplingId);
-  const activeSonificationId = usePipelineStore((state) => state.activeSonificationId);
+  const status = useAppRuntimeStore((state) => state.pipelineStatus);
+  const setStatus = useAppRuntimeStore((state) => state.setStatus);
+  const [activeDetectionId] = useActivePlugin("detection");
+  const [activeSamplingId] = useActivePlugin("sampling");
+  const [activeSonificationId] = useActivePlugin("sonification");
 
   const detectorHandleRef = useRef<ReturnType<
     (typeof config.detection)[0]["createDetector"]
@@ -69,9 +70,26 @@ export const useSonificationEngine = (
       }
 
       // Create plugin instances
-      const dh = activeDetection.createDetector();
-      const sh = activeSampling.createSampler();
-      const soh = activeSonification.createSonifier();
+      // Get config from appConfigStore for detection plugin
+      const detectionPluginId =
+        activeDetection.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
+      // Type assertion is safe: pluginId guarantees config type matches factory expectations
+      const dh = activeDetection.createDetector(detectionConfig as never);
+
+      // Get config from appConfigStore for sampling plugin
+      const samplingPluginId =
+        activeSampling.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
+      // Type assertion is safe: pluginId guarantees config type matches factory expectations
+      const sh = activeSampling.createSampler(samplingConfig as never);
+
+      // Get config from appConfigStore for sonification plugin
+      const sonificationPluginId =
+        activeSonification.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
+      // Type assertion is safe: pluginId guarantees config type matches factory expectations
+      const soh = activeSonification.createSonifier(sonificationConfig as never);
 
       detectorHandleRef.current = dh;
       samplerHandleRef.current = sh;
@@ -192,7 +210,7 @@ export const useSonificationEngine = (
 
     analyserRef.current = null;
     useNotificationStore.getState().clearAll();
-    usePipelineStore.getState().setUiOpacity(1);
+    useAppRuntimeStore.getState().setCurrentUiOpacity(1);
     setStatus({ status: "idle" });
   }, [setStatus]);
 
