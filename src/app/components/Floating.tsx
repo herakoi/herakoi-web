@@ -20,11 +20,8 @@ type FloatingDragState = {
   startLayout: FloatingLayout;
 };
 
-type FloatingRenderProps = {
-  style: CSSProperties;
+export type FloatingRenderProps = {
   isResizing: boolean;
-  onMovePointerDown: (event: PointerEvent<HTMLElement>) => void;
-  onMoveKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onResizePointerDown: (event: PointerEvent<HTMLElement>) => void;
   onResizeKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 };
@@ -40,6 +37,7 @@ type FloatingProps = {
   keyboardStep?: number;
   keyboardStepShift?: number;
   forbiddenAreas?: Array<HTMLElement | null> | (() => Array<HTMLElement | null>);
+  moveHandleAriaLabel?: string;
   onChange?: (next: FloatingLayout) => void;
   children: (props: FloatingRenderProps) => React.ReactNode;
 };
@@ -67,6 +65,7 @@ export const Floating = ({
   keyboardStep = 10,
   keyboardStepShift = 40,
   forbiddenAreas,
+  moveHandleAriaLabel = "Move floating panel",
   onChange,
   children,
 }: FloatingProps) => {
@@ -306,19 +305,29 @@ export const Floating = ({
     onChange?.(layout);
   }, [layout, onChange]);
 
-  return children({
-    style: {
-      position: "fixed",
-      left: layout.x,
-      top: layout.y,
-      width: layout.width,
-      display: open ? "block" : "none",
-      zIndex: 9,
-    },
-    isResizing,
-    onMovePointerDown: (event) => startDrag("move", event),
-    onMoveKeyDown,
-    onResizePointerDown: (event) => startDrag("resize", event),
-    onResizeKeyDown,
-  });
+  const containerStyle: CSSProperties = {
+    position: "fixed",
+    left: layout.x,
+    top: layout.y,
+    width: layout.width,
+    display: open ? "block" : "none",
+    zIndex: 9,
+  };
+
+  return (
+    <div style={containerStyle}>
+      {children({
+        isResizing,
+        onResizePointerDown: (event) => startDrag("resize", event),
+        onResizeKeyDown,
+      })}
+      <button
+        type="button"
+        aria-label={moveHandleAriaLabel}
+        className="absolute inset-0 z-10 cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        onPointerDown={(event) => startDrag("move", event)}
+        onKeyDown={onMoveKeyDown}
+      />
+    </div>
+  );
 };
