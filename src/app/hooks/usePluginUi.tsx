@@ -1,10 +1,10 @@
 import { Eye } from "lucide-react";
-import { type ComponentType, useCallback, useMemo } from "react";
-import type { DockPanelProps, PipelineConfig, VisualizerDisplayProps } from "#src/core/plugin";
+import { type ComponentType, useCallback, useMemo, useRef } from "react";
+import type { PipelineConfig, ShellDockPanelProps, VisualizerDisplayProps } from "#src/core/plugin";
 import { PluginSelector } from "../components/PluginSelector";
 import { VisualizerPanel } from "../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../components/SettingsPanel";
-import { useActivePlugin, usePluginConfig } from "../state/appConfigStore";
+import { useActivePlugin, usePluginConfig, useUiPreferences } from "../state/appConfigStore";
 
 type UsePluginUiParams = {
   config: PipelineConfig;
@@ -15,7 +15,7 @@ type UsePluginUiParams = {
 type UsePluginUiReturn = {
   sections: SettingsPanelSection[];
   SamplingToolbar: ComponentType | undefined;
-  DockPanel: ComponentType<DockPanelProps> | undefined;
+  DockPanel: ComponentType<ShellDockPanelProps> | undefined;
   VisualizerDisplays: Array<{ id: string; Display: ComponentType<VisualizerDisplayProps> }>;
 };
 
@@ -179,7 +179,42 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
   }, [activeSampling, samplingConfig, setSamplingConfig]);
 
   const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
-  const DockPanel = activeDetection?.ui.DockPanel;
+  const [uiPrefs] = useUiPreferences();
+
+  // Hold the latest config values in a ref so that DockPanel's component identity
+  // stays stable across config changes. Recreating the component function on every
+  // config update causes React to unmount the old <video> and mount a new one,
+  // which detaches the element from the MediaPipePointDetector's camera stream.
+  const dockConfigRef = useRef({
+    config: detectionConfig,
+    setConfig: setDetectionConfig,
+    baseUiOpacity: uiPrefs.baseUiOpacity,
+  });
+  dockConfigRef.current = {
+    config: detectionConfig,
+    setConfig: setDetectionConfig,
+    baseUiOpacity: uiPrefs.baseUiOpacity,
+  };
+
+  const DockPanel = useMemo(() => {
+    if (!activeDetection?.ui.DockPanel) return undefined;
+    const RawDockPanel = activeDetection.ui.DockPanel;
+    return function DockPanelWithConfig(shellProps: ShellDockPanelProps) {
+      // Read from ref so values are always fresh without changing component identity.
+      // Type assertion is safe: activeDetectionId guarantees config type matches DockPanel's expectations
+      const { config, setConfig, baseUiOpacity } = dockConfigRef.current;
+      return (
+        <RawDockPanel
+          {...shellProps}
+          config={config as never}
+          setConfig={setConfig}
+          baseUiOpacity={baseUiOpacity}
+        />
+      );
+    };
+    // Intentionally omit detectionConfig / setDetectionConfig / uiPrefs.baseUiOpacity:
+    // those flow via dockConfigRef so they never change component identity.
+  }, [activeDetection]);
 
   // 6. Resolve active visualizer displays
   const [activeVisualizerId] = useActivePlugin("visualization");

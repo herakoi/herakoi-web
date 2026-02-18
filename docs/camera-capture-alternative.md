@@ -29,5 +29,29 @@ Implement a native capture loop inside `MediaPipePointDetector` that:
 - **API support:** `requestVideoFrameCallback` is widely available in modern browsers; we keep a `requestAnimationFrame` fallback.
 - **Track leaks:** ensure `stop()` always stops active tracks and clears the loop to avoid camera LED staying on.
 
+## Known Issue: `navigator.mediaDevices` undefined in non-secure contexts
+
+**Symptom**
+
+```
+Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'getUserMedia')
+    at B.h (@mediapipe_camera_utils.js:423)
+    at MediaPipePointDetector.start (MediaPipePointDetector.ts:206)
+```
+
+**Cause**
+
+`navigator.mediaDevices` is only available in [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`). When the app is accessed over plain HTTP on a LAN IP (e.g., `192.168.x.x`), the browser does not expose `mediaDevices` and `@mediapipe/camera_utils` crashes deep inside its own promise chain with a confusing message.
+
+Additionally, `MediaPipePointDetector.start()` currently calls `void this.camera.start()`, discarding the returned promise. Any rejection — including this one — becomes an unhandled promise rejection rather than a catchable error that the shell could surface as a user-facing notification.
+
+**Why the native loop fixes this**
+
+Owning the `getUserMedia` call directly lets us check `navigator.mediaDevices` before attempting anything, throw a clear error (e.g., `"Camera requires HTTPS or localhost"`), and propagate it through the normal pipeline error path so the shell can display it. The error never reaches `@mediapipe/camera_utils` internals.
+
+**Workaround until then**
+
+Use `pnpm dev:https` to start a local HTTPS dev server, which satisfies the secure context requirement.
+
 ## Next Step
-Replace the `@mediapipe/camera_utils` usage in `src/detection/mediapipe/MediaPipePointDetector.ts` with this native loop, keeping the public detector interface unchanged.*** End Patch]];
+Replace the `@mediapipe/camera_utils` usage in `src/detection/mediapipe/MediaPipePointDetector.ts` with this native loop, keeping the public detector interface unchanged.

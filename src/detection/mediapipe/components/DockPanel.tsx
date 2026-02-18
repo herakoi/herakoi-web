@@ -19,8 +19,8 @@ import {
 } from "#src/app/components/ui/select";
 import { useIdleDimmer } from "#src/app/hooks/useIdleDimmer";
 import { cn } from "#src/app/lib/utils";
-import { useAppConfigStore, useUiPreferences } from "#src/app/state/appConfigStore";
 import type { DockPanelProps } from "#src/core/plugin";
+import type { MediaPipeConfig } from "#src/core/pluginConfig";
 import { registerOverlayRef, registerVideoRef } from "../refs";
 import { useMediaPipeRuntimeStore } from "../runtimeStore";
 
@@ -39,17 +39,11 @@ export const MediaPipeDockPanel = ({
   onStart,
   onStop,
   setUiOpacity,
-}: DockPanelProps) => {
-  // Read config from appConfigStore
-  const config = useAppConfigStore((state) => state.pluginConfigs["mediapipe-hands"]);
-  const setConfig = useAppConfigStore((state) => state.setPluginConfig);
-  const mirror = config.mirror;
-  const maxHands = config.maxHands;
-  const facingMode = config.facingMode;
-
-  // Read UI preferences
-  const [uiPrefs] = useUiPreferences();
-  const baseUiOpacity = uiPrefs.baseUiOpacity;
+  config,
+  setConfig,
+  baseUiOpacity,
+}: DockPanelProps<MediaPipeConfig>) => {
+  const { mirror, maxHands, facingMode } = config;
 
   // Read runtime state
   const handDetected = useMediaPipeRuntimeStore((state) => state.handDetected);
@@ -86,6 +80,22 @@ export const MediaPipeDockPanel = ({
     if (overlayRef.current) {
       registerOverlayRef("videoOverlay", overlayRef);
     }
+  }, []);
+
+  // Keep overlay canvas intrinsic dimensions in sync with its CSS size so
+  // bindHandsUi draws at the correct resolution instead of the 300×150 default.
+  useEffect(() => {
+    const canvas = overlayRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+      }
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
   }, []);
 
   const getMaxPipY = useCallback((pipHeight: number) => {
@@ -297,9 +307,7 @@ export const MediaPipeDockPanel = ({
         </Button>
         <Select
           value={facingMode}
-          onValueChange={(value) =>
-            setConfig("mediapipe-hands", { facingMode: value as "user" | "environment" })
-          }
+          onValueChange={(value) => setConfig({ facingMode: value as "user" | "environment" })}
         >
           <SelectTrigger
             aria-label="Camera facing"
@@ -411,7 +419,7 @@ export const MediaPipeDockPanel = ({
             )}
             onClick={(event) => {
               event.stopPropagation();
-              setConfig("mediapipe-hands", { mirror: !mirror });
+              setConfig({ mirror: !mirror });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();
@@ -426,7 +434,7 @@ export const MediaPipeDockPanel = ({
             onClick={(event) => {
               event.stopPropagation();
               const nextHands = maxHands >= 4 ? 1 : maxHands + 1;
-              setConfig("mediapipe-hands", { maxHands: nextHands });
+              setConfig({ maxHands: nextHands });
             }}
             onPointerDown={(event) => {
               event.stopPropagation();
