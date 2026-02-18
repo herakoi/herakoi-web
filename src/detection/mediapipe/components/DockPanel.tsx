@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Floating } from "#src/app/components/Floating";
+import { useCanvasSizeSync } from "#src/app/hooks/useCanvasSizeSync";
+import { useVideoReady } from "#src/app/hooks/useVideoReady";
 import type { DockPanelProps } from "#src/core/plugin";
 import type { MediaPipeConfig } from "#src/core/pluginConfig";
 import { registerOverlayRef, registerVideoRef } from "../refs";
@@ -21,7 +23,8 @@ export const MediaPipeDockPanel = ({
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const [pipOpen, setPipOpen] = useState(true);
-  const [videoReady, setVideoReady] = useState(false);
+  const videoReady = useVideoReady(videoRef);
+  useCanvasSizeSync(overlayRef);
   const initialPipLayout = useMemo(
     () => ({
       x: 16,
@@ -43,49 +46,6 @@ export const MediaPipeDockPanel = ({
     }
   }, []);
 
-  // Keep overlay canvas intrinsic dimensions in sync with its CSS size so
-  // bindHandsUi draws at the correct resolution instead of the 300×150 default.
-  useEffect(() => {
-    const canvas = overlayRef.current;
-    if (!canvas) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) {
-        canvas.width = Math.round(width);
-        canvas.height = Math.round(height);
-      }
-    });
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  }, []);
-
-  const getForbiddenAreas = useCallback((): Array<HTMLElement | null> => {
-    return [controlsRef.current];
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const markReady = () => setVideoReady(true);
-    const markNotReady = () => setVideoReady(false);
-    const updateState = () => {
-      const hasStream = Boolean(video.srcObject);
-      const isReady = hasStream && video.readyState >= 2 && !video.paused;
-      setVideoReady(isReady);
-    };
-    updateState();
-    video.addEventListener("playing", markReady);
-    video.addEventListener("loadeddata", markReady);
-    video.addEventListener("pause", markNotReady);
-    video.addEventListener("emptied", markNotReady);
-    return () => {
-      video.removeEventListener("playing", markReady);
-      video.removeEventListener("loadeddata", markReady);
-      video.removeEventListener("pause", markNotReady);
-      video.removeEventListener("emptied", markNotReady);
-    };
-  }, []);
-
   return (
     <div className="fixed bottom-3 left-2 z-10 flex flex-col gap-2 sm:bottom-4 sm:left-4">
       <div ref={controlsRef}>
@@ -103,7 +63,7 @@ export const MediaPipeDockPanel = ({
         minWidth={180}
         padding={4}
         forbiddenGap={12}
-        forbiddenAreas={getForbiddenAreas}
+        forbiddenRefs={[controlsRef]}
         moveHandleAriaLabel="Move picture-in-picture window"
       >
         {({ isResizing, onResizePointerDown, onResizeKeyDown }) => (

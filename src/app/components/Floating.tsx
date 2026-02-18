@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useRef,
@@ -36,7 +37,7 @@ type FloatingProps = {
   forbiddenGap?: number;
   keyboardStep?: number;
   keyboardStepShift?: number;
-  forbiddenAreas?: Array<HTMLElement | null> | (() => Array<HTMLElement | null>);
+  forbiddenRefs?: Array<RefObject<HTMLElement>>;
   moveHandleAriaLabel?: string;
   onChange?: (next: FloatingLayout) => void;
   children: (props: FloatingRenderProps) => React.ReactNode;
@@ -64,7 +65,7 @@ export const Floating = ({
   forbiddenGap = 12,
   keyboardStep = 10,
   keyboardStepShift = 40,
-  forbiddenAreas,
+  forbiddenRefs,
   moveHandleAriaLabel = "Move floating panel",
   onChange,
   children,
@@ -74,8 +75,8 @@ export const Floating = ({
   const dragRef = useRef<FloatingDragState | null>(null);
 
   const getAreas = useCallback(() => {
-    if (!forbiddenAreas) return [];
-    const elements = typeof forbiddenAreas === "function" ? forbiddenAreas() : forbiddenAreas;
+    if (!forbiddenRefs) return [];
+    const elements = forbiddenRefs.map((ref) => ref.current);
     return elements.flatMap((element) => {
       if (!element || !element.isConnected) return [];
       const rect = element.getBoundingClientRect();
@@ -89,7 +90,7 @@ export const Floating = ({
         },
       ];
     });
-  }, [forbiddenAreas]);
+  }, [forbiddenRefs]);
 
   const clampToViewport = useCallback(
     (value: FloatingLayout): FloatingLayout => {
