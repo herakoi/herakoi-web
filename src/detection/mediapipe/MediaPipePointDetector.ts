@@ -8,16 +8,16 @@
  *
  * Lifecycle:
  * 1. Constructor stores configuration
- * 2. initialize() creates HandsDetector and Camera instances
+ * 2. initialize() creates MediaPipe Hands and Camera instances
  * 3. start() begins camera/detection loop
  * 4. [detection runs] → onPointsDetected callbacks invoked with DetectedPoint[]
  * 5. stop() halts camera and detection
  */
 
 import { Camera } from "@mediapipe/camera_utils";
-import type { NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
+import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
 import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
-import { HandsDetector } from "#src/detection/mediapipe/hands";
+import { createHands } from "#src/detection/mediapipe/hands";
 
 /**
  * Callback for drawing hand landmarks visualization.
@@ -65,12 +65,11 @@ export interface MediaPipePointDetectorConfig {
  * not all 21 landmarks. This matches the existing Herakoi behavior where each
  * hand produces one sonification point.
  */
-// TODO: valutare se conventirlo in un flusso meno a classe
 export class MediaPipePointDetector implements PointDetector {
   private readonly videoElement: HTMLVideoElement;
   private readonly config: MediaPipePointDetectorConfig;
 
-  private handsDetector: HandsDetector | null = null;
+  private hands: Hands | null = null;
   private camera: Camera | null = null;
   private callbacks: PointDetectionCallback[] = [];
   private drawers: HandsDrawerCallback[] = [];
@@ -87,29 +86,19 @@ export class MediaPipePointDetector implements PointDetector {
       return;
     }
 
-    // Create HandsDetector with MediaPipe options
+    // Create MediaPipe Hands with caller options
     const mediaPipeOptions: Options = {
       maxNumHands: this.config.maxHands ?? 2,
       ...this.config.mediaPipeOptions,
     };
 
-    this.handsDetector = new HandsDetector(mediaPipeOptions);
+    this.hands = createHands(mediaPipeOptions);
 
     // Register MediaPipe results handler
-    const handsInstance = this.handsDetector.getInstance();
-    handsInstance.onResults((results) => this.handleResults(results));
+    this.hands.onResults((results) => this.handleResults(results));
 
     // Create Camera with onFrame callback that sends frames to MediaPipe
-    this.camera = new Camera(this.videoElement, {
-      onFrame: async () => {
-        if (this.handsDetector) {
-          await this.handsDetector.getInstance().send({ image: this.videoElement });
-        }
-      },
-      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
-      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
-      facingMode: this.config.facingMode ?? "user",
-    });
+    this.camera = this.createCamera(this.config.facingMode ?? "user");
 
     this.initialized = true;
   }
@@ -141,16 +130,7 @@ export class MediaPipePointDetector implements PointDetector {
     this.config.facingMode = facingMode;
 
     // Create new camera with new facing mode
-    this.camera = new Camera(this.videoElement, {
-      onFrame: async () => {
-        if (this.handsDetector) {
-          await this.handsDetector.getInstance().send({ image: this.videoElement });
-        }
-      },
-      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
-      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
-      facingMode,
-    });
+    this.camera = this.createCamera(facingMode);
 
     // Restart camera if we were already started
     if (this.started) {
@@ -185,8 +165,8 @@ export class MediaPipePointDetector implements PointDetector {
    */
   setMaxHands(maxHands: number): void {
     this.config.maxHands = maxHands;
-    if (this.handsDetector) {
-      this.handsDetector.getInstance().setOptions({ maxNumHands: maxHands });
+    if (this.hands) {
+      this.hands.setOptions({ maxNumHands: maxHands });
     }
   }
 
@@ -295,5 +275,18 @@ export class MediaPipePointDetector implements PointDetector {
       ...landmark,
       x: 1 - landmark.x,
     })) as NormalizedLandmarkList;
+  }
+
+  private createCamera(facingMode: FacingMode): Camera {
+    return new Camera(this.videoElement, {
+      onFrame: async () => {
+        if (this.hands) {
+          await this.hands.send({ image: this.videoElement });
+        }
+      },
+      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
+      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
+      facingMode,
+    });
   }
 }

@@ -5,7 +5,7 @@
  * correctly by wrapping MediaPipe Hands and Camera utilities.
  *
  * Test strategy:
- * - Use real HandsDetector class (tests actual integration)
+ * - Use real MediaPipe hands factory (tests actual integration)
  * - Mock external dependencies (@mediapipe/hands, @mediapipe/camera_utils)
  * - Verify lifecycle and point detection conversion
  *
@@ -111,13 +111,13 @@ describe("MediaPipePointDetector", () => {
   });
 
   describe("initialize()", () => {
-    it("should create HandsDetector and Camera", async () => {
+    it("should create MediaPipe Hands and Camera", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement, { maxHands: 2 });
 
       await detector.initialize();
 
-      // HandsDetector should be created (which creates Hands instance)
+      // createHands should construct a Hands instance
       expect(HandsMock).toHaveBeenCalled();
 
       // Camera should be created

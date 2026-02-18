@@ -31,15 +31,15 @@ beforeEach(() => {
  * We are teasing apart the MediaPipe integration that originally lived inline in
  * legacy_html/herakoi_web_test/herakoi.html:96. In that page, the `Hands`
  * constructor receives a `locateFile` callback that always hits the CDN. Our
- * detector wrapper should instead resolve local assets so we stay functional
+ * hands factory should instead resolve local assets so we stay functional
  * when the device is offline.
  */
-describe("HandsDetector asset resolution", () => {
+describe("createHands asset resolution", () => {
   it("points MediaPipe Hands at locally bundled assets by default", async () => {
-    const { HandsDetector } = await import("./hands");
+    const { createHands } = await import("./hands");
 
-    const detector = new HandsDetector();
-    expect(detector).toBeDefined();
+    const hands = createHands();
+    expect(hands).toBeDefined();
     expect(handsInstanceRef.current?.setOptions).not.toHaveBeenCalled();
 
     // The constructor should eagerly instantiate Hands with a locateFile helper.
@@ -67,16 +67,16 @@ describe("HandsDetector asset resolution", () => {
   });
 });
 
-describe("HandsDetector configuration passthrough", () => {
+describe("createHands configuration passthrough", () => {
   it("applies caller-provided MediaPipe options during construction", async () => {
     const overrides: Partial<Options> = {
       maxNumHands: 1,
       minDetectionConfidence: 0.9,
     };
-    const { HandsDetector } = await import("./hands");
+    const { createHands } = await import("./hands");
 
-    const detector = new HandsDetector(overrides);
-    expect(detector).toBeDefined();
+    const hands = createHands(overrides);
+    expect(hands).toBeDefined();
 
     expect(handsInstanceRef.current?.setOptions).toHaveBeenCalledWith(
       expect.objectContaining(overrides),

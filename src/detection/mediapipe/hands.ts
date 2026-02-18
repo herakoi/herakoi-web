@@ -33,39 +33,28 @@ const mediaPipeAssets = new Map<HandsFileKey, string>([
 ]);
 
 /**
- * Wraps the MediaPipe Hands solution so we control asset resolution.
+ * Creates a MediaPipe Hands instance with local bundled asset resolution.
  * Mirrors legacy_html/herakoi_web_test/herakoi.html:96, swapping the CDN for bundled assets
  * that Vite exposes via `?url` imports.
  */
-export class HandsDetector {
-  private readonly hands: Hands;
-
-  constructor(options?: Options) {
-    const locateFile: NonNullable<HandsConfig["locateFile"]> = (fileName) => {
-      const asset = mediaPipeAssets.get(fileName as HandsFileKey);
-      if (!asset) {
-        throw new Error(`Missing MediaPipe asset mapping for "${fileName}".`);
-      }
-      return asset;
-    };
-
-    const handsConfig: HandsConfig = {
-      locateFile,
-    };
-
-    this.hands = new Hands(handsConfig);
-
-    if (options && Object.keys(options).length > 0) {
-      this.hands.setOptions(options);
+export function createHands(options?: Options): Hands {
+  const locateFile: NonNullable<HandsConfig["locateFile"]> = (fileName) => {
+    const asset = mediaPipeAssets.get(fileName as HandsFileKey);
+    if (!asset) {
+      throw new Error(`Missing MediaPipe asset mapping for "${fileName}".`);
     }
+    return asset;
+  };
+
+  const handsConfig: HandsConfig = {
+    locateFile,
+  };
+
+  const hands = new Hands(handsConfig);
+
+  if (options && Object.keys(options).length > 0) {
+    hands.setOptions(options);
   }
 
-  /**
-   * Future controllers can reach for the underlying MediaPipe instance when they need
-   * to register callbacks or trigger graph operations. We expose it read-only to keep
-   * construction concerns encapsulated here.
-   */
-  public getInstance(): Hands {
-    return this.hands;
-  }
+  return hands;
 }
