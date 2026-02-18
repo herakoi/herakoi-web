@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Floating } from "#src/app/components/Floating";
-import { useCanvasSizeSync } from "#src/app/hooks/useCanvasSizeSync";
-import { useVideoReady } from "#src/app/hooks/useVideoReady";
 import type { DockPanelProps } from "#src/core/plugin";
 import type { MediaPipeConfig } from "#src/core/pluginConfig";
-import { registerOverlayRef, registerVideoRef } from "../refs";
+import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
 import { DockPanelControls } from "./DockPanelControls";
 import { DockPanelPiPActions } from "./DockPanelPiPActions";
 import { DockPanelPiPTransport } from "./DockPanelPiPTransport";
@@ -19,12 +17,9 @@ export const MediaPipeDockPanel = ({
 }: DockPanelProps<MediaPipeConfig>) => {
   const { mirror, maxHands, facingMode } = config;
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const { videoRef, overlayRef, videoReady } = useMediaPipeDockBindings();
   const controlsRef = useRef<HTMLDivElement>(null);
   const [pipOpen, setPipOpen] = useState(true);
-  const videoReady = useVideoReady(videoRef);
-  useCanvasSizeSync(overlayRef);
   const initialPipLayout = useMemo(
     () => ({
       x: 16,
@@ -35,16 +30,6 @@ export const MediaPipeDockPanel = ({
   );
 
   const isActive = isRunning || isInitializing;
-
-  // Register refs for plugin factory to access
-  useEffect(() => {
-    if (videoRef.current) {
-      registerVideoRef(videoRef);
-    }
-    if (overlayRef.current) {
-      registerOverlayRef("videoOverlay", overlayRef);
-    }
-  }, []);
 
   return (
     <div className="fixed bottom-3 left-2 z-10 flex flex-col gap-2 sm:bottom-4 sm:left-4">
