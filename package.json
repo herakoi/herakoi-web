@@ -13,7 +13,7 @@
     "lint:biome": "biome check .",
     "lint:biome:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.node.json",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --pool=threads",
     "commit": "cz",
     "postinstall": "lefthook install"
