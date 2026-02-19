@@ -71,6 +71,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
 
+      //TODO: estrarre queste logiche
       const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
         const { viewportMode } = getConfig();
         resizeCanvasToContainer(canvas);
