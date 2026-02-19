@@ -12,7 +12,7 @@ import react from "eslint-plugin-react";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default [
   { ignores: ["dist", "node_modules", "legacy_html"] },
   {
     files: ["**/*.{ts,tsx}"],
@@ -39,4 +39,4 @@ export default tseslint.config(
       react: { version: "detect" },
     },
   },
-);
+];
