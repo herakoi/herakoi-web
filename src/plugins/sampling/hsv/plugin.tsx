@@ -1,6 +1,12 @@
 import { Image as ImageIcon } from "lucide-react";
-import type { PluginTabMeta, PluginUISlots, SamplerHandle, SamplingPlugin } from "#src/core/plugin";
-import { useAppConfigStore } from "#src/state/appConfigStore";
+import type {
+  PluginRuntimeContext,
+  PluginTabMeta,
+  PluginUISlots,
+  SamplerHandle,
+  SamplingPluginDefinition,
+} from "#src/core/plugin";
+import { defineSamplingPlugin } from "#src/core/plugin";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
 import { defaultHSVSamplingConfig, type HSVSamplingConfig, hsvSamplingPluginId } from "./config";
@@ -33,245 +39,241 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-export const hsvSamplingPlugin: SamplingPlugin<typeof hsvSamplingPluginId, HSVSamplingConfig> = {
-  kind: "sampling",
-  id: hsvSamplingPluginId,
-  displayName: "HSV Color",
-  settingsTab,
-  ui,
-  config: {
-    defaultConfig: defaultHSVSamplingConfig,
-  },
+export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSamplingConfig> =
+  defineSamplingPlugin({
+    id: hsvSamplingPluginId,
+    displayName: "HSV Color",
+    settingsTab,
+    ui,
+    config: {
+      defaultConfig: defaultHSVSamplingConfig,
+    },
 
-  createSampler(config: HSVSamplingConfig): SamplerHandle {
-    const sampler = new HSVImageSampler();
-    let imageBuffer: HTMLImageElement | null = null;
-    let configUnsub: (() => void) | null = null;
-    let resizeHandler: (() => void) | null = null;
-    let panZoomCleanup: (() => void) | null = null;
+    createSampler(
+      config: HSVSamplingConfig,
+      runtime: PluginRuntimeContext<HSVSamplingConfig>,
+    ): SamplerHandle {
+      const sampler = new HSVImageSampler();
+      let imageBuffer: HTMLImageElement | null = null;
+      let configUnsub: (() => void) | null = null;
+      let resizeHandler: (() => void) | null = null;
+      let panZoomCleanup: (() => void) | null = null;
 
-    const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
+      const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
+      const getConfig = (): HSVSamplingConfig => runtime.getConfig();
 
-    const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
-      const { imageCover, imagePan } =
-        useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
-      resizeCanvasToContainer(canvas);
-      const drawn = drawImageToCanvas(canvas, img, imageCover, imagePan);
-      if (!drawn) return;
-      await sampler.loadImage(canvas);
-      useHSVRuntimeStore.getState().setImageReady(true);
-      window.dispatchEvent(new Event("herakoi-image-rendered"));
-    };
+      const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
+        const { imageCover, imagePan } = getConfig();
+        resizeCanvasToContainer(canvas);
+        const drawn = drawImageToCanvas(canvas, img, imageCover, imagePan);
+        if (!drawn) return;
+        await sampler.loadImage(canvas);
+        useHSVRuntimeStore.getState().setImageReady(true);
+        window.dispatchEvent(new Event("herakoi-image-rendered"));
+      };
 
-    const loadAndDraw = async (src: string) => {
-      const canvas = getCanvas();
-      if (!canvas) return;
-      const img = await loadImageElement(src);
-      useAppConfigStore
-        .getState()
-        .setPluginConfig(hsvSamplingPluginId, { imagePan: { x: 0, y: 0 } });
-      imageBuffer = img;
-      await drawAndEncode(img, canvas);
-    };
-
-    return {
-      sampler,
-
-      setCanvasRefs: (refs) => {
-        // Register image canvas ref
-        if (refs.imageCanvas) {
-          hsvSamplingRefs.imageCanvas = refs.imageCanvas;
-        }
-      },
-
-      async postInitialize() {
+      const loadAndDraw = async (src: string) => {
         const canvas = getCanvas();
-        if (!canvas) {
-          throw new Error(
-            "HSV sampling plugin: image canvas not mounted. Register ref before calling postInitialize.",
-          );
-        }
+        if (!canvas) return;
+        const img = await loadImageElement(src);
+        runtime.setConfig({ imagePan: { x: 0, y: 0 } });
+        imageBuffer = img;
+        await drawAndEncode(img, canvas);
+      };
 
-        // Restore selected image by stable id; fallback to default bundled image.
-        const { currentImageId } = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
-        const defaultImageId = getDefaultImageId();
-        const initialImageId = currentImageId ?? defaultImageId;
-        const initialSrc = resolveImageSourceById(initialImageId);
-        if (initialSrc && initialImageId) {
-          await loadAndDraw(initialSrc);
-          if (currentImageId !== initialImageId) {
-            useAppConfigStore
-              .getState()
-              .setPluginConfig(hsvSamplingPluginId, { currentImageId: initialImageId });
+      return {
+        sampler,
+
+        setCanvasRefs: (refs) => {
+          // Register image canvas ref
+          if (refs.imageCanvas) {
+            hsvSamplingRefs.imageCanvas = refs.imageCanvas;
           }
-        }
+        },
 
-        // Subscribe to config changes for runtime updates
-        let previousConfig = { ...config };
-        configUnsub = useAppConfigStore.subscribe((state) => {
+        async postInitialize() {
           const canvas = getCanvas();
-          if (!canvas) return;
-
-          const currentConfig = state.pluginConfigs[hsvSamplingPluginId];
-
-          // Selected image changed — resolve source and load.
-          if (
-            currentConfig.currentImageId !== previousConfig.currentImageId &&
-            currentConfig.currentImageId
-          ) {
-            previousConfig = { ...currentConfig };
-            const source = resolveImageSourceById(currentConfig.currentImageId);
-            if (source) {
-              void loadAndDraw(source);
-            }
-            return;
+          if (!canvas) {
+            throw new Error(
+              "HSV sampling plugin: image canvas not mounted. Register ref before calling postInitialize.",
+            );
           }
 
-          // Cover or pan changed — redraw current image
-          if (
-            imageBuffer &&
-            (currentConfig.imageCover !== previousConfig.imageCover ||
-              currentConfig.imagePan.x !== previousConfig.imagePan.x ||
-              currentConfig.imagePan.y !== previousConfig.imagePan.y)
-          ) {
-            previousConfig = { ...currentConfig };
+          // Restore selected image by stable id; fallback to default bundled image.
+          const { currentImageId } = getConfig();
+          const defaultImageId = getDefaultImageId();
+          const initialImageId = currentImageId ?? defaultImageId;
+          const initialSrc = resolveImageSourceById(initialImageId);
+          if (initialSrc && initialImageId) {
+            await loadAndDraw(initialSrc);
+            if (currentImageId !== initialImageId) {
+              runtime.setConfig({ currentImageId: initialImageId });
+            }
+          }
+
+          // Subscribe to config changes for runtime updates
+          let previousConfig = { ...config };
+          configUnsub = runtime.subscribeConfig((currentConfig) => {
+            const canvas = getCanvas();
+            if (!canvas) return;
+
+            // Selected image changed — resolve source and load.
+            if (
+              currentConfig.currentImageId !== previousConfig.currentImageId &&
+              currentConfig.currentImageId
+            ) {
+              previousConfig = { ...currentConfig };
+              const source = resolveImageSourceById(currentConfig.currentImageId);
+              if (source) {
+                void loadAndDraw(source);
+              }
+              return;
+            }
+
+            // Cover or pan changed — redraw current image
+            if (
+              imageBuffer &&
+              (currentConfig.imageCover !== previousConfig.imageCover ||
+                currentConfig.imagePan.x !== previousConfig.imagePan.x ||
+                currentConfig.imagePan.y !== previousConfig.imagePan.y)
+            ) {
+              previousConfig = { ...currentConfig };
+              void drawAndEncode(imageBuffer, canvas);
+            }
+          });
+
+          // TODO: possiamo spostare questo flusso in un'altra parte della logica?
+          // Window resize handler
+          resizeHandler = () => {
+            const canvas = getCanvas();
+            if (!canvas || !imageBuffer) return;
             void drawAndEncode(imageBuffer, canvas);
-          }
-        });
-
-        // TODO: possiamo spostare questo flusso in un'altra parte della logica?
-        // Window resize handler
-        resizeHandler = () => {
-          const canvas = getCanvas();
-          if (!canvas || !imageBuffer) return;
-          void drawAndEncode(imageBuffer, canvas);
-        };
-        window.addEventListener("resize", resizeHandler);
-
-        // Image pan/zoom interaction (converted from useImageCoverPan hook)
-        const setupPanZoom = () => {
-          const canvas = getCanvas();
-          if (!canvas) return null;
-
-          const { imageCover } = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
-
-          // Update cursor styles
-          canvas.style.cursor = imageCover ? "grab" : "default";
-          canvas.style.touchAction = imageCover ? "none" : "auto";
-
-          if (!imageCover) return null;
-
-          // Pan/drag state
-          let dragging = false;
-          let lastX = 0;
-          let lastY = 0;
-          let rafId = 0;
-          let pendingX = 0;
-          let pendingY = 0;
-
-          const applyPan = () => {
-            if (!pendingX && !pendingY) return;
-            const current =
-              useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId].imagePan;
-            useAppConfigStore.getState().setPluginConfig(hsvSamplingPluginId, {
-              imagePan: {
-                x: current.x + pendingX,
-                y: current.y + pendingY,
-              },
-            });
-            pendingX = 0;
-            pendingY = 0;
           };
+          window.addEventListener("resize", resizeHandler);
 
-          const onPointerDown = (event: PointerEvent) => {
-            if (event.button !== 0) return;
-            dragging = true;
-            lastX = event.clientX;
-            lastY = event.clientY;
-            canvas.style.cursor = "grabbing";
-            canvas.setPointerCapture(event.pointerId);
-          };
+          // Image pan/zoom interaction (converted from useImageCoverPan hook)
+          const setupPanZoom = () => {
+            const canvas = getCanvas();
+            if (!canvas) return null;
 
-          const onPointerMove = (event: PointerEvent) => {
-            if (!dragging) return;
-            const dx = event.clientX - lastX;
-            const dy = event.clientY - lastY;
-            lastX = event.clientX;
-            lastY = event.clientY;
-            pendingX += dx;
-            pendingY += dy;
-            if (!rafId) {
-              rafId = requestAnimationFrame(() => {
-                rafId = 0;
-                applyPan();
+            const { imageCover } = getConfig();
+
+            // Update cursor styles
+            canvas.style.cursor = imageCover ? "grab" : "default";
+            canvas.style.touchAction = imageCover ? "none" : "auto";
+
+            if (!imageCover) return null;
+
+            // Pan/drag state
+            let dragging = false;
+            let lastX = 0;
+            let lastY = 0;
+            let rafId = 0;
+            let pendingX = 0;
+            let pendingY = 0;
+
+            const applyPan = () => {
+              if (!pendingX && !pendingY) return;
+              const current = getConfig().imagePan;
+              runtime.setConfig({
+                imagePan: {
+                  x: current.x + pendingX,
+                  y: current.y + pendingY,
+                },
               });
-            }
+              pendingX = 0;
+              pendingY = 0;
+            };
+
+            const onPointerDown = (event: PointerEvent) => {
+              if (event.button !== 0) return;
+              dragging = true;
+              lastX = event.clientX;
+              lastY = event.clientY;
+              canvas.style.cursor = "grabbing";
+              canvas.setPointerCapture(event.pointerId);
+            };
+
+            const onPointerMove = (event: PointerEvent) => {
+              if (!dragging) return;
+              const dx = event.clientX - lastX;
+              const dy = event.clientY - lastY;
+              lastX = event.clientX;
+              lastY = event.clientY;
+              pendingX += dx;
+              pendingY += dy;
+              if (!rafId) {
+                rafId = requestAnimationFrame(() => {
+                  rafId = 0;
+                  applyPan();
+                });
+              }
+            };
+
+            const endDrag = (event: PointerEvent) => {
+              if (!dragging) return;
+              dragging = false;
+              if (canvas.hasPointerCapture(event.pointerId)) {
+                canvas.releasePointerCapture(event.pointerId);
+              }
+              canvas.style.cursor = "grab";
+              if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = 0;
+              }
+              applyPan();
+            };
+
+            canvas.addEventListener("pointerdown", onPointerDown);
+            window.addEventListener("pointermove", onPointerMove);
+            window.addEventListener("pointerup", endDrag);
+            window.addEventListener("pointercancel", endDrag);
+
+            return () => {
+              canvas.removeEventListener("pointerdown", onPointerDown);
+              window.removeEventListener("pointermove", onPointerMove);
+              window.removeEventListener("pointerup", endDrag);
+              window.removeEventListener("pointercancel", endDrag);
+              canvas.style.cursor = "default";
+              canvas.style.touchAction = "auto";
+              if (rafId) cancelAnimationFrame(rafId);
+            };
           };
 
-          const endDrag = (event: PointerEvent) => {
-            if (!dragging) return;
-            dragging = false;
-            if (canvas.hasPointerCapture(event.pointerId)) {
-              canvas.releasePointerCapture(event.pointerId);
+          // Initial setup
+          panZoomCleanup = setupPanZoom();
+
+          // Re-setup when imageCover changes
+          let prevCover = getConfig().imageCover;
+          const panZoomUnsub = runtime.subscribeConfig((currentConfig) => {
+            const currentCover = currentConfig.imageCover;
+            if (currentCover !== prevCover) {
+              prevCover = currentCover;
+              panZoomCleanup?.();
+              panZoomCleanup = setupPanZoom();
             }
-            canvas.style.cursor = "grab";
-            if (rafId) {
-              cancelAnimationFrame(rafId);
-              rafId = 0;
-            }
-            applyPan();
+          });
+
+          // Combine cleanup with existing config cleanup
+          const originalConfigUnsub = configUnsub;
+          configUnsub = () => {
+            originalConfigUnsub?.();
+            panZoomUnsub();
           };
+        },
 
-          canvas.addEventListener("pointerdown", onPointerDown);
-          window.addEventListener("pointermove", onPointerMove);
-          window.addEventListener("pointerup", endDrag);
-          window.addEventListener("pointercancel", endDrag);
-
-          return () => {
-            canvas.removeEventListener("pointerdown", onPointerDown);
-            window.removeEventListener("pointermove", onPointerMove);
-            window.removeEventListener("pointerup", endDrag);
-            window.removeEventListener("pointercancel", endDrag);
-            canvas.style.cursor = "default";
-            canvas.style.touchAction = "auto";
-            if (rafId) cancelAnimationFrame(rafId);
-          };
-        };
-
-        // Initial setup
-        panZoomCleanup = setupPanZoom();
-
-        // Re-setup when imageCover changes
-        let prevCover = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId].imageCover;
-        const panZoomUnsub = useAppConfigStore.subscribe((state) => {
-          const currentCover = state.pluginConfigs[hsvSamplingPluginId].imageCover;
-          if (currentCover !== prevCover) {
-            prevCover = currentCover;
-            panZoomCleanup?.();
-            panZoomCleanup = setupPanZoom();
+        cleanup() {
+          configUnsub?.();
+          configUnsub = null;
+          if (resizeHandler) {
+            window.removeEventListener("resize", resizeHandler);
+            resizeHandler = null;
           }
-        });
-
-        // Combine cleanup with existing config cleanup
-        const originalConfigUnsub = configUnsub;
-        configUnsub = () => {
-          originalConfigUnsub?.();
-          panZoomUnsub();
-        };
-      },
-
-      cleanup() {
-        configUnsub?.();
-        configUnsub = null;
-        if (resizeHandler) {
-          window.removeEventListener("resize", resizeHandler);
-          resizeHandler = null;
-        }
-        panZoomCleanup?.();
-        panZoomCleanup = null;
-        imageBuffer = null;
-        useHSVRuntimeStore.getState().setImageReady(false);
-      },
-    };
-  },
-};
+          panZoomCleanup?.();
+          panZoomCleanup = null;
+          imageBuffer = null;
+          useHSVRuntimeStore.getState().setImageReady(false);
+        },
+      };
+    },
+  });

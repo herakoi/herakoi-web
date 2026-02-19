@@ -1,10 +1,16 @@
 import type { VisualizationPlugin } from "#src/core/plugin";
+import { Button } from "#src/shared/components/ui/button";
+import { Label } from "#src/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "#src/shared/components/ui/select";
+import { Slider } from "#src/shared/components/ui/slider";
+import { Switch } from "#src/shared/components/ui/switch";
 import { useActivePlugin, useAppConfigStore, useUiPreferences } from "../../state/appConfigStore";
-import { Button } from "../ui/button";
-import { Label } from "../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Slider } from "../ui/slider";
-import { Switch } from "../ui/switch";
 
 type VisualizerPanelProps = {
   visualizers: readonly VisualizationPlugin[];

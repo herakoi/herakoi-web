@@ -1,11 +1,12 @@
 import { Waves } from "lucide-react";
 import type {
+  PluginRuntimeContext,
   PluginTabMeta,
   PluginUISlots,
-  SonificationPlugin,
+  SonificationPluginDefinition,
   SonifierHandle,
 } from "#src/core/plugin";
-import { useAppConfigStore } from "#src/state/appConfigStore";
+import { defineSonificationPlugin } from "#src/core/plugin";
 import { OscillatorSettingsPanel } from "./components/SettingsPanel";
 import {
   defaultOscillatorConfig,
@@ -24,11 +25,10 @@ const ui: PluginUISlots<OscillatorConfig> = {
   SettingsPanel: OscillatorSettingsPanel,
 };
 
-export const oscillatorSonificationPlugin: SonificationPlugin<
+export const plugin: SonificationPluginDefinition<
   typeof oscillatorSonificationPluginId,
   OscillatorConfig
-> = {
-  kind: "sonification",
+> = defineSonificationPlugin({
   id: oscillatorSonificationPluginId,
   displayName: "Web Audio Oscillator",
   settingsTab,
@@ -37,7 +37,10 @@ export const oscillatorSonificationPlugin: SonificationPlugin<
     defaultConfig: defaultOscillatorConfig,
   },
 
-  createSonifier(config: OscillatorConfig): SonifierHandle {
+  createSonifier(
+    config: OscillatorConfig,
+    runtime: PluginRuntimeContext<OscillatorConfig>,
+  ): SonifierHandle {
     const sonifier = new OscillatorSonifier(undefined, {
       minFreq: config.minFreq,
       maxFreq: config.maxFreq,
@@ -47,8 +50,7 @@ export const oscillatorSonificationPlugin: SonificationPlugin<
     });
 
     // Subscribe to config changes from the framework
-    const unsubscribe = useAppConfigStore.subscribe((state) => {
-      const config = state.pluginConfigs[oscillatorSonificationPluginId];
+    const unsubscribe = runtime.subscribeConfig((config) => {
       sonifier.configure({
         minFreq: config.minFreq,
         maxFreq: config.maxFreq,
@@ -68,4 +70,4 @@ export const oscillatorSonificationPlugin: SonificationPlugin<
       cleanup: () => unsubscribe(),
     };
   },
-};
+});

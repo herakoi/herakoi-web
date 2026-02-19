@@ -1,6 +1,6 @@
 import { Loader2, Play, RotateCcw, Square } from "lucide-react";
 import { type RefObject, useState } from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "#src/shared/utils/cn";
 
 type ControlsProps = {
   isActive: boolean;

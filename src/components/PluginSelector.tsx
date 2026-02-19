@@ -1,5 +1,11 @@
-import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Label } from "#src/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "#src/shared/components/ui/select";
 
 type Plugin = {
   id: string;

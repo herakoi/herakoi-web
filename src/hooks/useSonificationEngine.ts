@@ -1,7 +1,6 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { ImageSample } from "#src/core/interfaces";
-import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
-import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
+import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
 import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";
@@ -44,6 +43,23 @@ export const useSonificationEngine = (
     if (imageOverlayRef.current) resizeCanvasToContainer(imageOverlayRef.current);
   }, [imageOverlayRef]);
 
+  const createPluginRuntimeContext = useCallback(
+    (pluginId: string): PluginRuntimeContext<object> => {
+      return {
+        getConfig: () => useAppConfigStore.getState().pluginConfigs[pluginId] as object,
+        setConfig: (updates) =>
+          useAppConfigStore
+            .getState()
+            .setPluginConfig(pluginId, updates as Record<string, unknown>),
+        subscribeConfig: (listener) =>
+          useAppConfigStore.subscribe((state) => {
+            listener(state.pluginConfigs[pluginId] as object);
+          }),
+      };
+    },
+    [],
+  );
+
   const start = useCallback(async () => {
     if (!imageCanvasRef.current) {
       return;
@@ -58,28 +74,37 @@ export const useSonificationEngine = (
 
       if (!activeDetection || !activeSampling || !activeSonification) {
         throw new Error(
-          "Invalid active plugin configuration. Check pipelineConfig and active IDs in store.",
+          "Invalid active plugin configuration. Check engineConfig and active IDs in store.",
         );
       }
 
       // Create plugin instances
       // Get config from appConfigStore for detection plugin
-      const detectionPluginId = activeDetection.id as keyof AppPluginConfigRegistry;
+      const detectionPluginId = activeDetection.id;
       const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
+      const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
-      const dh = activeDetection.createDetector(detectionConfig as never);
+      const dh = activeDetection.createDetector(
+        detectionConfig as never,
+        detectionRuntime as never,
+      );
 
       // Get config from appConfigStore for sampling plugin
-      const samplingPluginId = activeSampling.id as keyof AppPluginConfigRegistry;
+      const samplingPluginId = activeSampling.id;
       const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
+      const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
-      const sh = activeSampling.createSampler(samplingConfig as never);
+      const sh = activeSampling.createSampler(samplingConfig as never, samplingRuntime as never);
 
       // Get config from appConfigStore for sonification plugin
-      const sonificationPluginId = activeSonification.id as keyof AppPluginConfigRegistry;
+      const sonificationPluginId = activeSonification.id;
       const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
+      const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
-      const soh = activeSonification.createSonifier(sonificationConfig as never);
+      const soh = activeSonification.createSonifier(
+        sonificationConfig as never,
+        sonificationRuntime as never,
+      );
 
       detectorHandleRef.current = dh;
       samplerHandleRef.current = sh;
@@ -186,6 +211,7 @@ export const useSonificationEngine = (
     activeSamplingId,
     activeSonificationId,
     ensureCanvasesSized,
+    createPluginRuntimeContext,
     imageCanvasRef,
     imageOverlayRef,
     setStatus,

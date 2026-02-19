@@ -1,6 +1,5 @@
 import { type ComponentType, useMemo, useRef } from "react";
 import type { PipelineConfig, ShellDockPanelProps } from "#src/core/plugin";
-import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { usePluginConfig } from "../../state/appConfigStore";
 
 type UsePluginDockPanelParams = {
@@ -13,9 +12,7 @@ export const usePluginDockPanel = ({
   activeDetectionId,
 }: UsePluginDockPanelParams): ComponentType<ShellDockPanelProps> | undefined => {
   // Get plugin config
-  const [detectionConfig, setDetectionConfig] = usePluginConfig(
-    activeDetectionId as keyof AppPluginConfigRegistry,
-  );
+  const [detectionConfig, setDetectionConfig] = usePluginConfig(activeDetectionId);
 
   // Create ref to hold latest config values
   const detectionConfigRef = useRef({

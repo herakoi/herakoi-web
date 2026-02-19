@@ -1,7 +1,6 @@
 import { Eye } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 import type { PipelineConfig } from "#src/core/plugin";
-import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 import type { ActivePlugins } from "../../state/appConfigStore";
@@ -25,15 +24,9 @@ export const usePluginSections = ({
   const [activeSonificationId, setActiveSonificationId] = useActivePlugin("sonification");
 
   // 2. Get plugin configs at top level (hooks must be called unconditionally)
-  const [sonificationConfig, setSonificationConfig] = usePluginConfig(
-    activeSonificationId as keyof AppPluginConfigRegistry,
-  );
-  const [samplingConfig, setSamplingConfig] = usePluginConfig(
-    activeSamplingId as keyof AppPluginConfigRegistry,
-  );
-  const [detectionConfig, setDetectionConfig] = usePluginConfig(
-    activeDetectionId as keyof AppPluginConfigRegistry,
-  );
+  const [sonificationConfig, setSonificationConfig] = usePluginConfig(activeSonificationId);
+  const [samplingConfig, setSamplingConfig] = usePluginConfig(activeSamplingId);
+  const [detectionConfig, setDetectionConfig] = usePluginConfig(activeDetectionId);
 
   // 3. Create individual plugin switch handlers (stop → update → start)
   const handleSonificationSwitch = useCallback(

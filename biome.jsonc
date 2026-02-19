@@ -41,6 +41,28 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["src/plugins/**/*.ts", "src/plugins/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["#src/**", "!#src/core/**", "!#src/shared/**", "!#src/plugins/**"],
+                    "message": "Plugins can import only from #src/core/*, #src/shared/*, or #src/plugins/*."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "css": {
     "parser": {
       "tailwindDirectives": true

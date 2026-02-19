@@ -1,6 +1,6 @@
 import { FlipHorizontal, Hand, MoveDiagonal2, X } from "lucide-react";
 import type { KeyboardEvent, PointerEvent } from "react";
-import { cn } from "#src/lib/utils";
+import { cn } from "#src/shared/utils/cn";
 
 type DockPanelPiPActionsProps = {
   mirror: boolean;

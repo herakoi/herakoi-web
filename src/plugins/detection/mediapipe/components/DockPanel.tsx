@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { Floating } from "#src/components/Floating";
 import type { DockPanelProps } from "#src/core/plugin";
+import { Floating } from "#src/shared/components/Floating";
 import type { MediaPipeConfig } from "../config";
 import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
 import { DockPanelControls } from "./DockPanelControls";

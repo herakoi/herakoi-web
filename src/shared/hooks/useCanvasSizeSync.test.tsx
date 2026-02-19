@@ -5,7 +5,7 @@
 import { act, useLayoutEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { useCanvasSizeSync } from "./useCanvasSizeSync";
+import { useCanvasSizeSync } from "#src/shared/hooks/useCanvasSizeSync";
 
 type ResizeObserverLike = {
   observe: (target: Element) => void;

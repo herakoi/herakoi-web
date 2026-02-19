@@ -1,11 +1,11 @@
 import { CircleHelp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
-import { cn } from "../lib/utils";
+import { Button } from "#src/shared/components/ui/button";
+import { CardContent } from "#src/shared/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "#src/shared/components/ui/tabs";
+import { cn } from "#src/shared/utils/cn";
 import { HelpPanelContent } from "./HelpPanel";
-import { Button } from "./ui/button";
-import { CardContent } from "./ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 export type SettingsPanelSection<K extends string = string> = {
   key: K;

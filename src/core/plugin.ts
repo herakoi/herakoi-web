@@ -74,7 +74,7 @@ export type PluginTabMeta = {
   icon: ReactNode;
 };
 
-export type PluginConfigSpec<TConfig> = {
+export type PluginConfigSpec<TConfig extends object> = {
   /** Default configuration used for reset and first run. */
   defaultConfig: TConfig;
 };
@@ -93,6 +93,15 @@ export type NotificationData = {
 export type PipelineCallbacks = {
   showNotification: (id: string, data: NotificationData) => void;
   hideNotification: (id: string) => void;
+};
+
+export type PluginRuntimeContext<TConfig extends object> = {
+  /** Read latest persisted config for this plugin. */
+  getConfig: () => TConfig;
+  /** Persist partial config updates for this plugin. */
+  setConfig: (updates: Partial<TConfig>) => void;
+  /** Subscribe to config updates for this plugin. */
+  subscribeConfig: (listener: (config: TConfig) => void) => () => void;
 };
 
 // ──────────────────────────────────────────────────
@@ -116,7 +125,10 @@ export type DetectorHandle = {
   setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface DetectionPlugin<TPluginId extends string = string, TConfig = any> {
+export interface DetectionPlugin<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> {
   readonly kind: "detection";
   readonly id: TPluginId;
   readonly displayName: string;
@@ -128,7 +140,7 @@ export interface DetectionPlugin<TPluginId extends string = string, TConfig = an
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the PointDetector instance from provided configuration. */
-  createDetector(config: TConfig): DetectorHandle;
+  createDetector(config: TConfig, runtime: PluginRuntimeContext<TConfig>): DetectorHandle;
 
   /**
    * Subscribe to pipeline-relevant events from the detector.
@@ -161,7 +173,10 @@ export type SamplerHandle = {
   setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface SamplingPlugin<TPluginId extends string = string, TConfig = any> {
+export interface SamplingPlugin<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> {
   readonly kind: "sampling";
   readonly id: TPluginId;
   readonly displayName: string;
@@ -171,7 +186,7 @@ export interface SamplingPlugin<TPluginId extends string = string, TConfig = any
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the ImageSampler instance from provided configuration. */
-  createSampler(config: TConfig): SamplerHandle;
+  createSampler(config: TConfig, runtime: PluginRuntimeContext<TConfig>): SamplerHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -187,7 +202,10 @@ export type SonifierHandle = {
   cleanup?: () => void;
 };
 
-export interface SonificationPlugin<TPluginId extends string = string, TConfig = any> {
+export interface SonificationPlugin<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> {
   readonly kind: "sonification";
   readonly id: TPluginId;
   readonly displayName: string;
@@ -197,7 +215,7 @@ export interface SonificationPlugin<TPluginId extends string = string, TConfig =
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the Sonifier instance from provided configuration. */
-  createSonifier(config: TConfig): SonifierHandle;
+  createSonifier(config: TConfig, runtime: PluginRuntimeContext<TConfig>): SonifierHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -257,7 +275,7 @@ export interface VisualizationPlugin {
 }
 
 // ──────────────────────────────────────────────────
-// Pipeline configuration
+// Engine configuration
 // ──────────────────────────────────────────────────
 
 /**
@@ -270,9 +288,57 @@ export interface VisualizationPlugin {
  * Visualization plugins are optional and can be enabled/disabled via
  * settings UI. Only one visualizer can be active at a time.
  */
-export type PipelineConfig = {
-  detection: readonly DetectionPlugin<string, any>[];
-  sampling: readonly SamplingPlugin<string, any>[];
-  sonification: readonly SonificationPlugin<string, any>[];
+export type EngineConfig = {
+  detection: readonly DetectionPlugin<string, object>[];
+  sampling: readonly SamplingPlugin<string, object>[];
+  sonification: readonly SonificationPlugin<string, object>[];
   visualization: readonly VisualizationPlugin[];
 };
+
+/** Backward-compatible alias. Prefer EngineConfig for new code. */
+export type PipelineConfig = EngineConfig;
+
+export type RuntimePlugin =
+  | DetectionPlugin<string, object>
+  | SamplingPlugin<string, object>
+  | SonificationPlugin<string, object>
+  | VisualizationPlugin;
+
+export type DetectionPluginDefinition<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> = Omit<DetectionPlugin<TPluginId, TConfig>, "kind">;
+
+export type SamplingPluginDefinition<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> = Omit<SamplingPlugin<TPluginId, TConfig>, "kind">;
+
+export type SonificationPluginDefinition<
+  TPluginId extends string = string,
+  TConfig extends object = object,
+> = Omit<SonificationPlugin<TPluginId, TConfig>, "kind">;
+
+export type VisualizationPluginDefinition = Omit<VisualizationPlugin, "kind">;
+
+/**
+ * Standard plugin declaration helper.
+ * Plugin modules should export: `export const plugin = definePlugin({ ... })`.
+ */
+export const definePlugin = <TPlugin extends RuntimePlugin>(plugin: TPlugin): TPlugin => plugin;
+
+export const defineDetectionPlugin = <TPluginId extends string, TConfig extends object>(
+  plugin: DetectionPluginDefinition<TPluginId, TConfig>,
+): DetectionPluginDefinition<TPluginId, TConfig> => plugin;
+
+export const defineSamplingPlugin = <TPluginId extends string, TConfig extends object>(
+  plugin: SamplingPluginDefinition<TPluginId, TConfig>,
+): SamplingPluginDefinition<TPluginId, TConfig> => plugin;
+
+export const defineSonificationPlugin = <TPluginId extends string, TConfig extends object>(
+  plugin: SonificationPluginDefinition<TPluginId, TConfig>,
+): SonificationPluginDefinition<TPluginId, TConfig> => plugin;
+
+export const defineVisualizationPlugin = <TPlugin extends VisualizationPluginDefinition>(
+  plugin: TPlugin,
+): TPlugin => plugin;

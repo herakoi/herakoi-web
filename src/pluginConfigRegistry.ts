@@ -1,34 +1,27 @@
-import {
-  defaultMediaPipeConfig,
-  type MediaPipeConfig,
-  mediaPipeDetectionPluginId,
-} from "#src/plugins/detection/mediapipe/config";
-import {
-  defaultHSVSamplingConfig,
-  type HSVSamplingConfig,
-  hsvSamplingPluginId,
-} from "#src/plugins/sampling/hsv/config";
-import {
-  defaultOscillatorConfig,
-  type OscillatorConfig,
-  oscillatorSonificationPluginId,
-} from "#src/plugins/sonification/oscillator/config";
+import { engineConfig } from "#src/engineConfig";
 
-export type AppPluginConfigRegistry = {
-  [mediaPipeDetectionPluginId]: MediaPipeConfig;
-  [hsvSamplingPluginId]: HSVSamplingConfig;
-  [oscillatorSonificationPluginId]: OscillatorConfig;
-};
+export type AppPluginConfigRegistry = Record<string, Record<string, unknown>>;
 
 export type AppActivePlugins = {
-  detection: typeof mediaPipeDetectionPluginId;
-  sampling: typeof hsvSamplingPluginId;
-  sonification: typeof oscillatorSonificationPluginId;
+  detection: string;
+  sampling: string;
+  sonification: string;
   visualization: string | null;
 };
 
-export const pluginConfigDefaults: AppPluginConfigRegistry = {
-  [mediaPipeDetectionPluginId]: defaultMediaPipeConfig,
-  [hsvSamplingPluginId]: defaultHSVSamplingConfig,
-  [oscillatorSonificationPluginId]: defaultOscillatorConfig,
+const runtimeConfigPlugins = [
+  ...engineConfig.detection,
+  ...engineConfig.sampling,
+  ...engineConfig.sonification,
+];
+
+export const pluginConfigDefaults: AppPluginConfigRegistry = Object.fromEntries(
+  runtimeConfigPlugins.map((plugin) => [plugin.id, plugin.config.defaultConfig]),
+) as AppPluginConfigRegistry;
+
+export const defaultActivePlugins: AppActivePlugins = {
+  detection: engineConfig.detection[0].id,
+  sampling: engineConfig.sampling[0].id,
+  sonification: engineConfig.sonification[0].id,
+  visualization: null,
 };

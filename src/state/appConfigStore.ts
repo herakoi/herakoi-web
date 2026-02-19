@@ -12,12 +12,14 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { engineConfig } from "#src/engineConfig";
 import {
   type AppActivePlugins,
   type AppPluginConfigRegistry,
+  defaultActivePlugins,
   pluginConfigDefaults,
-} from "../pluginConfigRegistry";
-import { APP_CONFIG_KEY } from "./persistenceKeys";
+} from "#src/pluginConfigRegistry";
+import { APP_CONFIG_KEY } from "#src/state/persistenceKeys";
 
 // ──────────────────────────────────────────────────
 // Type Definitions
@@ -27,7 +29,7 @@ export type PipelineSlot = "detection" | "sampling" | "sonification" | "visualiz
 
 /**
  * Active plugin selections for each pipeline slot.
- * Keys are slot names, values are plugin IDs inferred from pipelineConfig.
+ * Keys are slot names, values are plugin IDs inferred from engineConfig.
  */
 export type ActivePlugins = AppActivePlugins;
 
@@ -58,10 +60,7 @@ export interface AppConfigActions {
   setActivePlugin: <K extends keyof ActivePlugins>(slot: K, pluginId: ActivePlugins[K]) => void;
 
   /** Update configuration for a specific plugin */
-  setPluginConfig: <K extends keyof AppPluginConfigRegistry>(
-    pluginId: K,
-    updates: Partial<AppPluginConfigRegistry[K]>,
-  ) => void;
+  setPluginConfig: (pluginId: string, updates: Record<string, unknown>) => void;
 
   /** Update shell UI preferences */
   setUiPreferences: (updates: Partial<UiPreferences>) => void;
@@ -80,13 +79,6 @@ export interface AppConfigActions {
 // Default Configuration
 // ──────────────────────────────────────────────────
 
-const defaultActivePlugins: ActivePlugins = {
-  detection: "detection/mediapipe",
-  sampling: "sampling/hsv",
-  sonification: "sonification/oscillator",
-  visualization: null,
-};
-
 const defaultUiPreferences: UiPreferences = {
   baseUiOpacity: 1,
   dimLogoMark: false,
@@ -96,6 +88,57 @@ const defaultConfig: AppConfigState = {
   activePlugins: defaultActivePlugins,
   pluginConfigs: pluginConfigDefaults,
   uiPreferences: defaultUiPreferences,
+};
+
+const knownPluginConfigIds = new Set(Object.keys(pluginConfigDefaults));
+const detectionIds = new Set(engineConfig.detection.map((plugin) => plugin.id));
+const samplingIds = new Set(engineConfig.sampling.map((plugin) => plugin.id));
+const sonificationIds = new Set(engineConfig.sonification.map((plugin) => plugin.id));
+const visualizationIds = new Set(engineConfig.visualization.map((plugin) => plugin.id));
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const mergePluginConfigs = (incoming: unknown): AppPluginConfigRegistry => {
+  const merged: AppPluginConfigRegistry = { ...pluginConfigDefaults };
+  if (!isRecord(incoming)) return merged;
+
+  for (const [pluginId, value] of Object.entries(incoming)) {
+    if (!knownPluginConfigIds.has(pluginId) || !isRecord(value)) {
+      continue;
+    }
+
+    merged[pluginId] = {
+      ...(pluginConfigDefaults[pluginId] as Record<string, unknown>),
+      ...value,
+    };
+  }
+
+  return merged;
+};
+
+const sanitizeActivePlugins = (incoming: unknown): ActivePlugins => {
+  const fallback: ActivePlugins = { ...defaultActivePlugins };
+  if (!isRecord(incoming)) return fallback;
+
+  const next: ActivePlugins = { ...fallback };
+  const detection = incoming.detection;
+  const sampling = incoming.sampling;
+  const sonification = incoming.sonification;
+  const visualization = incoming.visualization;
+
+  if (typeof detection === "string" && detectionIds.has(detection)) next.detection = detection;
+  if (typeof sampling === "string" && samplingIds.has(sampling)) next.sampling = sampling;
+  if (typeof sonification === "string" && sonificationIds.has(sonification)) {
+    next.sonification = sonification;
+  }
+  if (visualization === null) next.visualization = null;
+  if (typeof visualization === "string" && visualizationIds.has(visualization)) {
+    next.visualization = visualization;
+  }
+
+  return next;
 };
 
 // ──────────────────────────────────────────────────
@@ -120,11 +163,13 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
       },
 
       setPluginConfig: (pluginId, updates) => {
+        if (!knownPluginConfigIds.has(pluginId)) return;
+
         set((state) => ({
           pluginConfigs: {
             ...state.pluginConfigs,
             [pluginId]: {
-              ...state.pluginConfigs[pluginId],
+              ...(state.pluginConfigs[pluginId] as Record<string, unknown>),
               ...updates,
             },
           },
@@ -161,26 +206,9 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
         try {
           const imported = JSON.parse(json) as Partial<AppConfigState>;
 
-          // Deep merge plugin configs (each plugin config needs individual merging)
-          const mergedPluginConfigs = { ...pluginConfigDefaults };
-          if (imported.pluginConfigs) {
-            for (const key in imported.pluginConfigs) {
-              const pluginId = key as keyof AppPluginConfigRegistry;
-              // Type assertion is safe: we're merging defaults with imported config for the same plugin ID
-              // biome-ignore lint/suspicious/noExplicitAny: Type narrowing not possible with union types
-              (mergedPluginConfigs as any)[pluginId] = {
-                ...pluginConfigDefaults[pluginId],
-                ...imported.pluginConfigs[pluginId],
-              };
-            }
-          }
-
           set({
-            activePlugins: {
-              ...defaultActivePlugins,
-              ...imported.activePlugins,
-            },
-            pluginConfigs: mergedPluginConfigs,
+            activePlugins: sanitizeActivePlugins(imported.activePlugins),
+            pluginConfigs: mergePluginConfigs(imported.pluginConfigs),
             uiPreferences: {
               ...defaultUiPreferences,
               ...imported.uiPreferences,
@@ -213,10 +241,12 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
 export function usePluginConfig<K extends keyof AppPluginConfigRegistry>(
   pluginId: K,
 ): [AppPluginConfigRegistry[K], (updates: Partial<AppPluginConfigRegistry[K]>) => void] {
-  const config = useAppConfigStore((state) => state.pluginConfigs[pluginId]);
+  const config = useAppConfigStore(
+    (state) => state.pluginConfigs[pluginId] ?? pluginConfigDefaults[pluginId],
+  );
   const setConfig = useAppConfigStore((state) => state.setPluginConfig);
 
-  return [config, (updates) => setConfig(pluginId, updates)];
+  return [config, (updates) => setConfig(pluginId, updates as Record<string, unknown>)];
 }
 
 /**

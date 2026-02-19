@@ -1,17 +1,17 @@
 import { Upload } from "lucide-react";
 import { type ChangeEvent, useRef, useState } from "react";
-import { Input } from "#src/components/ui/input";
-import { Label } from "#src/components/ui/label";
+import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { Input } from "#src/shared/components/ui/input";
+import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "#src/components/ui/select";
-import { Switch } from "#src/components/ui/switch";
-import type { PluginSettingsPanelProps } from "#src/core/plugin";
-import { cn } from "#src/lib/utils";
+} from "#src/shared/components/ui/select";
+import { Switch } from "#src/shared/components/ui/switch";
+import { cn } from "#src/shared/utils/cn";
 import type { HSVSamplingConfig } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";

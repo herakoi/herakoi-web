@@ -1,6 +1,5 @@
 import { type ComponentType, useMemo, useRef } from "react";
 import type { PipelineConfig } from "#src/core/plugin";
-import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { usePluginConfig } from "../../state/appConfigStore";
 
 type UsePluginToolbarParams = {
@@ -13,9 +12,7 @@ export const usePluginToolbar = ({
   activeSamplingId,
 }: UsePluginToolbarParams): ComponentType | undefined => {
   // Get plugin config
-  const [samplingConfig, setSamplingConfig] = usePluginConfig(
-    activeSamplingId as keyof AppPluginConfigRegistry,
-  );
+  const [samplingConfig, setSamplingConfig] = usePluginConfig(activeSamplingId);
 
   // Create ref to hold latest config values
   const samplingConfigRef = useRef({

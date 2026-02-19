@@ -4,10 +4,10 @@ import { Controls } from "./components/header/Controls";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
 import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
-import { pipelineConfig } from "./pipelineConfig";
 import { useUiPreferences } from "./state/appConfigStore";
 
 const App = () => {
@@ -17,7 +17,7 @@ const App = () => {
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
   const { start, stop, status, analyser, visualizerFrameDataRef } = useSonificationEngine(
-    pipelineConfig,
+    engineConfig,
     {
       imageCanvasRef,
       imageOverlayRef,
@@ -30,7 +30,7 @@ const App = () => {
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
 
   const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
-    config: pipelineConfig,
+    config: engineConfig,
     start,
     stop,
   });
