@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
-import type { AppPluginConfigRegistry } from "#src/app/pluginConfigRegistry";
 import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
+import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";

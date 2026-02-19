@@ -1,12 +1,12 @@
-import { Label } from "#src/app/components/ui/label";
+import { Label } from "#src/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "#src/app/components/ui/select";
-import { Slider } from "#src/app/components/ui/slider";
+} from "#src/components/ui/select";
+import { Slider } from "#src/components/ui/slider";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import type { OscillatorConfig } from "../config";
 

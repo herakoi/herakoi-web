@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { pluginConfigDefaults } from "#src/app/pluginConfigRegistry";
+import { pluginConfigDefaults } from "#src/pluginConfigRegistry";
 import { useAppConfigStore } from "./appConfigStore";
 
 describe("appConfigStore", () => {

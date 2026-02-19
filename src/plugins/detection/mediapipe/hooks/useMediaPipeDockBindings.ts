@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useCanvasSizeSync } from "#src/app/hooks/ui";
+import { useCanvasSizeSync } from "#src/hooks/ui";
 import { registerOverlayRef, registerVideoRef } from "../refs";
 import { useVideoReady } from "./useVideoReady";
 

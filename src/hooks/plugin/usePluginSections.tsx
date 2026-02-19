@@ -1,7 +1,7 @@
 import { Eye } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
-import type { AppPluginConfigRegistry } from "#src/app/pluginConfigRegistry";
 import type { PipelineConfig } from "#src/core/plugin";
+import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 import type { ActivePlugins } from "../../state/appConfigStore";

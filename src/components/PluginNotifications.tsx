@@ -1,6 +1,6 @@
 import { Fragment } from "react";
-import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
-import { useNotificationStore } from "#src/app/state/notificationStore";
+import { useAppRuntimeStore } from "#src/state/appRuntimeStore";
+import { useNotificationStore } from "#src/state/notificationStore";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 export const PluginNotifications = () => {

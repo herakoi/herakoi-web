@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAppRuntimeStore } from "#src/app/state/appRuntimeStore";
+import { useAppRuntimeStore } from "#src/state/appRuntimeStore";
 
 /**
  * Maps runtime UI opacity to CSS fade styles used by shell layout components.

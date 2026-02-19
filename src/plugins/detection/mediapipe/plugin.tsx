@@ -1,5 +1,4 @@
 import { Hand, Pointer } from "lucide-react";
-import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPlugin,
@@ -7,6 +6,7 @@ import type {
   PluginTabMeta,
   PluginUISlots,
 } from "#src/core/plugin";
+import { useAppConfigStore } from "#src/state/appConfigStore";
 import { MediaPipeDockPanel } from "./components/DockPanel";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";

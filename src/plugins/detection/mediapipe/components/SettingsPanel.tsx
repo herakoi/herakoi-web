@@ -1,13 +1,13 @@
-import { Label } from "#src/app/components/ui/label";
+import { Label } from "#src/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "#src/app/components/ui/select";
-import { Slider } from "#src/app/components/ui/slider";
-import { Switch } from "#src/app/components/ui/switch";
+} from "#src/components/ui/select";
+import { Slider } from "#src/components/ui/slider";
+import { Switch } from "#src/components/ui/switch";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import type { MediaPipeConfig } from "../config";
 

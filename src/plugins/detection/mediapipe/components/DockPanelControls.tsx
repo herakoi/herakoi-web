@@ -1,13 +1,13 @@
 import { Camera } from "lucide-react";
-import { Button } from "#src/app/components/ui/button";
+import { Button } from "#src/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "#src/app/components/ui/select";
-import { cn } from "#src/app/lib/utils";
+} from "#src/components/ui/select";
+import { cn } from "#src/lib/utils";
 
 type DockPanelControlsProps = {
   pipOpen: boolean;

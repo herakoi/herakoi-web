@@ -1,6 +1,6 @@
 import { type ComponentType, useMemo, useRef } from "react";
-import type { AppPluginConfigRegistry } from "#src/app/pluginConfigRegistry";
 import type { PipelineConfig } from "#src/core/plugin";
+import type { AppPluginConfigRegistry } from "#src/pluginConfigRegistry";
 import { usePluginConfig } from "../../state/appConfigStore";
 
 type UsePluginToolbarParams = {

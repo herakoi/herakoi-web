@@ -1,11 +1,11 @@
 import { Waves } from "lucide-react";
-import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type {
   PluginTabMeta,
   PluginUISlots,
   SonificationPlugin,
   SonifierHandle,
 } from "#src/core/plugin";
+import { useAppConfigStore } from "#src/state/appConfigStore";
 import { OscillatorSettingsPanel } from "./components/SettingsPanel";
 import {
   defaultOscillatorConfig,

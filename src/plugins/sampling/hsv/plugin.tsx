@@ -1,6 +1,6 @@
 import { Image as ImageIcon } from "lucide-react";
-import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type { PluginTabMeta, PluginUISlots, SamplerHandle, SamplingPlugin } from "#src/core/plugin";
+import { useAppConfigStore } from "#src/state/appConfigStore";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
 import { defaultHSVSamplingConfig, type HSVSamplingConfig, hsvSamplingPluginId } from "./config";

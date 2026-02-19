@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { PipelineStatus } from "#src/app/state/appRuntimeStore";
+import type { PipelineStatus } from "#src/state/appRuntimeStore";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 type Props = {
