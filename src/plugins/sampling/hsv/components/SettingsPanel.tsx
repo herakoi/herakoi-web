@@ -38,6 +38,7 @@ export const HSVSettingsPanel = ({
     if (!file) return;
     await handleImageFile(file);
   };
+  const isCoverMode = config.viewportMode.kind === "cover";
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -66,8 +67,16 @@ export const HSVSettingsPanel = ({
         </Label>
         <Switch
           id="cover-toggle"
-          checked={config.imageCover}
-          onCheckedChange={(checked) => setConfig({ imageCover: checked })}
+          checked={isCoverMode}
+          onCheckedChange={(checked) =>
+            setConfig({
+              viewportMode: checked
+                ? isCoverMode
+                  ? config.viewportMode
+                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 }
+                : { kind: "contain" },
+            })
+          }
         />
       </div>
       <button

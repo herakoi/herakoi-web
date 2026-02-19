@@ -39,6 +39,15 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
+const isViewportModeEqual = (
+  left: HSVSamplingConfig["viewportMode"],
+  right: HSVSamplingConfig["viewportMode"],
+) => {
+  if (left.kind === "contain") return right.kind === "contain";
+  if (right.kind !== "cover") return false;
+  return left.pan.x === right.pan.x && left.pan.y === right.pan.y && left.zoom === right.zoom;
+};
+
 export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSamplingConfig> =
   defineSamplingPlugin({
     id: hsvSamplingPluginId,
@@ -63,20 +72,27 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
 
       const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
-        const { imageCover, imagePan } = getConfig();
+        const { viewportMode } = getConfig();
         resizeCanvasToContainer(canvas);
-        const drawn = drawImageToCanvas(canvas, img, imageCover, imagePan);
+        const drawn = drawImageToCanvas(canvas, img, viewportMode);
         if (!drawn) return;
         await sampler.loadImage(canvas);
         useHSVRuntimeStore.getState().setImageReady(true);
-        window.dispatchEvent(new Event("herakoi-image-rendered"));
       };
 
       const loadAndDraw = async (src: string) => {
         const canvas = getCanvas();
         if (!canvas) return;
         const img = await loadImageElement(src);
-        runtime.setConfig({ imagePan: { x: 0, y: 0 } });
+        const currentViewportMode = getConfig().viewportMode;
+        if (currentViewportMode.kind === "cover") {
+          runtime.setConfig({
+            viewportMode: {
+              ...currentViewportMode,
+              pan: { x: 0, y: 0 },
+            },
+          });
+        }
         imageBuffer = img;
         await drawAndEncode(img, canvas);
       };
@@ -130,12 +146,10 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               return;
             }
 
-            // Cover or pan changed — redraw current image
+            // Viewport mode changed — redraw current image
             if (
               imageBuffer &&
-              (currentConfig.imageCover !== previousConfig.imageCover ||
-                currentConfig.imagePan.x !== previousConfig.imagePan.x ||
-                currentConfig.imagePan.y !== previousConfig.imagePan.y)
+              !isViewportModeEqual(currentConfig.viewportMode, previousConfig.viewportMode)
             ) {
               previousConfig = { ...currentConfig };
               void drawAndEncode(imageBuffer, canvas);
@@ -156,13 +170,14 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             const canvas = getCanvas();
             if (!canvas) return null;
 
-            const { imageCover } = getConfig();
+            const { viewportMode } = getConfig();
+            const coverModeEnabled = viewportMode.kind === "cover";
 
             // Update cursor styles
-            canvas.style.cursor = imageCover ? "grab" : "default";
-            canvas.style.touchAction = imageCover ? "none" : "auto";
+            canvas.style.cursor = coverModeEnabled ? "grab" : "default";
+            canvas.style.touchAction = coverModeEnabled ? "none" : "auto";
 
-            if (!imageCover) return null;
+            if (!coverModeEnabled) return null;
 
             // Pan/drag state
             let dragging = false;
@@ -174,11 +189,15 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
             const applyPan = () => {
               if (!pendingX && !pendingY) return;
-              const current = getConfig().imagePan;
+              const currentViewportMode = getConfig().viewportMode;
+              if (currentViewportMode.kind !== "cover") return;
               runtime.setConfig({
-                imagePan: {
-                  x: current.x + pendingX,
-                  y: current.y + pendingY,
+                viewportMode: {
+                  ...currentViewportMode,
+                  pan: {
+                    x: currentViewportMode.pan.x + pendingX,
+                    y: currentViewportMode.pan.y + pendingY,
+                  },
                 },
               });
               pendingX = 0;
@@ -243,12 +262,12 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           // Initial setup
           panZoomCleanup = setupPanZoom();
 
-          // Re-setup when imageCover changes
-          let prevCover = getConfig().imageCover;
+          // Re-setup when viewport mode kind changes
+          let previousKind = getConfig().viewportMode.kind;
           const panZoomUnsub = runtime.subscribeConfig((currentConfig) => {
-            const currentCover = currentConfig.imageCover;
-            if (currentCover !== prevCover) {
-              prevCover = currentCover;
+            const currentKind = currentConfig.viewportMode.kind;
+            if (currentKind !== previousKind) {
+              previousKind = currentKind;
               panZoomCleanup?.();
               panZoomCleanup = setupPanZoom();
             }

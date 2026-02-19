@@ -1,8 +1,6 @@
 import { ChevronDown, Crop, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
-// TODO: fare in modo che i plugin non possano importare da fuori la cartella plugin
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
-// TODO: creare un path #components valido per tutte le rotte plugin
 import {
   Popover,
   PopoverAnchor,
@@ -55,6 +53,7 @@ export const HSVToolbarItems = ({
 
   const baseButtonClass =
     "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground";
+  const isCoverMode = config.viewportMode.kind === "cover";
 
   return (
     <Popover>
@@ -95,11 +94,17 @@ export const HSVToolbarItems = ({
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               baseButtonClass,
-              config.imageCover && "border-white/40 bg-white/10 text-white shadow-sm",
+              isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
             )}
             aria-label="Toggle cover mode"
-            aria-pressed={config.imageCover}
-            onClick={() => setConfig({ imageCover: !config.imageCover })}
+            aria-pressed={isCoverMode}
+            onClick={() =>
+              setConfig({
+                viewportMode: isCoverMode
+                  ? { kind: "contain" }
+                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 },
+              })
+            }
           >
             <Crop className="h-4 w-4" />
           </button>

@@ -1,13 +1,15 @@
 export const hsvSamplingPluginId = "sampling/hsv" as const;
 
+export type HSVViewportMode =
+  | { kind: "contain" }
+  | { kind: "cover"; pan: { x: number; y: number }; zoom: number };
+
 export interface HSVSamplingConfig {
-  imageCover: boolean;
-  imagePan: { x: number; y: number };
+  viewportMode: HSVViewportMode;
   currentImageId: string | null;
 }
 
 export const defaultHSVSamplingConfig: HSVSamplingConfig = {
-  imageCover: false,
-  imagePan: { x: 0, y: 0 },
+  viewportMode: { kind: "contain" },
   currentImageId: null,
 };
