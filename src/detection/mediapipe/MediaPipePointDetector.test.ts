@@ -28,7 +28,6 @@
  * Omit it for pure TypeScript logic tests to keep them fast.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-this-alias */
 import type { Results } from "@mediapipe/hands";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

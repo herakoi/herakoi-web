@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useCanvasSizeSync } from "#src/app/hooks/useCanvasSizeSync";
-import { useVideoReady } from "#src/app/hooks/useVideoReady";
+import { useCanvasSizeSync } from "#src/app/hooks/ui";
 import { registerOverlayRef, registerVideoRef } from "../refs";
+import { useVideoReady } from "./useVideoReady";
 
 export const useMediaPipeDockBindings = () => {
   const videoRef = useRef<HTMLVideoElement>(null);

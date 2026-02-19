@@ -4,10 +4,9 @@ import { Controls } from "./components/header/Controls";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { PluginNotifications } from "./components/PluginNotifications";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { useIdleDimmer } from "./hooks/useIdleDimmer";
-import { usePluginUi } from "./hooks/usePluginUi";
+import { usePluginUi } from "./hooks/plugin";
+import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
-import { useUiDimFade } from "./hooks/useUiDimFade";
 import { pipelineConfig } from "./pipelineConfig";
 import { useUiPreferences } from "./state/appConfigStore";
 

@@ -171,13 +171,11 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
             for (const key in imported.pluginConfigs) {
               const pluginId = key as keyof PluginConfigRegistry;
               // Type assertion is safe: we're merging defaults with imported config for the same plugin ID
-              /* eslint-disable @typescript-eslint/no-explicit-any */
               // biome-ignore lint/suspicious/noExplicitAny: Type narrowing not possible with union types
               (mergedPluginConfigs as any)[pluginId] = {
                 ...pluginConfigDefaults[pluginId],
                 ...imported.pluginConfigs[pluginId],
               };
-              /* eslint-enable @typescript-eslint/no-explicit-any */
             }
           }
 

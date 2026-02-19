@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useAppRuntimeStore } from "../state/appRuntimeStore";
+import { useAppRuntimeStore } from "../../state/appRuntimeStore";
 
 const now = () => (typeof performance === "undefined" ? Date.now() : performance.now());
 

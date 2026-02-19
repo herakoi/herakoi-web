@@ -1,18 +1,11 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
+import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";
-
-const resizeCanvasToContainer = (canvas: HTMLCanvasElement) => {
-  const parent = canvas.parentElement;
-  const rect = parent?.getBoundingClientRect();
-  const width = Math.round(rect?.width ?? canvas.clientWidth ?? 640);
-  const height = Math.round(rect?.height ?? canvas.clientHeight ?? Math.round(width * 0.75)) || 480;
-  canvas.width = width;
-  canvas.height = height;
-};
+import { resizeCanvasToContainer } from "./ui/canvas";
 
 type Refs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
@@ -71,22 +64,19 @@ export const useSonificationEngine = (
 
       // Create plugin instances
       // Get config from appConfigStore for detection plugin
-      const detectionPluginId =
-        activeDetection.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const detectionPluginId = activeDetection.id as keyof PluginConfigRegistry;
       const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const dh = activeDetection.createDetector(detectionConfig as never);
 
       // Get config from appConfigStore for sampling plugin
-      const samplingPluginId =
-        activeSampling.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const samplingPluginId = activeSampling.id as keyof PluginConfigRegistry;
       const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const sh = activeSampling.createSampler(samplingConfig as never);
 
       // Get config from appConfigStore for sonification plugin
-      const sonificationPluginId =
-        activeSonification.id as keyof import("#src/core/pluginConfig").PluginConfigRegistry;
+      const sonificationPluginId = activeSonification.id as keyof PluginConfigRegistry;
       const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const soh = activeSonification.createSonifier(sonificationConfig as never);
