@@ -14,7 +14,7 @@ import {
   drawFingerFocus,
   drawHands,
   type HandOverlayStyle,
-} from "#src/detection/mediapipe/overlay";
+} from "#src/plugins/detection/mediapipe/overlay";
 import type { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 type OverlayTarget = {

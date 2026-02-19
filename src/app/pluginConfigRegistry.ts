@@ -2,17 +2,17 @@ import {
   defaultMediaPipeConfig,
   type MediaPipeConfig,
   mediaPipeDetectionPluginId,
-} from "#src/detection/mediapipe/config";
+} from "#src/plugins/detection/mediapipe/config";
 import {
   defaultHSVSamplingConfig,
   type HSVSamplingConfig,
   hsvSamplingPluginId,
-} from "#src/sampling/hsv/config";
+} from "#src/plugins/sampling/hsv/config";
 import {
   defaultOscillatorConfig,
   type OscillatorConfig,
   oscillatorSonificationPluginId,
-} from "#src/sonification/oscillator/config";
+} from "#src/plugins/sonification/oscillator/config";
 
 export type AppPluginConfigRegistry = {
   [mediaPipeDetectionPluginId]: MediaPipeConfig;

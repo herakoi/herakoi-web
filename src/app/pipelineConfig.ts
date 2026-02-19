@@ -1,8 +1,8 @@
 import type { PipelineConfig } from "#src/core/plugin";
-import { mediaPipeDetectionPlugin } from "#src/detection/mediapipe/plugin";
-import { hsvSamplingPlugin } from "#src/sampling/hsv/plugin";
-import { oscillatorSonificationPlugin } from "#src/sonification/oscillator/plugin";
-import { debugHudVisualizationPlugin } from "#src/visualization/debugHud/plugin";
+import { mediaPipeDetectionPlugin } from "#src/plugins/detection/mediapipe/plugin";
+import { hsvSamplingPlugin } from "#src/plugins/sampling/hsv/plugin";
+import { oscillatorSonificationPlugin } from "#src/plugins/sonification/oscillator/plugin";
+import { debugHudVisualizationPlugin } from "#src/plugins/visualization/debugHud/plugin";
 
 /**
  * Pipeline composition configuration.
@@ -13,7 +13,7 @@ import { debugHudVisualizationPlugin } from "#src/visualization/debugHud/plugin"
  *
  * Example: To add a mouse detector, import it and add to detection array:
  * ```
- * import { mouseDetectionPlugin } from "#src/detection/mouse/plugin";
+ * import { mouseDetectionPlugin } from "#src/plugins/detection/mouse/plugin";
  * detection: [mediaPipeDetectionPlugin, mouseDetectionPlugin],
  * ```
  */

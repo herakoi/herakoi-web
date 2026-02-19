@@ -3,11 +3,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MediaPipePointDetector } from "#src/detection/mediapipe/MediaPipePointDetector";
-import { drawFingerFocus, drawHands } from "#src/detection/mediapipe/overlay";
-import { bindHandsUi } from "#src/detection/mediapipe/uiHands";
+import type { MediaPipePointDetector } from "#src/plugins/detection/mediapipe/MediaPipePointDetector";
+import { drawFingerFocus, drawHands } from "#src/plugins/detection/mediapipe/overlay";
+import { bindHandsUi } from "#src/plugins/detection/mediapipe/uiHands";
 
-vi.mock("#src/detection/mediapipe/overlay", () => ({
+vi.mock("#src/plugins/detection/mediapipe/overlay", () => ({
   drawHands: vi.fn(),
   drawFingerFocus: vi.fn(),
 }));
