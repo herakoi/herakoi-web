@@ -18,9 +18,9 @@ import { debugHudVisualizationPlugin } from "#src/visualization/debugHud/plugin"
  * ```
  */
 // TODO: Generalizzare la discovery dei plugin per evitare una config statica
-export const pipelineConfig: PipelineConfig = {
+export const pipelineConfig = {
   detection: [mediaPipeDetectionPlugin],
   sampling: [hsvSamplingPlugin],
   sonification: [oscillatorSonificationPlugin],
   visualization: [debugHudVisualizationPlugin],
-};
+} as const satisfies PipelineConfig;

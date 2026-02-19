@@ -12,9 +12,11 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { PluginConfigRegistry } from "#src/core/pluginConfig";
-import { pluginConfigDefaults } from "#src/core/pluginConfig";
-import { pipelineConfig } from "../pipelineConfig";
+import {
+  type AppActivePlugins,
+  type AppPluginConfigRegistry,
+  pluginConfigDefaults,
+} from "../pluginConfigRegistry";
 import { APP_CONFIG_KEY } from "./persistenceKeys";
 
 // ──────────────────────────────────────────────────
@@ -25,15 +27,9 @@ export type PipelineSlot = "detection" | "sampling" | "sonification" | "visualiz
 
 /**
  * Active plugin selections for each pipeline slot.
- * Keys are slot names, values are plugin IDs from PluginConfigRegistry.
- * Visualization can be any string (not all visualizers need config).
+ * Keys are slot names, values are plugin IDs inferred from pipelineConfig.
  */
-export type ActivePlugins = {
-  detection: keyof PluginConfigRegistry;
-  sampling: keyof PluginConfigRegistry;
-  sonification: keyof PluginConfigRegistry;
-  visualization: string | null;
-};
+export type ActivePlugins = AppActivePlugins;
 
 /**
  * Shell UI preferences (not plugin-specific).
@@ -50,7 +46,7 @@ export interface UiPreferences {
  */
 export interface AppConfigState {
   activePlugins: ActivePlugins;
-  pluginConfigs: PluginConfigRegistry;
+  pluginConfigs: AppPluginConfigRegistry;
   uiPreferences: UiPreferences;
 }
 
@@ -62,9 +58,9 @@ export interface AppConfigActions {
   setActivePlugin: <K extends keyof ActivePlugins>(slot: K, pluginId: ActivePlugins[K]) => void;
 
   /** Update configuration for a specific plugin */
-  setPluginConfig: <K extends keyof PluginConfigRegistry>(
+  setPluginConfig: <K extends keyof AppPluginConfigRegistry>(
     pluginId: K,
-    updates: Partial<PluginConfigRegistry[K]>,
+    updates: Partial<AppPluginConfigRegistry[K]>,
   ) => void;
 
   /** Update shell UI preferences */
@@ -85,9 +81,9 @@ export interface AppConfigActions {
 // ──────────────────────────────────────────────────
 
 const defaultActivePlugins: ActivePlugins = {
-  detection: (pipelineConfig.detection[0]?.id ?? "mediapipe-hands") as keyof PluginConfigRegistry,
-  sampling: (pipelineConfig.sampling[0]?.id ?? "hsv-color") as keyof PluginConfigRegistry,
-  sonification: (pipelineConfig.sonification[0]?.id ?? "oscillator") as keyof PluginConfigRegistry,
+  detection: "detection/mediapipe",
+  sampling: "sampling/hsv",
+  sonification: "sonification/oscillator",
   visualization: null,
 };
 
@@ -169,7 +165,7 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
           const mergedPluginConfigs = { ...pluginConfigDefaults };
           if (imported.pluginConfigs) {
             for (const key in imported.pluginConfigs) {
-              const pluginId = key as keyof PluginConfigRegistry;
+              const pluginId = key as keyof AppPluginConfigRegistry;
               // Type assertion is safe: we're merging defaults with imported config for the same plugin ID
               // biome-ignore lint/suspicious/noExplicitAny: Type narrowing not possible with union types
               (mergedPluginConfigs as any)[pluginId] = {
@@ -211,12 +207,12 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
  * Get config and setter for a specific plugin.
  *
  * @example
- * const [config, setConfig] = usePluginConfig("oscillator");
+ * const [config, setConfig] = usePluginConfig("sonification/oscillator");
  * setConfig({ minFreq: 300 });
  */
-export function usePluginConfig<K extends keyof PluginConfigRegistry>(
+export function usePluginConfig<K extends keyof AppPluginConfigRegistry>(
   pluginId: K,
-): [PluginConfigRegistry[K], (updates: Partial<PluginConfigRegistry[K]>) => void] {
+): [AppPluginConfigRegistry[K], (updates: Partial<AppPluginConfigRegistry[K]>) => void] {
   const config = useAppConfigStore((state) => state.pluginConfigs[pluginId]);
   const setConfig = useAppConfigStore((state) => state.setPluginConfig);
 
@@ -228,7 +224,7 @@ export function usePluginConfig<K extends keyof PluginConfigRegistry>(
  *
  * @example
  * const [activeId, setActiveId] = useActivePlugin("sonification");
- * setActiveId("oscillator");
+ * setActiveId("sonification/oscillator");
  */
 export function useActivePlugin<K extends keyof ActivePlugins>(
   slot: K,

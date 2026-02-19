@@ -1,9 +1,9 @@
 import { Image as ImageIcon } from "lucide-react";
 import { useAppConfigStore } from "#src/app/state/appConfigStore";
 import type { PluginTabMeta, PluginUISlots, SamplerHandle, SamplingPlugin } from "#src/core/plugin";
-import type { HSVSamplingConfig } from "#src/core/pluginConfig";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
+import { defaultHSVSamplingConfig, type HSVSamplingConfig, hsvSamplingPluginId } from "./config";
 import { HSVImageSampler } from "./HSVImageSampler";
 import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
 import { getDefaultImageId, resolveImageSourceById } from "./lib/imageSourceResolver";
@@ -33,12 +33,15 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
+export const hsvSamplingPlugin: SamplingPlugin<typeof hsvSamplingPluginId, HSVSamplingConfig> = {
   kind: "sampling",
-  id: "hsv-color",
+  id: hsvSamplingPluginId,
   displayName: "HSV Color",
   settingsTab,
   ui,
+  config: {
+    defaultConfig: defaultHSVSamplingConfig,
+  },
 
   createSampler(config: HSVSamplingConfig): SamplerHandle {
     const sampler = new HSVImageSampler();
@@ -50,7 +53,8 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
     const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
 
     const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
-      const { imageCover, imagePan } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
+      const { imageCover, imagePan } =
+        useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
       resizeCanvasToContainer(canvas);
       const drawn = drawImageToCanvas(canvas, img, imageCover, imagePan);
       if (!drawn) return;
@@ -63,7 +67,9 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
       const canvas = getCanvas();
       if (!canvas) return;
       const img = await loadImageElement(src);
-      useAppConfigStore.getState().setPluginConfig("hsv-color", { imagePan: { x: 0, y: 0 } });
+      useAppConfigStore
+        .getState()
+        .setPluginConfig(hsvSamplingPluginId, { imagePan: { x: 0, y: 0 } });
       imageBuffer = img;
       await drawAndEncode(img, canvas);
     };
@@ -87,7 +93,7 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
         }
 
         // Restore selected image by stable id; fallback to default bundled image.
-        const { currentImageId } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
+        const { currentImageId } = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
         const defaultImageId = getDefaultImageId();
         const initialImageId = currentImageId ?? defaultImageId;
         const initialSrc = resolveImageSourceById(initialImageId);
@@ -96,7 +102,7 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
           if (currentImageId !== initialImageId) {
             useAppConfigStore
               .getState()
-              .setPluginConfig("hsv-color", { currentImageId: initialImageId });
+              .setPluginConfig(hsvSamplingPluginId, { currentImageId: initialImageId });
           }
         }
 
@@ -106,7 +112,7 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
           const canvas = getCanvas();
           if (!canvas) return;
 
-          const currentConfig = state.pluginConfigs["hsv-color"];
+          const currentConfig = state.pluginConfigs[hsvSamplingPluginId];
 
           // Selected image changed — resolve source and load.
           if (
@@ -147,7 +153,7 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
           const canvas = getCanvas();
           if (!canvas) return null;
 
-          const { imageCover } = useAppConfigStore.getState().pluginConfigs["hsv-color"];
+          const { imageCover } = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId];
 
           // Update cursor styles
           canvas.style.cursor = imageCover ? "grab" : "default";
@@ -165,8 +171,9 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
 
           const applyPan = () => {
             if (!pendingX && !pendingY) return;
-            const current = useAppConfigStore.getState().pluginConfigs["hsv-color"].imagePan;
-            useAppConfigStore.getState().setPluginConfig("hsv-color", {
+            const current =
+              useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId].imagePan;
+            useAppConfigStore.getState().setPluginConfig(hsvSamplingPluginId, {
               imagePan: {
                 x: current.x + pendingX,
                 y: current.y + pendingY,
@@ -235,9 +242,9 @@ export const hsvSamplingPlugin: SamplingPlugin<"hsv-color"> = {
         panZoomCleanup = setupPanZoom();
 
         // Re-setup when imageCover changes
-        let prevCover = useAppConfigStore.getState().pluginConfigs["hsv-color"].imageCover;
+        let prevCover = useAppConfigStore.getState().pluginConfigs[hsvSamplingPluginId].imageCover;
         const panZoomUnsub = useAppConfigStore.subscribe((state) => {
-          const currentCover = state.pluginConfigs["hsv-color"].imageCover;
+          const currentCover = state.pluginConfigs[hsvSamplingPluginId].imageCover;
           if (currentCover !== prevCover) {
             prevCover = currentCover;
             panZoomCleanup?.();

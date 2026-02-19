@@ -6,8 +6,12 @@ import type {
   SonificationPlugin,
   SonifierHandle,
 } from "#src/core/plugin";
-import type { OscillatorConfig } from "#src/core/pluginConfig";
 import { OscillatorSettingsPanel } from "./components/SettingsPanel";
+import {
+  defaultOscillatorConfig,
+  type OscillatorConfig,
+  oscillatorSonificationPluginId,
+} from "./config";
 import { OscillatorSonifier } from "./OscillatorSonifier";
 
 const settingsTab: PluginTabMeta = {
@@ -20,12 +24,18 @@ const ui: PluginUISlots<OscillatorConfig> = {
   SettingsPanel: OscillatorSettingsPanel,
 };
 
-export const oscillatorSonificationPlugin: SonificationPlugin<"oscillator"> = {
+export const oscillatorSonificationPlugin: SonificationPlugin<
+  typeof oscillatorSonificationPluginId,
+  OscillatorConfig
+> = {
   kind: "sonification",
-  id: "oscillator",
+  id: oscillatorSonificationPluginId,
   displayName: "Web Audio Oscillator",
   settingsTab,
   ui,
+  config: {
+    defaultConfig: defaultOscillatorConfig,
+  },
 
   createSonifier(config: OscillatorConfig): SonifierHandle {
     const sonifier = new OscillatorSonifier(undefined, {
@@ -38,7 +48,7 @@ export const oscillatorSonificationPlugin: SonificationPlugin<"oscillator"> = {
 
     // Subscribe to config changes from the framework
     const unsubscribe = useAppConfigStore.subscribe((state) => {
-      const config = state.pluginConfigs.oscillator;
+      const config = state.pluginConfigs[oscillatorSonificationPluginId];
       sonifier.configure({
         minFreq: config.minFreq,
         maxFreq: config.maxFreq,

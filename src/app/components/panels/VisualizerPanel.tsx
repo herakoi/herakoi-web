@@ -7,7 +7,7 @@ import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 
 type VisualizerPanelProps = {
-  visualizers: VisualizationPlugin[];
+  visualizers: readonly VisualizationPlugin[];
 };
 
 export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {

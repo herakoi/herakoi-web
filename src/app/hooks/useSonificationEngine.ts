@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
+import type { AppPluginConfigRegistry } from "#src/app/pluginConfigRegistry";
 import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, VisualizerFrameData } from "#src/core/plugin";
-import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";
@@ -64,19 +64,19 @@ export const useSonificationEngine = (
 
       // Create plugin instances
       // Get config from appConfigStore for detection plugin
-      const detectionPluginId = activeDetection.id as keyof PluginConfigRegistry;
+      const detectionPluginId = activeDetection.id as keyof AppPluginConfigRegistry;
       const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const dh = activeDetection.createDetector(detectionConfig as never);
 
       // Get config from appConfigStore for sampling plugin
-      const samplingPluginId = activeSampling.id as keyof PluginConfigRegistry;
+      const samplingPluginId = activeSampling.id as keyof AppPluginConfigRegistry;
       const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const sh = activeSampling.createSampler(samplingConfig as never);
 
       // Get config from appConfigStore for sonification plugin
-      const sonificationPluginId = activeSonification.id as keyof PluginConfigRegistry;
+      const sonificationPluginId = activeSonification.id as keyof AppPluginConfigRegistry;
       const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
       // Type assertion is safe: pluginId guarantees config type matches factory expectations
       const soh = activeSonification.createSonifier(sonificationConfig as never);

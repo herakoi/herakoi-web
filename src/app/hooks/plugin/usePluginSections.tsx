@@ -1,9 +1,10 @@
 import { Eye } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
+import type { AppPluginConfigRegistry } from "#src/app/pluginConfigRegistry";
 import type { PipelineConfig } from "#src/core/plugin";
-import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
+import type { ActivePlugins } from "../../state/appConfigStore";
 import { useActivePlugin, usePluginConfig } from "../../state/appConfigStore";
 import { buildPluginSection } from "./buildPluginSection";
 
@@ -25,20 +26,20 @@ export const usePluginSections = ({
 
   // 2. Get plugin configs at top level (hooks must be called unconditionally)
   const [sonificationConfig, setSonificationConfig] = usePluginConfig(
-    activeSonificationId as keyof PluginConfigRegistry,
+    activeSonificationId as keyof AppPluginConfigRegistry,
   );
   const [samplingConfig, setSamplingConfig] = usePluginConfig(
-    activeSamplingId as keyof PluginConfigRegistry,
+    activeSamplingId as keyof AppPluginConfigRegistry,
   );
   const [detectionConfig, setDetectionConfig] = usePluginConfig(
-    activeDetectionId as keyof PluginConfigRegistry,
+    activeDetectionId as keyof AppPluginConfigRegistry,
   );
 
   // 3. Create individual plugin switch handlers (stop → update → start)
   const handleSonificationSwitch = useCallback(
     (id: string) => {
       stop();
-      setActiveSonificationId(id as keyof import("#src/core/pluginConfig").PluginConfigRegistry);
+      setActiveSonificationId(id as ActivePlugins["sonification"]);
       void start();
     },
     [start, stop, setActiveSonificationId],
@@ -47,7 +48,7 @@ export const usePluginSections = ({
   const handleSamplingSwitch = useCallback(
     (id: string) => {
       stop();
-      setActiveSamplingId(id as keyof import("#src/core/pluginConfig").PluginConfigRegistry);
+      setActiveSamplingId(id as ActivePlugins["sampling"]);
       void start();
     },
     [start, stop, setActiveSamplingId],
@@ -56,7 +57,7 @@ export const usePluginSections = ({
   const handleDetectionSwitch = useCallback(
     (id: string) => {
       stop();
-      setActiveDetectionId(id as keyof import("#src/core/pluginConfig").PluginConfigRegistry);
+      setActiveDetectionId(id as ActivePlugins["detection"]);
       void start();
     },
     [start, stop, setActiveDetectionId],

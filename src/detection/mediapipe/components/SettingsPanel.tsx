@@ -9,7 +9,7 @@ import {
 import { Slider } from "#src/app/components/ui/slider";
 import { Switch } from "#src/app/components/ui/switch";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
-import type { MediaPipeConfig } from "#src/core/pluginConfig";
+import type { MediaPipeConfig } from "../config";
 
 export const MediaPipeSettingsPanel = ({
   config,

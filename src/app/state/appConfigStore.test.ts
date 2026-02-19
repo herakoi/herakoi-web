@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { pluginConfigDefaults } from "#src/core/pluginConfig";
+import { pluginConfigDefaults } from "#src/app/pluginConfigRegistry";
 import { useAppConfigStore } from "./appConfigStore";
 
 describe("appConfigStore", () => {
@@ -12,9 +12,9 @@ describe("appConfigStore", () => {
     it("should initialize with default active plugins", () => {
       const state = useAppConfigStore.getState();
 
-      expect(state.activePlugins.detection).toBe("mediapipe-hands");
-      expect(state.activePlugins.sampling).toBe("hsv-color");
-      expect(state.activePlugins.sonification).toBe("oscillator");
+      expect(state.activePlugins.detection).toBe("detection/mediapipe");
+      expect(state.activePlugins.sampling).toBe("sampling/hsv");
+      expect(state.activePlugins.sonification).toBe("sonification/oscillator");
       expect(state.activePlugins.visualization).toBeNull();
     });
 
@@ -36,16 +36,18 @@ describe("appConfigStore", () => {
     it("should update active plugin for a slot", () => {
       const { setActivePlugin } = useAppConfigStore.getState();
 
-      setActivePlugin("sonification", "oscillator");
+      setActivePlugin("sonification", "sonification/oscillator");
 
-      expect(useAppConfigStore.getState().activePlugins.sonification).toBe("oscillator");
+      expect(useAppConfigStore.getState().activePlugins.sonification).toBe(
+        "sonification/oscillator",
+      );
     });
 
     it("should not affect other slots", () => {
       const { setActivePlugin } = useAppConfigStore.getState();
       const initialDetection = useAppConfigStore.getState().activePlugins.detection;
 
-      setActivePlugin("sonification", "oscillator");
+      setActivePlugin("sonification", "sonification/oscillator");
 
       expect(useAppConfigStore.getState().activePlugins.detection).toBe(initialDetection);
     });
@@ -55,27 +57,34 @@ describe("appConfigStore", () => {
     it("should update specific plugin config", () => {
       const { setPluginConfig } = useAppConfigStore.getState();
 
-      setPluginConfig("oscillator", { minFreq: 300 });
+      setPluginConfig("sonification/oscillator", { minFreq: 300 });
 
-      expect(useAppConfigStore.getState().pluginConfigs.oscillator.minFreq).toBe(300);
+      expect(useAppConfigStore.getState().pluginConfigs["sonification/oscillator"].minFreq).toBe(
+        300,
+      );
     });
 
     it("should preserve other config properties", () => {
       const { setPluginConfig } = useAppConfigStore.getState();
-      const initialMaxFreq = useAppConfigStore.getState().pluginConfigs.oscillator.maxFreq;
+      const initialMaxFreq =
+        useAppConfigStore.getState().pluginConfigs["sonification/oscillator"].maxFreq;
 
-      setPluginConfig("oscillator", { minFreq: 300 });
+      setPluginConfig("sonification/oscillator", { minFreq: 300 });
 
-      expect(useAppConfigStore.getState().pluginConfigs.oscillator.maxFreq).toBe(initialMaxFreq);
+      expect(useAppConfigStore.getState().pluginConfigs["sonification/oscillator"].maxFreq).toBe(
+        initialMaxFreq,
+      );
     });
 
     it("should not affect other plugin configs", () => {
       const { setPluginConfig } = useAppConfigStore.getState();
-      const initialMediaPipe = { ...useAppConfigStore.getState().pluginConfigs["mediapipe-hands"] };
+      const initialMediaPipe = {
+        ...useAppConfigStore.getState().pluginConfigs["detection/mediapipe"],
+      };
 
-      setPluginConfig("oscillator", { minFreq: 300 });
+      setPluginConfig("sonification/oscillator", { minFreq: 300 });
 
-      expect(useAppConfigStore.getState().pluginConfigs["mediapipe-hands"]).toEqual(
+      expect(useAppConfigStore.getState().pluginConfigs["detection/mediapipe"]).toEqual(
         initialMediaPipe,
       );
     });
@@ -106,18 +115,18 @@ describe("appConfigStore", () => {
         useAppConfigStore.getState();
 
       // Change various settings
-      setActivePlugin("detection", "mediapipe-hands");
-      setActivePlugin("visualization", "debug-hud");
-      setPluginConfig("oscillator", { minFreq: 999 });
+      setActivePlugin("detection", "detection/mediapipe");
+      setActivePlugin("visualization", "visualization/debugHud");
+      setPluginConfig("sonification/oscillator", { minFreq: 999 });
       setUiPreferences({ baseUiOpacity: 0.5, dimLogoMark: true });
 
       // Reset
       resetAll();
 
       const state = useAppConfigStore.getState();
-      expect(state.activePlugins.detection).toBe("mediapipe-hands");
+      expect(state.activePlugins.detection).toBe("detection/mediapipe");
       expect(state.activePlugins.visualization).toBeNull();
-      expect(state.pluginConfigs.oscillator.minFreq).toBe(200);
+      expect(state.pluginConfigs["sonification/oscillator"].minFreq).toBe(200);
       expect(state.uiPreferences.baseUiOpacity).toBe(1);
       expect(state.uiPreferences.dimLogoMark).toBe(false);
     });
@@ -138,12 +147,12 @@ describe("appConfigStore", () => {
     it("should export current configuration state", () => {
       const { setPluginConfig, exportConfig } = useAppConfigStore.getState();
 
-      setPluginConfig("oscillator", { minFreq: 350 });
+      setPluginConfig("sonification/oscillator", { minFreq: 350 });
 
       const json = exportConfig();
       const parsed = JSON.parse(json);
 
-      expect(parsed.pluginConfigs.oscillator.minFreq).toBe(350);
+      expect(parsed.pluginConfigs["sonification/oscillator"].minFreq).toBe(350);
     });
   });
 
@@ -153,13 +162,13 @@ describe("appConfigStore", () => {
 
       const config = JSON.stringify({
         activePlugins: {
-          detection: "mediapipe-hands",
-          sampling: "hsv-color",
-          sonification: "oscillator",
+          detection: "detection/mediapipe",
+          sampling: "sampling/hsv",
+          sonification: "sonification/oscillator",
           visualization: null,
         },
         pluginConfigs: {
-          oscillator: {
+          "sonification/oscillator": {
             minFreq: 400,
             maxFreq: 800,
             minVol: 0,
@@ -176,7 +185,7 @@ describe("appConfigStore", () => {
       importConfig(config);
 
       const state = useAppConfigStore.getState();
-      expect(state.pluginConfigs.oscillator.minFreq).toBe(400);
+      expect(state.pluginConfigs["sonification/oscillator"].minFreq).toBe(400);
       expect(state.uiPreferences.baseUiOpacity).toBe(0.8);
     });
 
@@ -185,7 +194,7 @@ describe("appConfigStore", () => {
 
       const partialConfig = JSON.stringify({
         pluginConfigs: {
-          oscillator: {
+          "sonification/oscillator": {
             minFreq: 500,
           },
         },
@@ -195,9 +204,9 @@ describe("appConfigStore", () => {
 
       const state = useAppConfigStore.getState();
       // Imported value
-      expect(state.pluginConfigs.oscillator.minFreq).toBe(500);
+      expect(state.pluginConfigs["sonification/oscillator"].minFreq).toBe(500);
       // Default value (not overridden)
-      expect(state.pluginConfigs.oscillator.maxFreq).toBe(700);
+      expect(state.pluginConfigs["sonification/oscillator"].maxFreq).toBe(700);
       expect(state.uiPreferences.baseUiOpacity).toBe(1);
     });
 

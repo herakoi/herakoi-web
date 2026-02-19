@@ -7,9 +7,9 @@ import type {
   PluginTabMeta,
   PluginUISlots,
 } from "#src/core/plugin";
-import type { MediaPipeConfig } from "#src/core/pluginConfig";
 import { MediaPipeDockPanel } from "./components/DockPanel";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
+import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
@@ -26,12 +26,18 @@ const ui: PluginUISlots<MediaPipeConfig> = {
   DockPanel: MediaPipeDockPanel,
 };
 
-export const mediaPipeDetectionPlugin: DetectionPlugin<"mediapipe-hands"> = {
+export const mediaPipeDetectionPlugin: DetectionPlugin<
+  typeof mediaPipeDetectionPluginId,
+  MediaPipeConfig
+> = {
   kind: "detection",
-  id: "mediapipe-hands",
+  id: mediaPipeDetectionPluginId,
   displayName: "MediaPipe Hands",
   settingsTab,
   ui,
+  config: {
+    defaultConfig: defaultMediaPipeConfig,
+  },
 
   createDetector(config: MediaPipeConfig): DetectorHandle {
     const videoEl = mediaPipeRefs.video?.current;
@@ -110,7 +116,7 @@ export const mediaPipeDetectionPlugin: DetectionPlugin<"mediapipe-hands"> = {
         // Subscribe to config changes for runtime updates
         const prevConfig = { ...config };
         useAppConfigStore.subscribe((state) => {
-          const currentConfig = state.pluginConfigs["mediapipe-hands"];
+          const currentConfig = state.pluginConfigs[mediaPipeDetectionPluginId];
 
           if (currentConfig.mirror !== prevConfig.mirror) {
             prevConfig.mirror = currentConfig.mirror;

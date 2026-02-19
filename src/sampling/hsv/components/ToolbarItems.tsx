@@ -12,7 +12,7 @@ import { cn } from "#src/app/lib/utils";
 
 // TODO: fare in modo che i plugin non possano importare da fuori la cartella plugin
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
-import type { HSVSamplingConfig } from "#src/core/pluginConfig";
+import type { HSVSamplingConfig } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";

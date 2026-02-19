@@ -1,6 +1,7 @@
 import { Bug } from "lucide-react";
 import type { PluginTabMeta, VisualizationPlugin } from "#src/core/plugin";
 import { DebugHudDisplay } from "./components/DebugHudDisplay";
+export const debugHudVisualizationPluginId = "visualization/debugHud" as const;
 
 const settingsTab: PluginTabMeta = {
   key: "debug-hud",
@@ -10,7 +11,7 @@ const settingsTab: PluginTabMeta = {
 
 export const debugHudVisualizationPlugin: VisualizationPlugin = {
   kind: "visualization",
-  id: "debug-hud",
+  id: debugHudVisualizationPluginId,
   displayName: "Debug HUD",
   settingsTab,
   ui: {

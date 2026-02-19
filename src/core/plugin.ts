@@ -14,7 +14,6 @@
 
 import type { ComponentType, ReactNode, RefObject } from "react";
 import type { ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
-import type { PluginConfigRegistry } from "#src/core/pluginConfig";
 
 // ──────────────────────────────────────────────────
 // Shared UI slot types
@@ -75,6 +74,11 @@ export type PluginTabMeta = {
   icon: ReactNode;
 };
 
+export type PluginConfigSpec<TConfig> = {
+  /** Default configuration used for reset and first run. */
+  defaultConfig: TConfig;
+};
+
 // ──────────────────────────────────────────────────
 // Notification system
 // ──────────────────────────────────────────────────
@@ -112,19 +116,19 @@ export type DetectorHandle = {
   setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface DetectionPlugin<
-  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
-> {
+export interface DetectionPlugin<TPluginId extends string = string, TConfig = any> {
   readonly kind: "detection";
   readonly id: TPluginId;
   readonly displayName: string;
   /** Tab metadata for the settings panel (null = no settings tab) */
   readonly settingsTab: PluginTabMeta | null;
   /** UI components this plugin contributes */
-  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
+  readonly ui: PluginUISlots<TConfig>;
+  /** Default config and configuration metadata for this plugin. */
+  readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the PointDetector instance from provided configuration. */
-  createDetector(config: PluginConfigRegistry[TPluginId]): DetectorHandle;
+  createDetector(config: TConfig): DetectorHandle;
 
   /**
    * Subscribe to pipeline-relevant events from the detector.
@@ -157,17 +161,17 @@ export type SamplerHandle = {
   setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement> }) => void;
 };
 
-export interface SamplingPlugin<
-  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
-> {
+export interface SamplingPlugin<TPluginId extends string = string, TConfig = any> {
   readonly kind: "sampling";
   readonly id: TPluginId;
   readonly displayName: string;
   readonly settingsTab: PluginTabMeta | null;
-  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
+  readonly ui: PluginUISlots<TConfig>;
+  /** Default config and configuration metadata for this plugin. */
+  readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the ImageSampler instance from provided configuration. */
-  createSampler(config: PluginConfigRegistry[TPluginId]): SamplerHandle;
+  createSampler(config: TConfig): SamplerHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -183,17 +187,17 @@ export type SonifierHandle = {
   cleanup?: () => void;
 };
 
-export interface SonificationPlugin<
-  TPluginId extends keyof PluginConfigRegistry = keyof PluginConfigRegistry,
-> {
+export interface SonificationPlugin<TPluginId extends string = string, TConfig = any> {
   readonly kind: "sonification";
   readonly id: TPluginId;
   readonly displayName: string;
   readonly settingsTab: PluginTabMeta | null;
-  readonly ui: PluginUISlots<PluginConfigRegistry[TPluginId]>;
+  readonly ui: PluginUISlots<TConfig>;
+  /** Default config and configuration metadata for this plugin. */
+  readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the Sonifier instance from provided configuration. */
-  createSonifier(config: PluginConfigRegistry[TPluginId]): SonifierHandle;
+  createSonifier(config: TConfig): SonifierHandle;
 }
 
 // ──────────────────────────────────────────────────
@@ -257,21 +261,6 @@ export interface VisualizationPlugin {
 // ──────────────────────────────────────────────────
 
 /**
- * Helper type to create a union of all plugin types for a given slot.
- */
-type DetectionPluginUnion = {
-  [K in keyof PluginConfigRegistry]: DetectionPlugin<K>;
-}[keyof PluginConfigRegistry];
-
-type SamplingPluginUnion = {
-  [K in keyof PluginConfigRegistry]: SamplingPlugin<K>;
-}[keyof PluginConfigRegistry];
-
-type SonificationPluginUnion = {
-  [K in keyof PluginConfigRegistry]: SonificationPlugin<K>;
-}[keyof PluginConfigRegistry];
-
-/**
  * Declares all available plugins per pipeline slot.
  *
  * Each slot holds an array of plugins. The shell manages which plugin
@@ -282,8 +271,48 @@ type SonificationPluginUnion = {
  * settings UI. Only one visualizer can be active at a time.
  */
 export type PipelineConfig = {
-  detection: DetectionPluginUnion[];
-  sampling: SamplingPluginUnion[];
-  sonification: SonificationPluginUnion[];
-  visualization: VisualizationPlugin[];
+  detection: readonly DetectionPlugin<string, any>[];
+  sampling: readonly SamplingPlugin<string, any>[];
+  sonification: readonly SonificationPlugin<string, any>[];
+  visualization: readonly VisualizationPlugin[];
+};
+
+type ConfigurablePlugin = DetectionPlugin | SamplingPlugin | SonificationPlugin;
+
+type ConfigurablePluginsFrom<TConfig extends PipelineConfig> =
+  | TConfig["detection"][number]
+  | TConfig["sampling"][number]
+  | TConfig["sonification"][number];
+
+export type InferPluginConfigRegistry<TConfig extends PipelineConfig> = {
+  [P in ConfigurablePluginsFrom<TConfig> as P["id"]]: P extends ConfigurablePlugin
+    ? P extends { config: PluginConfigSpec<infer TPluginConfig> }
+      ? TPluginConfig
+      : never
+    : never;
+};
+
+export type InferActivePlugins<TConfig extends PipelineConfig> = {
+  detection: TConfig["detection"][number]["id"];
+  sampling: TConfig["sampling"][number]["id"];
+  sonification: TConfig["sonification"][number]["id"];
+  visualization: TConfig["visualization"][number]["id"] | null;
+};
+
+/** Build default plugin config registry from the composed pipeline. */
+export const buildPluginConfigDefaults = <TConfig extends PipelineConfig>(
+  pipelineConfig: TConfig,
+): InferPluginConfigRegistry<TConfig> => {
+  const defaults: Record<string, unknown> = {};
+  const configurablePlugins: ConfigurablePlugin[] = [
+    ...pipelineConfig.detection,
+    ...pipelineConfig.sampling,
+    ...pipelineConfig.sonification,
+  ];
+
+  for (const plugin of configurablePlugins) {
+    defaults[plugin.id] = structuredClone(plugin.config.defaultConfig);
+  }
+
+  return defaults as InferPluginConfigRegistry<TConfig>;
 };

@@ -8,7 +8,7 @@ import {
 } from "#src/app/components/ui/select";
 import { Slider } from "#src/app/components/ui/slider";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
-import type { OscillatorConfig } from "#src/core/pluginConfig";
+import type { OscillatorConfig } from "../config";
 
 export const OscillatorSettingsPanel = ({
   config,
