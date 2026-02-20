@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "#src/shared/components/ui/popover";
+import { Slider } from "#src/shared/components/ui/slider";
 import { cn } from "#src/shared/utils/cn";
 import type { HSVSamplingConfig } from "../config";
 import { curatedImages } from "../data/curatedImages";
@@ -55,6 +56,7 @@ export const HSVToolbarItems = ({
   const baseButtonClass =
     "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground";
   const isCoverMode = config.viewportMode.kind === "cover";
+  const coverMode = config.viewportMode.kind === "cover" ? config.viewportMode : null;
 
   return (
     <Popover>
@@ -109,6 +111,56 @@ export const HSVToolbarItems = ({
           >
             <Crop className="h-4 w-4" />
           </button>
+          {coverMode && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-9 w-14 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    "border-border/50 bg-black/50 text-foreground/80 hover:bg-black/70 hover:text-foreground",
+                    "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
+                    "text-xs font-semibold tabular-nums",
+                  )}
+                  aria-label={`Zoom: ${coverMode.zoom.toFixed(1)}x`}
+                >
+                  {coverMode.zoom.toFixed(1)}x
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="center"
+                sideOffset={10}
+                className="w-52 border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Zoom</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {coverMode.zoom.toFixed(1)}x
+                    </span>
+                  </div>
+                  <Slider
+                    min={0.2}
+                    max={10}
+                    step={0.1}
+                    value={[coverMode.zoom]}
+                    aria-label="Zoom level"
+                    onValueChange={([z]) => {
+                      if (z === undefined) return;
+                      setConfig({
+                        viewportMode: { ...coverMode, zoom: z },
+                      });
+                    }}
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>0.2x</span>
+                    <span>10x</span>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </PopoverAnchor>
       <PopoverContent
