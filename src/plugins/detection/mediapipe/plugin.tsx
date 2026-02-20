@@ -61,8 +61,16 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       });
       let unsubscribeConfig: (() => void) | null = null;
 
+      const getSourceSize = () => {
+        const width = videoEl.videoWidth;
+        const height = videoEl.videoHeight;
+        if (width <= 0 || height <= 0) return null;
+        return { width, height };
+      };
+
       return {
         detector,
+        getSourceSize,
         setCanvasRefs: (refs) => {
           // Register image overlay ref if provided
           if (refs.imageOverlay) {
@@ -79,11 +87,24 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
                 canvas: HTMLCanvasElement;
                 style?: HandOverlayStyle;
                 getPointStyle?: (point: DetectedPoint) => HandOverlayStyle;
+                sourceSize?:
+                  | {
+                      width: number;
+                      height: number;
+                    }
+                  | (() => { width: number; height: number } | null);
+                fitMode?: "fill" | "contain" | "cover";
               }
           > = [];
 
           if (videoOverlay) {
-            canvases.push(videoOverlay);
+            canvases.push({
+              canvas: videoOverlay,
+              // PiP video is rendered with object-cover in a 16:9 frame; project
+              // landmarks with the same fit mode so hand geometry is not stretched.
+              fitMode: "cover",
+              sourceSize: getSourceSize,
+            });
           }
 
           if (imageOverlay) {
@@ -104,10 +125,8 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
             canvases.push({
               canvas: imageOverlay,
               style: imageOverlayStyle,
-              // Note: getPointStyle with HSV hue sampling is currently omitted
-              // to avoid circular dependency with the sampler. This can be
-              // re-added in a future iteration when we have a proper way to
-              // access the sampler from the plugin.
+              fitMode: "cover",
+              sourceSize: getSourceSize,
             });
           }
 
