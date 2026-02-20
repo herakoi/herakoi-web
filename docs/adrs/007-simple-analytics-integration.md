@@ -1,4 +1,4 @@
-# ADR 006: Simple Analytics Integration for Privacy-Friendly Usage Tracking
+# ADR 007: Simple Analytics Integration for Privacy-Friendly Usage Tracking
 
 ## Status
 Accepted – 6 February 2026
@@ -43,7 +43,7 @@ Add the Simple Analytics script to `index.html` in the `<head>` section using th
 - **Defer loading**: Use `defer` attribute to avoid blocking page render while ensuring script execution after DOM parsing
 
 ### 2. TypeScript Wrapper Module
-Create a type-safe wrapper at `src/app/lib/analytics.ts` that:
+Create a type-safe wrapper at `src/lib/analytics.ts` that:
 
 - **Declares global `sa_event` type** via TypeScript ambient declaration
 - **Provides environment-aware tracking** using `import.meta.env.DEV` (Vite built-in)

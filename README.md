@@ -48,4 +48,4 @@ This project uses [Simple Analytics](https://simpleanalytics.com) for privacy-fr
 - Pipeline errors
 - Settings changes (e.g., image cover mode toggles)
 
-The analytics implementation is documented in ADR 006 (`docs/adrs/006-simple-analytics-integration.md`). To add event tracking to new features, import helper functions from `src/app/lib/analytics.ts`.
+The analytics implementation is documented in ADR 007 (`docs/adrs/007-simple-analytics-integration.md`). To add event tracking to new features, import helper functions from `src/lib/analytics.ts`.
