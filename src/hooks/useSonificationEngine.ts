@@ -141,9 +141,48 @@ export const useSonificationEngine = (
         useAppRuntimeStore.getState().setHasDetectedPoints(points.length > 0);
 
         const samples = new Map<string, ImageSample>();
+        const sourceSize = detectorHandleRef.current?.getSourceSize?.();
+        const visibleRect = samplerHandleRef.current?.getVisibleRect?.();
+        const overlayCanvas = imageOverlayRef.current;
+        const canvasW = overlayCanvas?.width ?? 0;
+        const canvasH = overlayCanvas?.height ?? 0;
 
         for (const point of points) {
-          const sample = sh.sampler.sampleAt(point);
+          let sx = point.x;
+          let sy = point.y;
+
+          if (
+            sourceSize &&
+            sourceSize.width > 0 &&
+            sourceSize.height > 0 &&
+            canvasW > 0 &&
+            canvasH > 0
+          ) {
+            // Map video-space point to canvas-space using cover fit
+            const scale = Math.max(canvasW / sourceSize.width, canvasH / sourceSize.height);
+            const drawW = sourceSize.width * scale;
+            const drawH = sourceSize.height * scale;
+            const offsetX = (canvasW - drawW) / 2;
+            const offsetY = (canvasH - drawH) / 2;
+            sx = (offsetX + point.x * drawW) / canvasW;
+            sy = (offsetY + point.y * drawH) / canvasH;
+          }
+
+          // Skip if outside the visible image rect
+          if (visibleRect) {
+            const px = sx * canvasW;
+            const py = sy * canvasH;
+            if (
+              px < visibleRect.x ||
+              px > visibleRect.x + visibleRect.width ||
+              py < visibleRect.y ||
+              py > visibleRect.y + visibleRect.height
+            ) {
+              continue;
+            }
+          }
+
+          const sample = sh.sampler.sampleAt({ ...point, x: sx, y: sy });
           if (sample) {
             samples.set(point.id, sample);
           }

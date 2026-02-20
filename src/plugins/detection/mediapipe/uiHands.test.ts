@@ -65,9 +65,6 @@ describe("bindHandsUi", () => {
         cb(pts);
       }
     };
-    // We attach lightweight emitters so tests can invoke the registered callbacks
-    // without importing the real MediaPipe detector. The double-cast keeps TypeScript
-    // happy while leaving production code untouched.
   });
 
   it("draws on every overlay and clears each frame", () => {
@@ -78,9 +75,9 @@ describe("bindHandsUi", () => {
 
     (
       detector as unknown as {
-        __emitHands: (lms: Array<{ x: number; y: number; z: number }>) => void;
+        __emitHands: (lms: Array<Array<{ x: number; y: number; z: number }>>) => void;
       }
-    ).__emitHands([{ x: 0, y: 0, z: 0 }]);
+    ).__emitHands([[{ x: 0, y: 0, z: 0 }]]);
     expect(a.ctx.clearRect).toHaveBeenCalled();
     expect(b.ctx.clearRect).toHaveBeenCalled();
     expect(drawHands).toHaveBeenCalled();
@@ -91,5 +88,35 @@ describe("bindHandsUi", () => {
       }
     ).__emitPoints([{ id: "p1", x: 0.5, y: 0.5 }]);
     expect(drawFingerFocus).toHaveBeenCalledTimes(2);
+  });
+
+  it("projects points with cover fit to avoid landmark stretching", () => {
+    const { canvas } = makeCanvas();
+    canvas.width = 160;
+    canvas.height = 90;
+
+    bindHandsUi(detector, [
+      {
+        canvas,
+        fitMode: "cover",
+        sourceSize: { width: 640, height: 480 },
+      },
+    ]);
+
+    (
+      detector as unknown as {
+        __emitPoints: (pts: Array<{ id: string; x: number; y: number }>) => void;
+      }
+    ).__emitPoints([{ id: "p1", x: 0.5, y: 0 }]);
+
+    const firstCall = (drawFingerFocus as unknown as { mock: { calls: unknown[][] } }).mock
+      .calls[0];
+    if (!firstCall) {
+      throw new Error("Expected drawFingerFocus to be called");
+    }
+
+    const focus = firstCall[1] as { x: number; y: number };
+    expect(focus.x).toBe(80);
+    expect(focus.y).toBe(-15);
   });
 });

@@ -68,6 +68,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       let resizeHandler: (() => void) | null = null;
       let panZoomCleanup: (() => void) | null = null;
       let loadRequestVersion = 0;
+      let visibleRect: { x: number; y: number; width: number; height: number } | null = null;
 
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
@@ -76,8 +77,13 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
         const { viewportMode } = getConfig();
         resizeCanvasToContainer(canvas);
-        const drawn = drawImageToCanvas(canvas, img, viewportMode);
-        if (!drawn) return;
+        const layout = drawImageToCanvas(canvas, img, viewportMode);
+        if (!layout) return;
+        const visibleX = Math.max(0, layout.x);
+        const visibleY = Math.max(0, layout.y);
+        const visibleWidth = Math.min(layout.x + layout.width, canvas.width) - visibleX;
+        const visibleHeight = Math.min(layout.y + layout.height, canvas.height) - visibleY;
+        visibleRect = { x: visibleX, y: visibleY, width: visibleWidth, height: visibleHeight };
         await sampler.loadImage(canvas);
         useHSVRuntimeStore.getState().setImageReady(true);
       };
@@ -104,6 +110,8 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
       return {
         sampler,
+
+        getVisibleRect: () => visibleRect,
 
         setCanvasRefs: (refs) => {
           // Register image canvas ref
@@ -299,6 +307,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           panZoomCleanup = null;
           loadRequestVersion += 1;
           imageBuffer = null;
+          visibleRect = null;
           useHSVRuntimeStore.getState().setImageReady(false);
         },
       };
