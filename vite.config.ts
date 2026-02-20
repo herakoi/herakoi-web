@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -12,12 +11,5 @@ export default defineConfig({
   plugins: [react(), ...(https ? [basicSsl()] : [])],
   server: {
     host: true,
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, "index.html"),
-      },
-    },
   },
 });

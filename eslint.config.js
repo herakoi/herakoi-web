@@ -7,20 +7,19 @@
  *
  * See docs/adrs/005-dual-linting-biome-eslint-a11y.md for rationale.
  */
-import js from "@eslint/js";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import react from "eslint-plugin-react";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default [
   { ignores: ["dist", "node_modules", "legacy_html"] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },
@@ -30,13 +29,14 @@ export default tseslint.config(
       react,
     },
     rules: {
+      // Only enable a11y rules - Biome handles all other linting
       ...jsxA11y.configs.recommended.rules,
-      ...react.configs.recommended.rules,
-      "react/react-in-jsx-scope": "off",
-      "react/prop-types": "off",
+      // Minimal React rules needed for a11y plugin to work correctly
+      "react/jsx-uses-react": "error",
+      "react/jsx-uses-vars": "error",
     },
     settings: {
       react: { version: "detect" },
     },
   },
-);
+];
