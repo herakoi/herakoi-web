@@ -26,6 +26,7 @@ export const HSVToolbarItems = ({
     useImageLibrary({
       curatedImages,
       howItWorksImages,
+      selectedImageId: config.currentImageId,
       onSelectImage: async (entry) => {
         setConfig({ currentImageId: entry.id });
       },

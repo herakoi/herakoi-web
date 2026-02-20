@@ -8,10 +8,16 @@ import { plugin } from "./plugin";
 
 const mocks = vi.hoisted(() => ({
   samplerLoadImage: vi.fn().mockResolvedValue(undefined),
-  drawImageToCanvas: vi.fn(() => true),
+  drawImageToCanvas: vi.fn(
+    (
+      _canvas: HTMLCanvasElement,
+      _image: HTMLImageElement,
+      _viewportMode: HSVSamplingConfig["viewportMode"],
+    ) => true,
+  ),
   resizeCanvasToContainer: vi.fn(),
-  getDefaultImageId: vi.fn(() => "curated-default"),
-  resolveImageSourceById: vi.fn((id: string) => {
+  getDefaultImageId: vi.fn<() => string | null>(() => "curated-default"),
+  resolveImageSourceById: vi.fn<(id: string | null | undefined) => string | null>((id) => {
     if (id === "curated-default") return "https://example.com/default.png";
     return null;
   }),
@@ -22,7 +28,7 @@ class InstantImage {
   public crossOrigin = "";
   public onload: ((event: Event) => void) | null = null;
   public onerror: ((event: Event | string) => void) | null = null;
-  private imageSrc = "";
+  protected imageSrc = "";
 
   set src(value: string) {
     this.imageSrc = value;
@@ -95,5 +101,96 @@ describe("HSV sampling plugin initialization", () => {
     expect(mocks.resolveImageSourceById).toHaveBeenCalledWith("curated-default");
     expect(mocks.samplerLoadImage).toHaveBeenCalledTimes(1);
     expect(runtime.setConfig).toHaveBeenCalledWith({ currentImageId: "curated-default" });
+  });
+
+  it("keeps the latest selected image when async loads resolve out of order", async () => {
+    const imageCanvas = document.createElement("canvas");
+    const pendingLoads = new Map<string, DeferredImage[]>();
+
+    class DeferredImage extends InstantImage {
+      override set src(value: string) {
+        this.imageSrc = value;
+        const queue = pendingLoads.get(value) ?? [];
+        queue.push(this);
+        pendingLoads.set(value, queue);
+      }
+
+      triggerLoad() {
+        this.onload?.(new Event("load"));
+      }
+    }
+
+    vi.stubGlobal("Image", DeferredImage);
+
+    mocks.resolveImageSourceById.mockImplementation((id: string | null | undefined) => {
+      if (id === "curated-default") return "https://example.com/default.png";
+      if (id === "curated-a") return "https://example.com/a.png";
+      if (id === "curated-b") return "https://example.com/b.png";
+      return null;
+    });
+
+    let currentConfig: HSVSamplingConfig = {
+      ...defaultHSVSamplingConfig,
+      currentImageId: "curated-default",
+    };
+    const configListeners: Array<(config: HSVSamplingConfig) => void> = [];
+    const runtime = {
+      getConfig: () => currentConfig,
+      setConfig: (updates: Partial<HSVSamplingConfig>) => {
+        currentConfig = { ...currentConfig, ...updates };
+      },
+      subscribeConfig: (handler: (config: HSVSamplingConfig) => void) => {
+        configListeners.push(handler);
+        return () => {
+          // noop
+        };
+      },
+    };
+
+    const handle = plugin.createSampler(currentConfig, runtime);
+    handle.setCanvasRefs?.({ imageCanvas: { current: imageCanvas } });
+    const initializePromise = handle.postInitialize?.();
+
+    const resolveOne = (src: string): DeferredImage => {
+      const queue = pendingLoads.get(src);
+      const image = queue?.shift();
+      if (!image) throw new Error(`No pending image for ${src}`);
+      image.triggerLoad();
+      return image;
+    };
+
+    resolveOne("https://example.com/default.png");
+    await initializePromise;
+
+    if (configListeners.length === 0) {
+      throw new Error("Config subscription callbacks were not registered");
+    }
+    mocks.drawImageToCanvas.mockClear();
+    mocks.samplerLoadImage.mockClear();
+
+    currentConfig = { ...currentConfig, currentImageId: "curated-a" };
+    for (const listener of configListeners) {
+      listener(currentConfig);
+    }
+    currentConfig = { ...currentConfig, currentImageId: "curated-b" };
+    for (const listener of configListeners) {
+      listener(currentConfig);
+    }
+
+    expect(mocks.resolveImageSourceById).toHaveBeenCalledWith("curated-a");
+    expect(mocks.resolveImageSourceById).toHaveBeenCalledWith("curated-b");
+    expect(pendingLoads.get("https://example.com/a.png")?.length).toBe(1);
+    expect(pendingLoads.get("https://example.com/b.png")?.length).toBe(1);
+
+    const resolvedB = resolveOne("https://example.com/b.png");
+    await Promise.resolve();
+    const resolvedA = resolveOne("https://example.com/a.png");
+    await Promise.resolve();
+
+    const drawCalls = mocks.drawImageToCanvas.mock.calls;
+    expect(drawCalls).toHaveLength(1);
+    const firstDrawnImage = drawCalls[0]?.[1];
+    expect(firstDrawnImage).toBe(resolvedB);
+    expect(firstDrawnImage).not.toBe(resolvedA);
   });
 });

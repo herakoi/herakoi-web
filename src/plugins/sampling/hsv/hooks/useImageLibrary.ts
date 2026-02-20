@@ -1,75 +1,54 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
 import {
   formatBytes,
   formatImageType,
   loadImageDimensions,
   readFileAsDataUrl,
 } from "../lib/imageUtils";
+import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
-
-const LEGACY_IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
-const IMAGE_CACHE_KEY = "herakoi.image-cache.v1";
-
-type CurrentImage = {
-  id: string;
-  title: string;
-};
 
 type UseImageLibraryArgs = {
   curatedImages: ImageEntry[];
   howItWorksImages: ImageEntry[];
+  selectedImageId: string | null;
   onSelectImage: (entry: ImageEntry) => Promise<void>;
 };
 
 export const useImageLibrary = ({
   curatedImages,
   howItWorksImages,
+  selectedImageId,
   onSelectImage,
 }: UseImageLibraryArgs) => {
-  const imageHydrated = true;
-  const [uploads, setUploads] = useState<ImageEntry[]>([]);
-  const [currentImage, setCurrentImage] = useState<CurrentImage>(() => {
-    const fallback = curatedImages[0] ?? howItWorksImages[0];
+  const uploads = useHSVRuntimeStore((state) => state.uploads);
+  const imageHydrated = useHSVRuntimeStore((state) => state.uploadsHydrated);
+  const hydrateUploads = useHSVRuntimeStore((state) => state.hydrateUploads);
+  const upsertUpload = useHSVRuntimeStore((state) => state.upsertUpload);
+  const removeUpload = useHSVRuntimeStore((state) => state.removeUpload);
+
+  useEffect(() => {
+    hydrateUploads();
+  }, [hydrateUploads]);
+
+  const entries = useMemo(
+    () => [...howItWorksImages, ...curatedImages, ...uploads],
+    [curatedImages, howItWorksImages, uploads],
+  );
+
+  const currentImage = useMemo(() => {
+    const selectedEntry = entries.find((entry) => entry.id === selectedImageId);
+    const fallbackEntry = curatedImages[0] ?? howItWorksImages[0] ?? uploads[0];
+    const entry = selectedEntry ?? fallbackEntry;
     return {
-      id: fallback?.id ?? "curated-default",
-      title: fallback?.title ?? "Curated image",
+      id: entry?.id ?? "curated-default",
+      title: entry?.title ?? "Curated image",
     };
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem(IMAGE_CACHE_KEY);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as ImageEntry[];
-      setUploads(
-        parsed
-          .filter((entry) => entry.kind === "upload")
-          .map((entry) => ({ ...entry, previewSrc: entry.previewSrc ?? entry.src })),
-      );
-    } catch {
-      setUploads([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    // Legacy selection storage is removed; app-config is the source of truth.
-    localStorage.removeItem(LEGACY_IMAGE_SELECTION_KEY);
-  }, []);
-
-  const persistUploads = useCallback((nextUploads: ImageEntry[]) => {
-    try {
-      localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(nextUploads));
-    } catch {
-      // ignore
-    }
-  }, []);
+  }, [selectedImageId, entries, curatedImages, howItWorksImages, uploads]);
 
   const handleImageFile = useCallback(
     async (file: File) => {
       const id = `upload-${file.name}-${file.size}-${file.lastModified}`;
-      setCurrentImage({ id, title: file.name });
       try {
         const dataUrl = await readFileAsDataUrl(file);
         const { width, height } = await loadImageDimensions(dataUrl);
@@ -85,22 +64,17 @@ export const useImageLibrary = ({
           kind: "upload",
           addedAt: Date.now(),
         };
-        setUploads((prev) => {
-          const next = [entry, ...prev.filter((item) => item.id !== id)];
-          persistUploads(next);
-          return next;
-        });
+        upsertUpload(entry);
         await onSelectImage(entry);
       } catch {
         // ignore
       }
     },
-    [onSelectImage, persistUploads],
+    [onSelectImage, upsertUpload],
   );
 
   const handleSelectImage = useCallback(
     async (entry: ImageEntry) => {
-      setCurrentImage({ id: entry.id, title: entry.title });
       try {
         await onSelectImage(entry);
       } catch {
@@ -113,21 +87,15 @@ export const useImageLibrary = ({
   const handleDeleteUpload = useCallback(
     (entry: ImageEntry) => {
       const nextUploads = uploads.filter((item) => item.id !== entry.id);
-      setUploads(nextUploads);
-      persistUploads(nextUploads);
-      if (currentImage.id === entry.id) {
+      removeUpload(entry.id);
+      if (selectedImageId === entry.id) {
         const fallback = curatedImages[0] ?? howItWorksImages[0] ?? nextUploads[0];
         if (fallback) {
           void handleSelectImage(fallback);
         }
       }
     },
-    [currentImage.id, curatedImages, handleSelectImage, howItWorksImages, persistUploads, uploads],
-  );
-
-  const entries = useMemo(
-    () => [...howItWorksImages, ...curatedImages, ...uploads],
-    [curatedImages, howItWorksImages, uploads],
+    [curatedImages, handleSelectImage, howItWorksImages, removeUpload, selectedImageId, uploads],
   );
 
   const handleImageInput = useCallback(

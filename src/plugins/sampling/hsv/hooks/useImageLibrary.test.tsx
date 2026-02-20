@@ -2,13 +2,19 @@
  * @vitest-environment happy-dom
  */
 
-import { act, useLayoutEffect } from "react";
+import { act, useCallback, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 import { useImageLibrary } from "./useImageLibrary";
 
-const IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
+vi.mock("../lib/imageUtils", async () => ({
+  formatBytes: () => "3 B",
+  formatImageType: () => "PNG",
+  loadImageDimensions: vi.fn(async () => ({ width: 100, height: 50 })),
+  readFileAsDataUrl: vi.fn(async () => "data:image/png;base64,AAAA"),
+}));
 
 const curatedImages = [
   {
@@ -30,15 +36,35 @@ const curatedImages = [
 ];
 
 type HookHarnessProps = {
+  selectedImageId: string | null;
   onSelectImage: (entry: ImageEntry) => Promise<void>;
+  onExposeApi?: (api: { handleImageFile: (file: File) => Promise<void> }) => void;
+  onSnapshot?: (snapshot: { currentImageId: string; uploadIds: string[] }) => void;
 };
 
-const HookHarness = ({ onSelectImage }: HookHarnessProps) => {
-  useImageLibrary({
+const HookHarness = ({
+  selectedImageId,
+  onSelectImage,
+  onExposeApi,
+  onSnapshot,
+}: HookHarnessProps) => {
+  const { currentImage, uploads, handleImageFile } = useImageLibrary({
     curatedImages,
     howItWorksImages: [],
+    selectedImageId,
     onSelectImage,
   });
+
+  useLayoutEffect(() => {
+    onExposeApi?.({ handleImageFile });
+  }, [handleImageFile, onExposeApi]);
+
+  useLayoutEffect(() => {
+    onSnapshot?.({
+      currentImageId: currentImage.id,
+      uploadIds: uploads.map((entry) => entry.id),
+    });
+  }, [currentImage.id, onSnapshot, uploads]);
 
   useLayoutEffect(() => {
     // no-op: force a stable layout-effect boundary for mount timing in tests
@@ -47,7 +73,7 @@ const HookHarness = ({ onSelectImage }: HookHarnessProps) => {
   return null;
 };
 
-describe("useImageLibrary legacy image selection restore", () => {
+describe("useImageLibrary", () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
   let previousActFlag: unknown;
@@ -61,6 +87,11 @@ describe("useImageLibrary legacy image selection restore", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    useHSVRuntimeStore.setState({
+      imageReady: false,
+      uploads: [],
+      uploadsHydrated: false,
+    });
   });
 
   afterEach(() => {
@@ -75,25 +106,67 @@ describe("useImageLibrary legacy image selection restore", () => {
       previousActFlag;
   });
 
-  const mountHarness = async (props: HookHarnessProps) => {
+  it("shares uploads and derived current image across multiple hook instances", async () => {
+    type HookApi = { handleImageFile: (file: File) => Promise<void> };
+    const apis: Record<"left" | "right", HookApi | null> = { left: null, right: null };
+    const snapshots: Record<"left" | "right", { currentImageId: string; uploadIds: string[] }> = {
+      left: { currentImageId: "app-config-image", uploadIds: [] },
+      right: { currentImageId: "app-config-image", uploadIds: [] },
+    };
+
+    const DualHarness = () => {
+      const [selectedImageId, setSelectedImageId] = useState<string | null>("app-config-image");
+      const onSelectImage = useCallback(async (entry: ImageEntry) => {
+        setSelectedImageId(entry.id);
+      }, []);
+
+      return (
+        <>
+          <HookHarness
+            selectedImageId={selectedImageId}
+            onSelectImage={onSelectImage}
+            onExposeApi={(api) => {
+              apis.left = api;
+            }}
+            onSnapshot={(snapshot) => {
+              snapshots.left = snapshot;
+            }}
+          />
+          <HookHarness
+            selectedImageId={selectedImageId}
+            onSelectImage={onSelectImage}
+            onExposeApi={(api) => {
+              apis.right = api;
+            }}
+            onSnapshot={(snapshot) => {
+              snapshots.right = snapshot;
+            }}
+          />
+        </>
+      );
+    };
+
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
 
     await act(async () => {
-      root.render(<HookHarness {...props} />);
+      root.render(<DualHarness />);
       await Promise.resolve();
     });
-  };
 
-  it("does not replay legacy localStorage image id into plugin config on mount", async () => {
-    localStorage.setItem(IMAGE_SELECTION_KEY, JSON.stringify({ id: "legacy-image" }));
-    const onSelectImage = vi.fn().mockResolvedValue(undefined);
+    const file = new File(["abc"], "shared.png", { type: "image/png", lastModified: 123 });
+    const expectedId = "upload-shared.png-3-123";
+    expect(apis.left).not.toBeNull();
 
-    await mountHarness({
-      onSelectImage,
+    await act(async () => {
+      await apis.left?.handleImageFile(file);
+      await Promise.resolve();
     });
 
-    expect(onSelectImage).not.toHaveBeenCalled();
+    expect(snapshots.left.currentImageId).toBe(expectedId);
+    expect(snapshots.right.currentImageId).toBe(expectedId);
+    expect(snapshots.left.uploadIds).toContain(expectedId);
+    expect(snapshots.right.uploadIds).toContain(expectedId);
   });
 });

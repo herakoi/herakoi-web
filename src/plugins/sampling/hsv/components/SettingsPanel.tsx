@@ -28,6 +28,7 @@ export const HSVSettingsPanel = ({
   const { currentImage, entries, handleImageFile, handleSelectImage } = useImageLibrary({
     curatedImages,
     howItWorksImages,
+    selectedImageId: config.currentImageId,
     onSelectImage: async (entry) => {
       setConfig({ currentImageId: entry.id });
     },

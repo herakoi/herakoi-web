@@ -67,6 +67,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       let configUnsub: (() => void) | null = null;
       let resizeHandler: (() => void) | null = null;
       let panZoomCleanup: (() => void) | null = null;
+      let loadRequestVersion = 0;
 
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
@@ -84,7 +85,9 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       const loadAndDraw = async (src: string) => {
         const canvas = getCanvas();
         if (!canvas) return;
+        const requestVersion = ++loadRequestVersion;
         const img = await loadImageElement(src);
+        if (requestVersion !== loadRequestVersion) return;
         const currentViewportMode = getConfig().viewportMode;
         if (currentViewportMode.kind === "cover") {
           runtime.setConfig({
@@ -94,6 +97,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             },
           });
         }
+        if (requestVersion !== loadRequestVersion) return;
         imageBuffer = img;
         await drawAndEncode(img, canvas);
       };
@@ -293,6 +297,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           }
           panZoomCleanup?.();
           panZoomCleanup = null;
+          loadRequestVersion += 1;
           imageBuffer = null;
           useHSVRuntimeStore.getState().setImageReady(false);
         },
