@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
-import { useActivePlugin, useAppConfigStore } from "../state/appConfigStore";
+import { useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { useNotificationStore } from "../state/notificationStore";
 import { resizeCanvasToContainer } from "./ui/canvas";
@@ -17,9 +17,6 @@ export const useSonificationEngine = (
 ) => {
   const status = useAppRuntimeStore((state) => state.pipelineStatus);
   const setStatus = useAppRuntimeStore((state) => state.setStatus);
-  const [activeDetectionId] = useActivePlugin("detection");
-  const [activeSamplingId] = useActivePlugin("sampling");
-  const [activeSonificationId] = useActivePlugin("sonification");
 
   const detectorHandleRef = useRef<ReturnType<
     (typeof config.detection)[0]["createDetector"]
@@ -68,6 +65,11 @@ export const useSonificationEngine = (
       setStatus({ status: "initializing" });
 
       // Resolve active plugins
+      const {
+        detection: activeDetectionId,
+        sampling: activeSamplingId,
+        sonification: activeSonificationId,
+      } = useAppConfigStore.getState().activePlugins;
       const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
       const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
       const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
@@ -207,9 +209,6 @@ export const useSonificationEngine = (
     }
   }, [
     config,
-    activeDetectionId,
-    activeSamplingId,
-    activeSonificationId,
     ensureCanvasesSized,
     createPluginRuntimeContext,
     imageCanvasRef,

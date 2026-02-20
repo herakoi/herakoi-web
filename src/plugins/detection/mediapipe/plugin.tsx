@@ -59,6 +59,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           minTrackingConfidence: 0.7,
         },
       });
+      let unsubscribeConfig: (() => void) | null = null;
 
       return {
         detector,
@@ -116,7 +117,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
 
           // Subscribe to config changes for runtime updates
           const prevConfig = { ...config };
-          runtime.subscribeConfig((currentConfig) => {
+          unsubscribeConfig = runtime.subscribeConfig((currentConfig) => {
             if (currentConfig.mirror !== prevConfig.mirror) {
               prevConfig.mirror = currentConfig.mirror;
               detector.setMirror(currentConfig.mirror);
@@ -132,6 +133,8 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           });
         },
         cleanup: () => {
+          unsubscribeConfig?.();
+          unsubscribeConfig = null;
           detector.stop();
         },
       };
