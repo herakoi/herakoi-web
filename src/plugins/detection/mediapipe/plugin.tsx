@@ -141,7 +141,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
     },
 
     bindPipelineEvents(detector, { showNotification, hideNotification }) {
-      let lastDetected = false;
+      let lastDetected: boolean | null = null;
 
       detector.onPointsDetected((points) => {
         const hasHands = points.length > 0;

@@ -52,3 +52,50 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("MediaPipe detection plugin notification flow", () => {
+  it("shows the no-hand prompt on the first empty detection frame", () => {
+    const onPointsDetected = vi.fn();
+    const detector = { onPointsDetected };
+    const showNotification = vi.fn();
+    const hideNotification = vi.fn();
+
+    plugin.bindPipelineEvents(detector as never, { showNotification, hideNotification });
+
+    const pointsHandler = onPointsDetected.mock.calls[0]?.[0] as
+      | ((points: unknown[]) => void)
+      | undefined;
+    expect(pointsHandler).toBeTypeOf("function");
+
+    pointsHandler?.([]);
+
+    expect(showNotification).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledWith(
+      "mediapipe-hand-prompt",
+      expect.objectContaining({
+        message: "Move your index finger in front of the camera to play",
+      }),
+    );
+    expect(hideNotification).not.toHaveBeenCalled();
+  });
+
+  it("does not re-show the prompt on repeated empty detection frames", () => {
+    const onPointsDetected = vi.fn();
+    const detector = { onPointsDetected };
+    const showNotification = vi.fn();
+    const hideNotification = vi.fn();
+
+    plugin.bindPipelineEvents(detector as never, { showNotification, hideNotification });
+
+    const pointsHandler = onPointsDetected.mock.calls[0]?.[0] as
+      | ((points: unknown[]) => void)
+      | undefined;
+    expect(pointsHandler).toBeTypeOf("function");
+
+    pointsHandler?.([]);
+    pointsHandler?.([]);
+
+    expect(showNotification).toHaveBeenCalledTimes(1);
+    expect(hideNotification).not.toHaveBeenCalled();
+  });
+});
