@@ -119,8 +119,10 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           // Restore selected image by stable id; fallback to default bundled image.
           const { currentImageId } = getConfig();
           const defaultImageId = getDefaultImageId();
-          const initialImageId = currentImageId ?? defaultImageId;
-          const initialSrc = resolveImageSourceById(initialImageId);
+          const configuredSrc = resolveImageSourceById(currentImageId);
+          const fallbackSrc = resolveImageSourceById(defaultImageId);
+          const initialImageId = configuredSrc ? currentImageId : defaultImageId;
+          const initialSrc = configuredSrc ?? fallbackSrc;
           if (initialSrc && initialImageId) {
             await loadAndDraw(initialSrc);
             if (currentImageId !== initialImageId) {

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   formatBytes,
   formatImageType,
@@ -7,7 +7,7 @@ import {
 } from "../lib/imageUtils";
 import type { ImageEntry } from "../types/image";
 
-const IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
+const LEGACY_IMAGE_SELECTION_KEY = "herakoi.image-selection.v1";
 const IMAGE_CACHE_KEY = "herakoi.image-cache.v1";
 
 type CurrentImage = {
@@ -21,38 +21,15 @@ type UseImageLibraryArgs = {
   onSelectImage: (entry: ImageEntry) => Promise<void>;
 };
 
-const readStoredImageId = () => {
-  if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(IMAGE_SELECTION_KEY);
-  if (!stored) return null;
-  try {
-    const parsed = JSON.parse(stored) as { id?: string } | null;
-    return parsed?.id ?? null;
-  } catch {
-    return null;
-  }
-};
-
 export const useImageLibrary = ({
   curatedImages,
   howItWorksImages,
   onSelectImage,
 }: UseImageLibraryArgs) => {
-  const [storedImageId, setStoredImageId] = useState(readStoredImageId);
-  const restoreSelectionRef = useRef(false);
-  const selectionTokenRef = useRef(0);
-  const [imageHydrated, setImageHydrated] = useState(false);
+  const imageHydrated = true;
   const [uploads, setUploads] = useState<ImageEntry[]>([]);
   const [currentImage, setCurrentImage] = useState<CurrentImage>(() => {
     const fallback = curatedImages[0] ?? howItWorksImages[0];
-    if (storedImageId) {
-      const initialMatch = [...howItWorksImages, ...curatedImages].find(
-        (entry) => entry.id === storedImageId,
-      );
-      if (initialMatch) {
-        return { id: initialMatch.id, title: initialMatch.title };
-      }
-    }
     return {
       id: fallback?.id ?? "curated-default",
       title: fallback?.title ?? "Curated image",
@@ -75,15 +52,10 @@ export const useImageLibrary = ({
     }
   }, []);
 
-  const persistSelection = useCallback((id: string) => {
+  useEffect(() => {
     if (typeof window === "undefined") return;
-    setStoredImageId(id);
-    restoreSelectionRef.current = true;
-    try {
-      localStorage.setItem(IMAGE_SELECTION_KEY, JSON.stringify({ id }));
-    } catch {
-      // ignore
-    }
+    // Legacy selection storage is removed; app-config is the source of truth.
+    localStorage.removeItem(LEGACY_IMAGE_SELECTION_KEY);
   }, []);
 
   const persistUploads = useCallback((nextUploads: ImageEntry[]) => {
@@ -97,8 +69,6 @@ export const useImageLibrary = ({
   const handleImageFile = useCallback(
     async (file: File) => {
       const id = `upload-${file.name}-${file.size}-${file.lastModified}`;
-      const token = selectionTokenRef.current + 1;
-      selectionTokenRef.current = token;
       setCurrentImage({ id, title: file.name });
       try {
         const dataUrl = await readFileAsDataUrl(file);
@@ -121,34 +91,23 @@ export const useImageLibrary = ({
           return next;
         });
         await onSelectImage(entry);
-        if (selectionTokenRef.current === token) {
-          persistSelection(id);
-          setImageHydrated(true);
-        }
       } catch {
-        if (selectionTokenRef.current === token) {
-          setImageHydrated(true);
-        }
+        // ignore
       }
     },
-    [onSelectImage, persistSelection, persistUploads],
+    [onSelectImage, persistUploads],
   );
 
   const handleSelectImage = useCallback(
     async (entry: ImageEntry) => {
-      const token = selectionTokenRef.current + 1;
-      selectionTokenRef.current = token;
       setCurrentImage({ id: entry.id, title: entry.title });
       try {
         await onSelectImage(entry);
       } catch {
         // ignore
       }
-      if (selectionTokenRef.current !== token) return;
-      persistSelection(entry.id);
-      setImageHydrated(true);
     },
-    [onSelectImage, persistSelection],
+    [onSelectImage],
   );
 
   const handleDeleteUpload = useCallback(
@@ -170,23 +129,6 @@ export const useImageLibrary = ({
     () => [...howItWorksImages, ...curatedImages, ...uploads],
     [curatedImages, howItWorksImages, uploads],
   );
-
-  useEffect(() => {
-    if (restoreSelectionRef.current) return;
-    if (!storedImageId) {
-      restoreSelectionRef.current = true;
-      setImageHydrated(true);
-      return;
-    }
-    const match = entries.find((entry) => entry.id === storedImageId);
-    if (!match) {
-      restoreSelectionRef.current = true;
-      setImageHydrated(true);
-      return;
-    }
-    restoreSelectionRef.current = true;
-    void handleSelectImage(match);
-  }, [entries, handleSelectImage, storedImageId]);
 
   const handleImageInput = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
