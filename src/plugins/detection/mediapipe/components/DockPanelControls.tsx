@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react";
+import { Camera, RefreshCw } from "lucide-react";
 import { Button } from "#src/shared/components/ui/button";
 import {
   Select,
@@ -8,19 +8,30 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { cn } from "#src/shared/utils/cn";
+import type { DeviceInfo } from "../NativeCamera";
 
 type DockPanelControlsProps = {
   pipOpen: boolean;
-  facingMode: "user" | "environment";
+  deviceId: string;
+  devices: DeviceInfo[];
+  restartCamera: (() => Promise<void>) | null;
   onTogglePip: () => void;
-  onFacingModeChange: (value: "user" | "environment") => void;
+  onDeviceChange: (deviceId: string) => void;
 };
+
+function deviceLabel(device: DeviceInfo): string {
+  if (device.facingMode === "user") return "Front";
+  if (device.facingMode === "environment") return "Rear";
+  return device.label;
+}
 
 export const DockPanelControls = ({
   pipOpen,
-  facingMode,
+  deviceId,
+  devices,
+  restartCamera,
   onTogglePip,
-  onFacingModeChange,
+  onDeviceChange,
 }: DockPanelControlsProps) => {
   const cameraBaseClass = "border-border/50 bg-black/50 text-muted-foreground";
   const cameraHoverClass = "hover:bg-black/70 hover:text-foreground";
@@ -30,14 +41,15 @@ export const DockPanelControls = ({
   const selectOpenClass =
     "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white";
 
+  const activeDevice = devices.find((d) => d.deviceId === deviceId) ?? devices[0] ?? null;
+  const activePlaceholder = activeDevice ? deviceLabel(activeDevice) : "Camera";
+
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       <Button
         variant="ghost"
         className={cn(
-          "rounded-full backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:px-4 sm:py-2",
-          "text-xs font-semibold uppercase tracking-wide",
+          "h-9 w-9 rounded-full border p-0 backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           cameraBaseClass,
           cameraHoverClass,
           pipOpen && cameraActiveClass,
@@ -46,29 +58,63 @@ export const DockPanelControls = ({
         aria-label={pipOpen ? "Hide picture in picture" : "Show picture in picture"}
         onClick={onTogglePip}
       >
-        <Camera className="h-4 w-4 sm:hidden" />
-        <span className="hidden sm:inline">Camera</span>
+        <Camera className="h-4 w-4" />
       </Button>
-      <Select
-        value={facingMode}
-        onValueChange={(value) => onFacingModeChange(value as "user" | "environment")}
-      >
-        <SelectTrigger
-          aria-label="Camera facing"
+      {devices.length > 0 ? (
+        <Select value={deviceId || ""} onValueChange={onDeviceChange}>
+          <SelectTrigger
+            aria-label="Active camera"
+            className={cn(
+              "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              selectBaseClass,
+              selectHoverClass,
+              selectOpenClass,
+            )}
+          >
+            <span className="min-w-0 truncate">
+              <SelectValue placeholder={activePlaceholder} />
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            {devices.map((d) => (
+              <SelectItem key={d.deviceId} value={d.deviceId}>
+                {deviceLabel(d)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Select disabled>
+          <SelectTrigger
+            aria-label="Active camera"
+            className={cn(
+              "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              selectBaseClass,
+              selectHoverClass,
+              selectOpenClass,
+            )}
+          >
+            <span className="min-w-0 truncate">
+              <SelectValue placeholder={activePlaceholder} />
+            </span>
+          </SelectTrigger>
+          <SelectContent />
+        </Select>
+      )}
+      {restartCamera && (
+        <Button
+          variant="ghost"
           className={cn(
-            "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            selectBaseClass,
-            selectHoverClass,
-            selectOpenClass,
+            "h-9 w-9 rounded-full border p-0 backdrop-blur",
+            cameraBaseClass,
+            cameraHoverClass,
           )}
+          aria-label="Refresh camera"
+          onClick={() => void restartCamera()}
         >
-          <SelectValue placeholder="Camera" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="user">Front</SelectItem>
-          <SelectItem value="environment">Rear</SelectItem>
-        </SelectContent>
-      </Select>
+          <RefreshCw className="h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
 };

@@ -215,7 +215,7 @@ export const useSonificationEngine = (
       ensureCanvasesSized();
 
       // Start detection (inlined from ApplicationController)
-      dh.detector.start();
+      await dh.detector.start();
 
       // Run post-initialize hooks
       dh.postInitialize?.();

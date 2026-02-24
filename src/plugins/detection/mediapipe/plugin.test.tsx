@@ -7,26 +7,33 @@ import { defaultMediaPipeConfig } from "./config";
 import { plugin } from "./plugin";
 import { mediaPipeRefs } from "./refs";
 
-const setMirror = vi.fn();
-const setMaxHands = vi.fn();
-const restartCamera = vi.fn().mockResolvedValue(undefined);
-const stop = vi.fn();
+const { setMirror, setMaxHands, restartCamera, stop } = vi.hoisted(() => ({
+  setMirror: vi.fn(),
+  setMaxHands: vi.fn(),
+  restartCamera: vi.fn().mockResolvedValue(undefined),
+  stop: vi.fn(),
+}));
 
-vi.mock("./MediaPipePointDetector", () => ({
-  MediaPipePointDetector: vi.fn().mockImplementation(
+vi.mock("./MediaPipePointDetector", () => {
+  const MockClass = vi.fn().mockImplementation(
     class {
       public setMirror = setMirror;
       public setMaxHands = setMaxHands;
       public restartCamera = restartCamera;
       public stop = stop;
       public initialize = vi.fn().mockResolvedValue(undefined);
-      public start = vi.fn();
+      public start = vi.fn().mockResolvedValue(undefined);
       public onPointsDetected = vi.fn();
       public onHandsDrawn = vi.fn();
+      public getActiveFacingMode = vi.fn().mockReturnValue(undefined);
       // biome-ignore lint/suspicious/noExplicitAny: Constructor mocking requires widened signature in tests
     } as unknown as (...args: any[]) => any,
-  ),
-}));
+  );
+  (MockClass as unknown as Record<string, unknown>).enumerateDevices = vi
+    .fn()
+    .mockResolvedValue([]);
+  return { MediaPipePointDetector: MockClass };
+});
 
 describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
   beforeEach(() => {

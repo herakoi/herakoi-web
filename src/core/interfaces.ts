@@ -69,7 +69,7 @@ export interface PointDetector {
    *
    * @throws Error if called before initialize() or if already started
    */
-  start(): void;
+  start(): void | Promise<void>;
 
   /**
    * Stop the detection loop and release resources.
