@@ -138,7 +138,7 @@ export class NativeCamera {
 
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices
-      .filter((d) => d.kind === "videoinput")
+      .filter((d) => d.kind === "videoinput" && d.deviceId !== "")
       .map((d) => {
         let facingMode: string | undefined;
         if ("getCapabilities" in d && typeof d.getCapabilities === "function") {
