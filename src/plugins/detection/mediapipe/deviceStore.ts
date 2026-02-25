@@ -12,6 +12,9 @@ interface DeviceStoreState {
   /** Restart the camera (re-triggers getUserMedia). Set by plugin at runtime. */
   restartCamera: (() => Promise<void>) | null;
   setRestartCamera: (fn: (() => Promise<void>) | null) => void;
+  /** Camera error message (e.g. permission denied). Null when no error. */
+  cameraError: string | null;
+  setCameraError: (error: string | null) => void;
 }
 
 export const useDeviceStore = create<DeviceStoreState>((set) => ({
@@ -23,4 +26,6 @@ export const useDeviceStore = create<DeviceStoreState>((set) => ({
   setMirror: (mirror) => set({ mirror }),
   restartCamera: null,
   setRestartCamera: (fn) => set({ restartCamera: fn }),
+  cameraError: null,
+  setCameraError: (cameraError) => set({ cameraError }),
 }));

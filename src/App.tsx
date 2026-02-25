@@ -114,12 +114,7 @@ const App = () => {
         </div>
       </header>
 
-      <SettingsPanel
-        error={status.status === "error" ? status.errorMessage : null}
-        sections={sections}
-        className="transition-opacity"
-        style={uiFadeStyle}
-      />
+      <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (

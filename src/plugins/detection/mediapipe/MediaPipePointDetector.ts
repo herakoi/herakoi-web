@@ -17,6 +17,7 @@
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
 import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
+import { useDeviceStore } from "./deviceStore";
 import { NativeCamera } from "./NativeCamera";
 
 /**
@@ -111,7 +112,15 @@ export class MediaPipePointDetector implements PointDetector {
     // Restart if we were running
     if (this.started) {
       this.camera = this.createCamera(deviceId);
-      await this.camera.start();
+      useDeviceStore.getState().setCameraError(null);
+      try {
+        await this.camera.start();
+      } catch (err) {
+        this.camera = null;
+        const msg = err instanceof Error ? err.message : "Camera error";
+        useDeviceStore.getState().setCameraError(msg);
+        throw err;
+      }
       return this.camera.activeFacingMode;
     }
 
@@ -159,7 +168,14 @@ export class MediaPipePointDetector implements PointDetector {
     }
 
     this.camera = this.createCamera(this.config.deviceId);
-    await this.camera.start();
+    useDeviceStore.getState().setCameraError(null);
+    try {
+      await this.camera.start();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Camera error";
+      useDeviceStore.getState().setCameraError(msg);
+      throw err;
+    }
     this.started = true;
   }
 

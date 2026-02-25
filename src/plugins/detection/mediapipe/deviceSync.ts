@@ -27,10 +27,16 @@ const refreshDeviceList = async () => {
  */
 export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
   const restartAndRefresh = async () => {
-    const currentDeviceId = useDeviceStore.getState().deviceId;
-    const facingMode = await detector.restartCamera(currentDeviceId);
-    await refreshDeviceList();
-    applyFacingMode(detector, facingMode);
+    useDeviceStore.getState().setCameraError(null);
+    try {
+      const currentDeviceId = useDeviceStore.getState().deviceId;
+      const facingMode = await detector.restartCamera(currentDeviceId);
+      await refreshDeviceList();
+      applyFacingMode(detector, facingMode);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Camera error";
+      useDeviceStore.getState().setCameraError(msg);
+    }
   };
 
   useDeviceStore.getState().setRestartCamera(restartAndRefresh);
@@ -50,9 +56,16 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
       detector.setMirror(state.mirror);
     }
     if (state.deviceId !== prevState.deviceId) {
-      void detector.restartCamera(state.deviceId).then((facingMode) => {
-        applyFacingMode(detector, facingMode);
-      });
+      useDeviceStore.getState().setCameraError(null);
+      detector
+        .restartCamera(state.deviceId)
+        .then((facingMode) => {
+          applyFacingMode(detector, facingMode);
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Camera error";
+          useDeviceStore.getState().setCameraError(msg);
+        });
     }
   });
 
