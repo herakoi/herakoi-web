@@ -104,6 +104,28 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
       expect.objectContaining({ deviceId: undefined }),
     );
   });
+
+  it("does not pass a stale selected device to detector construction when startup has not reached postInitialize", () => {
+    useDeviceStore.setState({
+      devices: [],
+      deviceId: "stale-unplugged-camera",
+      mirror: true,
+      restartCamera: null,
+    });
+
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    plugin.createDetector(defaultMediaPipeConfig, runtime);
+
+    expect(MediaPipePointDetector).toHaveBeenCalledWith(
+      expect.any(HTMLVideoElement),
+      expect.objectContaining({ deviceId: undefined }),
+    );
+  });
 });
 
 describe("MediaPipe detection plugin notification flow", () => {
