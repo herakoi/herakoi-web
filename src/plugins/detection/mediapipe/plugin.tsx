@@ -52,7 +52,23 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       }
 
       // Read runtime state (not persisted)
-      const { mirror: initialMirror, deviceId: initialDeviceId } = useDeviceStore.getState();
+      const {
+        mirror: initialMirror,
+        deviceId: selectedDeviceId,
+        devices: knownDevices,
+        setDeviceId,
+      } = useDeviceStore.getState();
+
+      // Guard against stale selections from previously unplugged cameras.
+      // If selection is not known at startup, fall back to browser default camera.
+      const initialDeviceId =
+        selectedDeviceId && knownDevices.some((device) => device.deviceId === selectedDeviceId)
+          ? selectedDeviceId
+          : undefined;
+
+      if (selectedDeviceId && !initialDeviceId) {
+        setDeviceId(undefined);
+      }
 
       const detector = new MediaPipePointDetector(videoEl, {
         maxHands: config.maxHands,
