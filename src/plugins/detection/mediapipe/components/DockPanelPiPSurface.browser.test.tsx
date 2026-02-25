@@ -43,16 +43,41 @@ describe("DockPanelPiPSurface", () => {
     expect(called).toBe(true);
   });
 
-  test("actions are blocked when rendered inside Floating standalone move overlay", async () => {
+  test("actions stay clickable when move handle is in the same stacking context", async () => {
+    let called = false;
     render(
       <Floating open initial={{ x: 0, y: 0, width: 320 }}>
-        {({ isResizing, onResizePointerDown, onResizeKeyDown }) => (
+        {({
+          onMovePointerDown,
+          onMoveKeyDown,
+          isResizing,
+          onResizePointerDown,
+          onResizeKeyDown,
+        }) => (
           <div style={{ position: "relative", isolation: "isolate", height: 200 }}>
             <DockPanelPiPSurface {...baseProps}>
+              <button
+                type="button"
+                aria-label="Move picture-in-picture window"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 10,
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "move",
+                }}
+                onPointerDown={onMovePointerDown}
+                onKeyDown={onMoveKeyDown}
+              />
               <DockPanelPiPActions
                 {...baseActionsProps}
                 mirror={false}
                 isResizing={isResizing}
+                onHide={() => {
+                  called = true;
+                }}
                 onResizePointerDown={onResizePointerDown}
                 onResizeKeyDown={onResizeKeyDown}
               />
@@ -61,8 +86,7 @@ describe("DockPanelPiPSurface", () => {
         )}
       </Floating>,
     );
-    await expect(
-      page.getByRole("button", { name: "Hide picture-in-picture" }).click({ timeout: 300 }),
-    ).rejects.toThrow();
+    await page.getByRole("button", { name: "Hide picture-in-picture" }).click({ timeout: 300 });
+    expect(called).toBe(true);
   });
 });

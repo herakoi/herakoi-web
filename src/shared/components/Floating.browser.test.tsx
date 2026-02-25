@@ -7,12 +7,14 @@ import { Floating } from "./Floating";
 afterEach(cleanup);
 
 describe("Floating — render props", () => {
-  test("passes resize handlers to children", async () => {
+  test("passes move and resize handlers to children", async () => {
     render(
       <Floating open initial={{ x: 0, y: 0, width: 260 }}>
         {(props: FloatingRenderProps) => (
           <div
             data-testid="content"
+            data-has-move-down={typeof props.onMovePointerDown === "function" ? "yes" : "no"}
+            data-has-move-key={typeof props.onMoveKeyDown === "function" ? "yes" : "no"}
             data-has-resize-down={typeof props.onResizePointerDown === "function" ? "yes" : "no"}
             data-has-resize-key={typeof props.onResizeKeyDown === "function" ? "yes" : "no"}
           />
@@ -21,17 +23,19 @@ describe("Floating — render props", () => {
     );
     const content = page.getByTestId("content");
     await expect.element(content).toBeInTheDocument();
+    await expect.element(content).toHaveAttribute("data-has-move-down", "yes");
+    await expect.element(content).toHaveAttribute("data-has-move-key", "yes");
     await expect.element(content).toHaveAttribute("data-has-resize-down", "yes");
     await expect.element(content).toHaveAttribute("data-has-resize-key", "yes");
   });
 
-  test("renders a standalone move handle button outside children", async () => {
+  test("does not render a standalone move handle button outside children", async () => {
     render(
       <Floating open initial={{ x: 0, y: 0, width: 260 }} moveHandleAriaLabel="Move panel">
         {() => <div data-testid="content" />}
       </Floating>,
     );
     const buttons = page.getByRole("button", { name: "Move panel" }).elements();
-    expect(buttons).toHaveLength(1);
+    expect(buttons).toHaveLength(0);
   });
 });

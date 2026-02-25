@@ -23,6 +23,8 @@ type FloatingDragState = {
 
 export type FloatingRenderProps = {
   isResizing: boolean;
+  onMovePointerDown: (event: PointerEvent<HTMLElement>) => void;
+  onMoveKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onResizePointerDown: (event: PointerEvent<HTMLElement>) => void;
   onResizeKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 };
@@ -319,16 +321,11 @@ export const Floating = ({
     <div style={containerStyle}>
       {children({
         isResizing,
+        onMovePointerDown: (event) => startDrag("move", event),
+        onMoveKeyDown,
         onResizePointerDown: (event) => startDrag("resize", event),
         onResizeKeyDown,
       })}
-      <button
-        type="button"
-        aria-label={moveHandleAriaLabel}
-        className="absolute inset-0 z-10 cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-        onPointerDown={(event) => startDrag("move", event)}
-        onKeyDown={onMoveKeyDown}
-      />
     </div>
   );
 };

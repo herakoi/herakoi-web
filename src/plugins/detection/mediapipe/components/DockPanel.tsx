@@ -60,7 +60,13 @@ export const MediaPipeDockPanel = ({
         forbiddenRefs={[controlsRef]}
         moveHandleAriaLabel="Move picture-in-picture window"
       >
-        {({ isResizing, onResizePointerDown, onResizeKeyDown }) => (
+        {({
+          isResizing,
+          onMovePointerDown,
+          onMoveKeyDown,
+          onResizePointerDown,
+          onResizeKeyDown,
+        }) => (
           <DockPanelPiPSurface
             videoRef={videoRef}
             overlayRef={overlayRef}
@@ -68,6 +74,13 @@ export const MediaPipeDockPanel = ({
             mirror={mirror}
             videoReady={videoReady}
           >
+            <button
+              type="button"
+              aria-label="Move picture-in-picture window"
+              className="absolute inset-0 z-10 cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              onPointerDown={onMovePointerDown}
+              onKeyDown={onMoveKeyDown}
+            />
             <DockPanelPiPTransport
               isRunning={isRunning}
               isInitializing={isInitializing}

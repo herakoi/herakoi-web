@@ -116,11 +116,33 @@ describe("DockPanelPiPActions — clickable inside Floating with move-handle ove
   function renderInsideFloating(props: Partial<typeof baseProps>) {
     render(
       <Floating open initial={{ x: 0, y: 0, width: 320 }}>
-        {({ onResizePointerDown, onResizeKeyDown, isResizing }) => (
+        {({
+          onMovePointerDown,
+          onMoveKeyDown,
+          onResizePointerDown,
+          onResizeKeyDown,
+          isResizing,
+        }) => (
           // isolation:isolate replicates the stacking context created by backdrop-blur in DockPanel.
-          // Without it inner z-20 buttons can escape and hide the bug.
+          // The move handle lives in the same stacking context with z-10, while action
+          // buttons are z-20 and should remain clickable.
           <div style={{ position: "relative", isolation: "isolate", height: 200 }}>
             <DockPanelPiPSurface {...baseSurfaceProps} mirror={props.mirror ?? baseProps.mirror}>
+              <button
+                type="button"
+                aria-label="Move picture-in-picture window"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 10,
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "move",
+                }}
+                onPointerDown={onMovePointerDown}
+                onKeyDown={onMoveKeyDown}
+              />
               <DockPanelPiPActions
                 {...baseProps}
                 {...props}
