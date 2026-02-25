@@ -1,16 +1,21 @@
-import { Pointer } from "lucide-react";
+import { AlertCircle, Pointer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PluginNotification } from "#src/shared/components/notifications/PluginNotification";
 import { useDeviceStore } from "../deviceStore";
 
 export const MediaPipeNotifications = () => {
   const hasHands = useDeviceStore((s) => s.hasHands);
+  const cameraError = useDeviceStore((s) => s.cameraError);
   const [dismissed, setDismissed] = useState(false);
 
   // Reset dismissed when a hand is detected again so the prompt can reappear next time
   useEffect(() => {
     if (hasHands === true) setDismissed(false);
   }, [hasHands]);
+
+  if (cameraError) {
+    return <PluginNotification message={cameraError} icon={AlertCircle} politeness="assertive" />;
+  }
 
   if (hasHands === false && !dismissed) {
     return (
