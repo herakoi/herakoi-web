@@ -55,6 +55,10 @@ jobs:
         # We install with --frozen-lockfile so the workflow fails fast if the lock file and manifest ever drift.
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright browser runtime
+        # Browser-project specs require a real Chromium binary + OS deps on the CI runner.
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Run Biome lint
         # We stick to lint-only mode in CI; automated fixes stay a developer responsibility.
         run: pnpm run lint:biome
