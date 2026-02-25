@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import type { DeviceInfo } from "./NativeCamera";
 
+export type CameraRuntimeError = {
+  code: string;
+  message: string;
+  cause?: Error;
+};
+
+export type CameraStatus = { status: "ok" } | { status: "error"; error: CameraRuntimeError };
+
 interface DeviceStoreState {
   // Runtime camera state (not persisted)
   devices: DeviceInfo[];
@@ -12,9 +20,10 @@ interface DeviceStoreState {
   /** Restart the camera (re-triggers getUserMedia). Set by plugin at runtime. */
   restartCamera: (() => Promise<void>) | null;
   setRestartCamera: (fn: (() => Promise<void>) | null) => void;
-  /** Camera error message (e.g. permission denied). Null when no error. */
-  cameraError: string | null;
-  setCameraError: (error: string | null) => void;
+  /** Camera health state for runtime feedback in UI. */
+  cameraStatus: CameraStatus;
+  setCameraOk: () => void;
+  setCameraError: (error: CameraRuntimeError) => void;
   /** Whether hands are currently detected. null = pipeline not started. */
   hasHands: boolean | null;
   setHasHands: (hasHands: boolean | null) => void;
@@ -29,8 +38,9 @@ export const useDeviceStore = create<DeviceStoreState>((set) => ({
   setMirror: (mirror) => set({ mirror }),
   restartCamera: null,
   setRestartCamera: (fn) => set({ restartCamera: fn }),
-  cameraError: null,
-  setCameraError: (cameraError) => set({ cameraError }),
+  cameraStatus: { status: "ok" },
+  setCameraOk: () => set({ cameraStatus: { status: "ok" } }),
+  setCameraError: (error) => set({ cameraStatus: { status: "error", error } }),
   hasHands: null,
   setHasHands: (hasHands) => set({ hasHands }),
 }));

@@ -1,4 +1,5 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
+import type { ErrorOr } from "#src/core/interfaces";
 import {
   formatBytes,
   formatImageType,
@@ -26,6 +27,8 @@ export const useImageLibrary = ({
   const hydrateUploads = useHSVRuntimeStore((state) => state.hydrateUploads);
   const upsertUpload = useHSVRuntimeStore((state) => state.upsertUpload);
   const removeUpload = useHSVRuntimeStore((state) => state.removeUpload);
+  const setImageLibraryOk = useHSVRuntimeStore((state) => state.setImageLibraryOk);
+  const setImageLibraryError = useHSVRuntimeStore((state) => state.setImageLibraryError);
 
   useEffect(() => {
     hydrateUploads();
@@ -46,42 +49,84 @@ export const useImageLibrary = ({
     };
   }, [selectedImageId, entries, curatedImages, howItWorksImages, uploads]);
 
+  const toError = useCallback(
+    (error: unknown, fallback: string): Error =>
+      error instanceof Error ? error : new Error(fallback),
+    [],
+  );
+
   const handleImageFile = useCallback(
-    async (file: File) => {
+    async (file: File): Promise<ErrorOr<undefined>> => {
       const id = `upload-${file.name}-${file.size}-${file.lastModified}`;
-      try {
-        const dataUrl = await readFileAsDataUrl(file);
-        const { width, height } = await loadImageDimensions(dataUrl);
-        const meta = `${width}x${height} - ${formatBytes(file.size)} - ${formatImageType(
-          file.type,
-        )}`;
-        const entry: ImageEntry = {
-          id,
-          title: file.name,
-          meta,
-          src: dataUrl,
-          previewSrc: dataUrl,
-          kind: "upload",
-          addedAt: Date.now(),
-        };
-        upsertUpload(entry);
-        await onSelectImage(entry);
-      } catch {
-        // ignore
+      const dataUrl = await readFileAsDataUrl(file).catch((error: unknown) =>
+        toError(error, "Failed to read image file."),
+      );
+      if (dataUrl instanceof Error) {
+        setImageLibraryError({
+          code: "image_read_failed",
+          message: dataUrl.message,
+          cause: dataUrl,
+        });
+        return dataUrl;
       }
+
+      const dimensions = await loadImageDimensions(dataUrl).catch((error: unknown) =>
+        toError(error, "Failed to decode uploaded image."),
+      );
+      if (dimensions instanceof Error) {
+        setImageLibraryError({
+          code: "image_decode_failed",
+          message: dimensions.message,
+          cause: dimensions,
+        });
+        return dimensions;
+      }
+
+      const { width, height } = dimensions;
+      const meta = `${width}x${height} - ${formatBytes(file.size)} - ${formatImageType(file.type)}`;
+      const entry: ImageEntry = {
+        id,
+        title: file.name,
+        meta,
+        src: dataUrl,
+        previewSrc: dataUrl,
+        kind: "upload",
+        addedAt: Date.now(),
+      };
+      upsertUpload(entry);
+      const selectResult = await onSelectImage(entry).catch((error: unknown) =>
+        toError(error, "Failed to select uploaded image."),
+      );
+      if (selectResult instanceof Error) {
+        setImageLibraryError({
+          code: "image_select_failed",
+          message: selectResult.message,
+          cause: selectResult,
+        });
+        return selectResult;
+      }
+
+      setImageLibraryOk();
     },
-    [onSelectImage, upsertUpload],
+    [onSelectImage, setImageLibraryError, setImageLibraryOk, toError, upsertUpload],
   );
 
   const handleSelectImage = useCallback(
-    async (entry: ImageEntry) => {
-      try {
-        await onSelectImage(entry);
-      } catch {
-        // ignore
+    async (entry: ImageEntry): Promise<ErrorOr<undefined>> => {
+      const result = await onSelectImage(entry).catch((error: unknown) =>
+        toError(error, "Failed to select image."),
+      );
+      if (result instanceof Error) {
+        setImageLibraryError({
+          code: "image_select_failed",
+          message: result.message,
+          cause: result,
+        });
+        return result;
       }
+      setImageLibraryOk();
     },
-    [onSelectImage],
+    [onSelectImage, setImageLibraryError, setImageLibraryOk, toError],
   );
 
   const handleDeleteUpload = useCallback(

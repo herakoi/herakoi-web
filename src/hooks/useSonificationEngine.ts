@@ -22,6 +22,19 @@ export type SonificationEngineStartResult = ErrorOr<{
   data: EngineStartData;
 }>;
 
+const toError = (error: unknown, fallback: string): Error =>
+  error instanceof Error ? error : new Error(fallback);
+
+const runSafely = async <T>(
+  operation: () => T | Promise<T>,
+  fallbackMessage: string,
+): Promise<ErrorOr<T>> => {
+  const result = await Promise.resolve()
+    .then(operation)
+    .catch((error: unknown) => toError(error, fallbackMessage));
+  return result;
+};
+
 export const useSonificationEngine = (
   config: PipelineConfig,
   { imageCanvasRef, imageOverlayRef }: Refs,
@@ -119,37 +132,44 @@ export const useSonificationEngine = (
       );
     }
 
-    let dh: ReturnType<(typeof config.detection)[0]["createDetector"]>;
-    let sh: ReturnType<(typeof config.sampling)[0]["createSampler"]>;
-    let soh: ReturnType<(typeof config.sonification)[0]["createSonifier"]>;
-
-    try {
-      // Create plugin instances
+    const pluginHandles = await runSafely(() => {
       const detectionPluginId = activeDetection.id;
       const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
       const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
-      dh = activeDetection.createDetector(detectionConfig as never, detectionRuntime as never);
+      const detectionHandle = activeDetection.createDetector(
+        detectionConfig as never,
+        detectionRuntime as never,
+      );
 
       const samplingPluginId = activeSampling.id;
       const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
       const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
-      sh = activeSampling.createSampler(samplingConfig as never, samplingRuntime as never);
+      const samplingHandle = activeSampling.createSampler(
+        samplingConfig as never,
+        samplingRuntime as never,
+      );
 
       const sonificationPluginId = activeSonification.id;
       const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
       const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
-      soh = activeSonification.createSonifier(
+      const sonificationHandle = activeSonification.createSonifier(
         sonificationConfig as never,
         sonificationRuntime as never,
       );
-    } catch (error) {
+
+      return { detectionHandle, samplingHandle, sonificationHandle };
+    }, "Unknown plugin initialization error.");
+
+    if (pluginHandles instanceof Error) {
       return failStart(
-        error instanceof Error ? error : new Error("Unknown plugin initialization error."),
+        pluginHandles,
         "Pipeline plugin creation failed",
         "engine",
         "plugin_creation_failed",
       );
     }
+
+    const { detectionHandle: dh, samplingHandle: sh, sonificationHandle: soh } = pluginHandles;
 
     detectorHandleRef.current = dh;
     samplerHandleRef.current = sh;
@@ -159,18 +179,17 @@ export const useSonificationEngine = (
     dh.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
     sh.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
 
-    // Run sampling plugin post-initialize (loads image, draws to canvas, encodes HSV)
-    try {
-      await sh.postInitialize?.();
-    } catch (error) {
-      const samplingError =
-        error instanceof Error ? error : new Error("Sampling plugin post-initialize failed.");
+    const postInitializeResult = await runSafely(
+      async () => sh.postInitialize?.(),
+      "Sampling plugin post-initialize failed.",
+    );
+    if (postInitializeResult instanceof Error) {
       return failStart(
-        samplingError,
+        postInitializeResult,
         "Pipeline start failed",
         "sampling",
         "post_initialize_failed",
-        error instanceof Error ? error : undefined,
+        postInitializeResult,
       );
     }
 

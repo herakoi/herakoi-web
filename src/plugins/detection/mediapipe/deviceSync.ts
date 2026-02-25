@@ -36,17 +36,25 @@ const refreshDeviceList = async (): Promise<ErrorOr<undefined>> => {
  */
 export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
   const restartAndRefresh = async (): Promise<void> => {
-    useDeviceStore.getState().setCameraError(null);
+    useDeviceStore.getState().setCameraOk();
     const currentDeviceId = useDeviceStore.getState().deviceId;
     const restartResult = await detector.restartCamera(currentDeviceId);
     if (restartResult instanceof Error) {
-      useDeviceStore.getState().setCameraError(restartResult.message);
+      useDeviceStore.getState().setCameraError({
+        code: "camera_restart_failed",
+        message: restartResult.message,
+        cause: restartResult,
+      });
       return;
     }
 
     const refreshResult = await refreshDeviceList();
     if (refreshResult instanceof Error) {
-      useDeviceStore.getState().setCameraError(refreshResult.message);
+      useDeviceStore.getState().setCameraError({
+        code: "device_enumeration_failed",
+        message: refreshResult.message,
+        cause: refreshResult,
+      });
       return;
     }
 
@@ -58,7 +66,11 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
   // Enumerate devices on startup and auto-mirror based on active facing mode
   void refreshDeviceList().then((refreshResult) => {
     if (refreshResult instanceof Error) {
-      useDeviceStore.getState().setCameraError(refreshResult.message);
+      useDeviceStore.getState().setCameraError({
+        code: "device_enumeration_failed",
+        message: refreshResult.message,
+        cause: refreshResult,
+      });
       return;
     }
     applyFacingMode(detector, detector.getActiveFacingMode());
@@ -68,7 +80,11 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
   const deviceChangeHandler = () => {
     void refreshDeviceList().then((refreshResult) => {
       if (refreshResult instanceof Error) {
-        useDeviceStore.getState().setCameraError(refreshResult.message);
+        useDeviceStore.getState().setCameraError({
+          code: "device_enumeration_failed",
+          message: refreshResult.message,
+          cause: refreshResult,
+        });
       }
     });
   };
@@ -80,10 +96,14 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
       detector.setMirror(state.mirror);
     }
     if (state.deviceId !== prevState.deviceId) {
-      useDeviceStore.getState().setCameraError(null);
+      useDeviceStore.getState().setCameraOk();
       void detector.restartCamera(state.deviceId).then((restartResult) => {
         if (restartResult instanceof Error) {
-          useDeviceStore.getState().setCameraError(restartResult.message);
+          useDeviceStore.getState().setCameraError({
+            code: "camera_restart_failed",
+            message: restartResult.message,
+            cause: restartResult,
+          });
           return;
         }
 

@@ -5,7 +5,7 @@ import { useDeviceStore } from "../deviceStore";
 
 export const MediaPipeNotifications = () => {
   const hasHands = useDeviceStore((s) => s.hasHands);
-  const cameraError = useDeviceStore((s) => s.cameraError);
+  const cameraStatus = useDeviceStore((s) => s.cameraStatus);
   const [dismissed, setDismissed] = useState(false);
 
   // Reset dismissed when a hand is detected again so the prompt can reappear next time
@@ -13,8 +13,14 @@ export const MediaPipeNotifications = () => {
     if (hasHands === true) setDismissed(false);
   }, [hasHands]);
 
-  if (cameraError) {
-    return <PluginNotification message={cameraError} icon={AlertCircle} politeness="assertive" />;
+  if (cameraStatus.status === "error") {
+    return (
+      <PluginNotification
+        message={cameraStatus.error.message}
+        icon={AlertCircle}
+        politeness="assertive"
+      />
+    );
   }
 
   if (hasHands === false && !dismissed) {

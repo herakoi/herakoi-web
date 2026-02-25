@@ -5,6 +5,7 @@
 import { act, useCallback, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ErrorOr } from "#src/core/interfaces";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 import { useImageLibrary } from "./useImageLibrary";
@@ -38,7 +39,7 @@ const curatedImages = [
 type HookHarnessProps = {
   selectedImageId: string | null;
   onSelectImage: (entry: ImageEntry) => Promise<void>;
-  onExposeApi?: (api: { handleImageFile: (file: File) => Promise<void> }) => void;
+  onExposeApi?: (api: { handleImageFile: (file: File) => Promise<ErrorOr<undefined>> }) => void;
   onSnapshot?: (snapshot: { currentImageId: string; uploadIds: string[] }) => void;
 };
 
@@ -91,6 +92,7 @@ describe("useImageLibrary", () => {
       imageReady: false,
       uploads: [],
       uploadsHydrated: false,
+      imageLibraryStatus: { status: "ok" },
     });
   });
 
@@ -107,7 +109,7 @@ describe("useImageLibrary", () => {
   });
 
   it("shares uploads and derived current image across multiple hook instances", async () => {
-    type HookApi = { handleImageFile: (file: File) => Promise<void> };
+    type HookApi = { handleImageFile: (file: File) => Promise<ErrorOr<undefined>> };
     const apis: Record<"left" | "right", HookApi | null> = { left: null, right: null };
     const snapshots: Record<"left" | "right", { currentImageId: string; uploadIds: string[] }> = {
       left: { currentImageId: "app-config-image", uploadIds: [] },

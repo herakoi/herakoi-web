@@ -13,6 +13,7 @@ import type { HSVSamplingConfig } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
+import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 
 export const HSVToolbarItems = ({
@@ -32,6 +33,7 @@ export const HSVToolbarItems = ({
         setConfig({ currentImageId: entry.id });
       },
     });
+  const imageLibraryStatus = useHSVRuntimeStore((state) => state.imageLibraryStatus);
 
   useEffect(() => {
     if (!importActive) return;
@@ -169,6 +171,11 @@ export const HSVToolbarItems = ({
         className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur sm:w-[360px] [scrollbar-gutter:stable]"
       >
         <div className="space-y-3">
+          {imageLibraryStatus.status === "error" ? (
+            <p className="rounded-lg border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              {imageLibraryStatus.error.message}
+            </p>
+          ) : null}
           <div className="space-y-1.5">
             <button
               type="button"

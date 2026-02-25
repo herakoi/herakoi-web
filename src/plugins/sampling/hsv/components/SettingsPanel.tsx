@@ -16,6 +16,7 @@ import type { HSVSamplingConfig } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
+import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 
 export const HSVSettingsPanel = ({
@@ -33,6 +34,7 @@ export const HSVSettingsPanel = ({
       setConfig({ currentImageId: entry.id });
     },
   });
+  const imageLibraryStatus = useHSVRuntimeStore((state) => state.imageLibraryStatus);
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -115,6 +117,11 @@ export const HSVSettingsPanel = ({
         aria-label="Choose image file"
         onChange={handleFile}
       />
+      {imageLibraryStatus.status === "error" ? (
+        <p className="text-xs text-red-300" role="alert">
+          {imageLibraryStatus.error.message}
+        </p>
+      ) : null}
     </div>
   );
 };

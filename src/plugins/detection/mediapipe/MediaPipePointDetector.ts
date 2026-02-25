@@ -126,14 +126,18 @@ export class MediaPipePointDetector implements PointDetector {
     // Restart if we were running
     if (this.started) {
       this.camera = this.createCamera(deviceId);
-      useDeviceStore.getState().setCameraError(null);
+      useDeviceStore.getState().setCameraOk();
 
       // Go-style error handling: camera.start() returns Error | void
       const result = await this.camera.start();
 
       if (result instanceof Error) {
         this.camera = null;
-        useDeviceStore.getState().setCameraError(result.message);
+        useDeviceStore.getState().setCameraError({
+          code: "camera_restart_failed",
+          message: result.message,
+          cause: result,
+        });
         return result;
       }
 
@@ -188,7 +192,7 @@ export class MediaPipePointDetector implements PointDetector {
     if (this.startAborted) return;
 
     this.camera = this.createCamera(this.config.deviceId);
-    useDeviceStore.getState().setCameraError(null);
+    useDeviceStore.getState().setCameraOk();
 
     // Go-style error handling: camera.start() returns Error | void
     const result = await this.camera.start();
@@ -202,7 +206,11 @@ export class MediaPipePointDetector implements PointDetector {
 
     // Handle error returned from camera.start()
     if (result instanceof Error) {
-      useDeviceStore.getState().setCameraError(result.message);
+      useDeviceStore.getState().setCameraError({
+        code: "camera_start_failed",
+        message: result.message,
+        cause: result,
+      });
       return result;
     }
 
