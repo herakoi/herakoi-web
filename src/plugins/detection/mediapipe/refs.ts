@@ -2,7 +2,7 @@
  * Shared ref registry for the MediaPipe detection plugin.
  *
  * The DockPanel component registers its video and overlay refs here during
- * mount. The plugin's createDetector() reads them during pipeline initialization.
+ * mount. The plugin's createDetector() reads them during engine initialization.
  *
  * This avoids prop drilling or context threading between the imperative factory
  * and the React render tree.

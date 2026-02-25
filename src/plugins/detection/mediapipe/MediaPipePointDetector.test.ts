@@ -117,11 +117,13 @@ describe("MediaPipePointDetector", () => {
   });
 
   describe("start()", () => {
-    it("should throw if not initialized", async () => {
+    it("should return an error if not initialized", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
 
-      await expect(detector.start()).rejects.toThrow("must be initialized");
+      const result = await detector.start();
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toContain("must be initialized");
     });
 
     it("should create camera and start it after initialization", async () => {
@@ -134,6 +136,38 @@ describe("MediaPipePointDetector", () => {
       expect(NativeCameraMock).toHaveBeenCalled();
       expect(lastCameraInstance).not.toBeNull();
       expect(lastCameraInstance?.start).toHaveBeenCalled();
+    });
+
+    it("should deduplicate concurrent start calls", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+
+      let resolveStart!: () => void;
+      const startGate = new Promise<void>((resolve) => {
+        resolveStart = resolve;
+      });
+      NativeCameraMock.mockImplementationOnce(
+        class {
+          public start = vi.fn(() => startGate);
+          public stop = vi.fn();
+          public activeFacingMode: string | undefined = undefined;
+          // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
+          constructor(_videoElement: HTMLVideoElement, _config: any) {
+            lastCameraInstance = this;
+          }
+        } as unknown as (...args: unknown[]) => unknown,
+      );
+
+      const firstStart = detector.start();
+      const secondStart = detector.start();
+
+      expect(NativeCameraMock).toHaveBeenCalledTimes(1);
+      expect(lastCameraInstance?.start).toHaveBeenCalledTimes(1);
+
+      resolveStart();
+      await Promise.all([firstStart, secondStart]);
     });
   });
 

@@ -1,5 +1,5 @@
 import { type ComponentType, useMemo } from "react";
-import type { PipelineConfig, ShellDockPanelProps, VisualizerDisplayProps } from "#src/core/plugin";
+import type { EngineConfig, ShellDockPanelProps, VisualizerDisplayProps } from "#src/core/plugin";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 import { useActivePlugin } from "../../state/appConfigStore";
 import { usePluginDockPanel } from "./usePluginDockPanel";
@@ -7,8 +7,8 @@ import { usePluginSections } from "./usePluginSections";
 import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
-  config: PipelineConfig;
-  start: () => void | Promise<void>;
+  config: EngineConfig;
+  start: () => Promise<unknown>;
   stop: () => void;
 };
 
@@ -47,7 +47,7 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
       }));
   }, [config.visualization, activeVisualizerId]);
 
-  // Collect Notifications components from all active pipeline plugins
+  // Collect Notifications components from all active engine plugins
   const PluginNotificationComponents = useMemo(() => {
     const result: Array<{ id: string; Notifications: ComponentType }> = [];
 

@@ -71,6 +71,7 @@
     "@radix-ui/react-tabs": "^1.1.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "errore": "^0.14.0",
     "figlet": "^1.9.4",
     "lucide-react": "^0.473.0",
     "react": "^18.3.1",

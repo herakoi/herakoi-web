@@ -1,4 +1,6 @@
+import type { ErrorOr } from "#src/core/interfaces";
 import { useDeviceStore } from "./deviceStore";
+import { CameraRestartError, DeviceEnumerationError } from "./errors";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 const applyFacingMode = (detector: MediaPipePointDetector, facingMode: string | undefined) => {
@@ -9,8 +11,16 @@ const applyFacingMode = (detector: MediaPipePointDetector, facingMode: string | 
   }
 };
 
-const refreshDeviceList = async () => {
-  const devices = await MediaPipePointDetector.enumerateDevices();
+const asError = (error: unknown, fallbackMessage = "Camera error") =>
+  error instanceof Error ? error : new Error(fallbackMessage);
+
+const refreshDeviceList = async (): Promise<ErrorOr<undefined>> => {
+  const devices = await MediaPipePointDetector.enumerateDevices().catch((error: unknown) =>
+    asError(error, "Unable to enumerate camera devices."),
+  );
+  if (devices instanceof Error) {
+    return devices;
+  }
   useDeviceStore.getState().setDevices(devices);
   const { deviceId } = useDeviceStore.getState();
   if (deviceId && !devices.some((d) => d.deviceId === deviceId)) {
@@ -26,28 +36,49 @@ const refreshDeviceList = async () => {
  * Returns a cleanup function that tears everything down.
  */
 export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
-  const restartAndRefresh = async () => {
-    useDeviceStore.getState().setCameraError(null);
-    try {
-      const currentDeviceId = useDeviceStore.getState().deviceId;
-      const facingMode = await detector.restartCamera(currentDeviceId);
-      await refreshDeviceList();
-      applyFacingMode(detector, facingMode);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Camera error";
-      useDeviceStore.getState().setCameraError(msg);
+  const restartAndRefresh = async (): Promise<void> => {
+    useDeviceStore.getState().setCameraOk();
+    const currentDeviceId = useDeviceStore.getState().deviceId;
+    const restartResult = await detector.restartCamera(currentDeviceId);
+    if (restartResult instanceof Error) {
+      useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: restartResult }));
+      return;
     }
+
+    const refreshResult = await refreshDeviceList();
+    if (refreshResult instanceof Error) {
+      useDeviceStore
+        .getState()
+        .setCameraError(new DeviceEnumerationError({ cause: refreshResult }));
+      return;
+    }
+
+    applyFacingMode(detector, restartResult);
   };
 
   useDeviceStore.getState().setRestartCamera(restartAndRefresh);
 
   // Enumerate devices on startup and auto-mirror based on active facing mode
-  void refreshDeviceList().then(() => {
+  void refreshDeviceList().then((refreshResult) => {
+    if (refreshResult instanceof Error) {
+      useDeviceStore
+        .getState()
+        .setCameraError(new DeviceEnumerationError({ cause: refreshResult }));
+      return;
+    }
     applyFacingMode(detector, detector.getActiveFacingMode());
   });
 
   // Listen for device changes (plug/unplug cameras)
-  const deviceChangeHandler = () => void refreshDeviceList();
+  const deviceChangeHandler = () => {
+    void refreshDeviceList().then((refreshResult) => {
+      if (refreshResult instanceof Error) {
+        useDeviceStore
+          .getState()
+          .setCameraError(new DeviceEnumerationError({ cause: refreshResult }));
+      }
+    });
+  };
   navigator.mediaDevices?.addEventListener("devicechange", deviceChangeHandler);
 
   // Subscribe to deviceStore for mirror and deviceId runtime changes
@@ -56,16 +87,17 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
       detector.setMirror(state.mirror);
     }
     if (state.deviceId !== prevState.deviceId) {
-      useDeviceStore.getState().setCameraError(null);
-      detector
-        .restartCamera(state.deviceId)
-        .then((facingMode) => {
-          applyFacingMode(detector, facingMode);
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : "Camera error";
-          useDeviceStore.getState().setCameraError(msg);
-        });
+      useDeviceStore.getState().setCameraOk();
+      void detector.restartCamera(state.deviceId).then((restartResult) => {
+        if (restartResult instanceof Error) {
+          useDeviceStore
+            .getState()
+            .setCameraError(new CameraRestartError({ cause: restartResult }));
+          return;
+        }
+
+        applyFacingMode(detector, restartResult);
+      });
     }
   });
 

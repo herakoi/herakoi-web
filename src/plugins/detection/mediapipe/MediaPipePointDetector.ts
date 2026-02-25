@@ -15,9 +15,15 @@
  */
 
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
-import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
+import type {
+  DetectedPoint,
+  ErrorOr,
+  PointDetectionCallback,
+  PointDetector,
+} from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
 import { useDeviceStore } from "./deviceStore";
+import { CameraRestartError, CameraStartError } from "./errors";
 import { NativeCamera } from "./NativeCamera";
 
 /**
@@ -65,6 +71,8 @@ export class MediaPipePointDetector implements PointDetector {
   private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
+  /** In-flight start promise used to dedupe concurrent start() calls. */
+  private startInFlight: Promise<ErrorOr<undefined>> | null = null;
   /**
    * Set by stop() so a concurrent start() (e.g. React StrictMode double-invoke)
    * bails out instead of racing with a newer start() on the same video element.
@@ -76,23 +84,27 @@ export class MediaPipePointDetector implements PointDetector {
     this.config = config;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(): Promise<ErrorOr<undefined>> {
     if (this.initialized) {
       return;
     }
 
-    // Create MediaPipe Hands with caller options
-    const mediaPipeOptions: Options = {
-      maxNumHands: this.config.maxHands ?? 2,
-      ...this.config.mediaPipeOptions,
-    };
+    try {
+      // Create MediaPipe Hands with caller options
+      const mediaPipeOptions: Options = {
+        maxNumHands: this.config.maxHands ?? 2,
+        ...this.config.mediaPipeOptions,
+      };
 
-    this.hands = createHands(mediaPipeOptions);
+      this.hands = createHands(mediaPipeOptions);
 
-    // Register MediaPipe results handler
-    this.hands.onResults((results) => this.handleResults(results));
+      // Register MediaPipe results handler
+      this.hands.onResults((results) => this.handleResults(results));
 
-    this.initialized = true;
+      this.initialized = true;
+    } catch (error) {
+      return error instanceof Error ? error : new Error("Failed to initialize MediaPipe detector.");
+    }
   }
 
   /**
@@ -100,9 +112,9 @@ export class MediaPipePointDetector implements PointDetector {
    *
    * @returns The active facingMode reported by the new camera track, if available.
    */
-  async restartCamera(deviceId?: string): Promise<string | undefined> {
+  async restartCamera(deviceId?: string): Promise<ErrorOr<string | undefined>> {
     if (!this.initialized) {
-      throw new Error("MediaPipePointDetector must be initialized before restarting camera");
+      return new Error("MediaPipePointDetector must be initialized before restarting camera");
     }
 
     // Stop existing camera
@@ -117,15 +129,15 @@ export class MediaPipePointDetector implements PointDetector {
     // Restart if we were running
     if (this.started) {
       this.camera = this.createCamera(deviceId);
-      useDeviceStore.getState().setCameraError(null);
+      useDeviceStore.getState().setCameraOk();
 
       // Go-style error handling: camera.start() returns Error | void
       const result = await this.camera.start();
 
       if (result instanceof Error) {
         this.camera = null;
-        useDeviceStore.getState().setCameraError(result.message);
-        throw result;
+        useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: result }));
+        return result;
       }
 
       return this.camera.activeFacingMode;
@@ -165,39 +177,25 @@ export class MediaPipePointDetector implements PointDetector {
     }
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<ErrorOr<undefined>> {
     if (!this.initialized) {
-      throw new Error("MediaPipePointDetector must be initialized before calling start()");
+      return new Error("MediaPipePointDetector must be initialized before calling start()");
     }
 
     if (this.started) {
       return;
     }
 
+    // Deduplicate concurrent starts on the same detector instance.
+    if (this.startInFlight) {
+      return this.startInFlight;
+    }
+
     // Bail out if stop() was already called on this instance (e.g. React StrictMode
     // calls stop() while initialize() is still pending, then start() resumes here).
     if (this.startAborted) return;
 
-    this.camera = this.createCamera(this.config.deviceId);
-    useDeviceStore.getState().setCameraError(null);
-
-    // Go-style error handling: camera.start() returns Error | void
-    const result = await this.camera.start();
-
-    // If stop() fired while camera.start() was in progress, bail out.
-    if (this.startAborted) {
-      this.camera?.stop();
-      this.camera = null;
-      return;
-    }
-
-    // Handle error returned from camera.start()
-    if (result instanceof Error) {
-      useDeviceStore.getState().setCameraError(result.message);
-      throw result;
-    }
-
-    this.started = true;
+    return this.startCameraWithDedupe();
   }
 
   stop(): void {
@@ -258,6 +256,37 @@ export class MediaPipePointDetector implements PointDetector {
       ...landmark,
       x: 1 - landmark.x,
     })) as NormalizedLandmarkList;
+  }
+
+  private startCameraWithDedupe(): Promise<ErrorOr<undefined>> {
+    this.startInFlight = this.startCameraFlow().finally(() => {
+      this.startInFlight = null;
+    });
+    return this.startInFlight;
+  }
+
+  private async startCameraFlow(): Promise<ErrorOr<undefined>> {
+    this.camera = this.createCamera(this.config.deviceId);
+    useDeviceStore.getState().setCameraOk();
+
+    // Go-style error handling: camera.start() returns Error | void
+    const result = await this.camera.start();
+
+    // If stop() fired while camera.start() was in progress, bail out.
+    if (this.startAborted) {
+      this.camera?.stop();
+      this.camera = null;
+      return;
+    }
+
+    // Handle error returned from camera.start()
+    if (result instanceof Error) {
+      useDeviceStore.getState().setCameraError(new CameraStartError({ cause: result }));
+      return result;
+    }
+
+    this.started = true;
+    return;
   }
 
   private createCamera(deviceId?: string): NativeCamera {

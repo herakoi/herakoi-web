@@ -34,7 +34,7 @@ export const DockPanelControls = ({
   onTogglePip,
   onDeviceChange,
 }: DockPanelControlsProps) => {
-  const cameraError = useDeviceStore((s) => s.cameraError);
+  const cameraStatus = useDeviceStore((s) => s.cameraStatus);
   const cameraBaseClass = "border-border/50 bg-black/50 text-muted-foreground";
   const cameraHoverClass = "hover:bg-black/70 hover:text-foreground";
   const cameraActiveClass = "border-white/40 bg-white/10 text-white";
@@ -119,9 +119,9 @@ export const DockPanelControls = ({
           </Button>
         )}
       </div>
-      {cameraError && (
+      {cameraStatus.status === "error" && (
         <p className="text-xs text-red-300" role="alert">
-          {cameraError}
+          {cameraStatus.error.message}
         </p>
       )}
     </div>

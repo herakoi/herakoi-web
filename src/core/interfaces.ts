@@ -1,5 +1,5 @@
 /**
- * Core interfaces for the Herakoi detection → sampling → sonification pipeline.
+ * Core interfaces for the Herakoi detection → sampling → sonification engine.
  *
  * These interfaces define the contracts between modules:
  * - PointDetector: Tracks points (e.g., fingertips) in normalized coordinates
@@ -42,6 +42,13 @@ export interface DetectedPoint {
 export type PointDetectionCallback = (points: DetectedPoint[]) => void;
 
 /**
+ * Go-style result type where failures are returned as Error values.
+ *
+ * Success is represented by T (or undefined for void-style operations).
+ */
+export type ErrorOr<T> = Error | T;
+
+/**
  * Detects points of interest (e.g., hand landmarks, face features) from video input.
  *
  * Implementations wrap different detection backends (MediaPipe, TensorFlow, etc.)
@@ -57,9 +64,8 @@ export interface PointDetector {
    * This async operation may take several seconds for model loading.
    * Must be called before start().
    *
-   * @throws Error if initialization fails (e.g., no camera access, model load failure)
    */
-  initialize(): Promise<void>;
+  initialize(): Promise<ErrorOr<undefined>>;
 
   /**
    * Start the detection loop.
@@ -67,9 +73,8 @@ export interface PointDetector {
    * Begins processing video frames and invoking registered callbacks.
    * Requires initialize() to have completed successfully.
    *
-   * @throws Error if called before initialize() or if already started
    */
-  start(): void | Promise<void>;
+  start(): ErrorOr<undefined> | Promise<ErrorOr<undefined>>;
 
   /**
    * Stop the detection loop and release resources.
@@ -126,20 +131,19 @@ export interface ImageSampler {
    * Load an image for sampling.
    *
    * @param source Image source (URL, HTMLImageElement, canvas, etc.)
-   * @throws Error if image fails to load or is invalid
    */
-  loadImage(source: string | HTMLImageElement | HTMLCanvasElement): Promise<void>;
+  loadImage(source: string | HTMLImageElement | HTMLCanvasElement): Promise<ErrorOr<undefined>>;
 
   /**
-   * Sample image data at a detected point.
+   * Sample image data for detected points.
    *
-   * Converts normalized coordinates to pixel coordinates and extracts features.
-   * Returns null if point is out of bounds or no image is loaded.
+   * Converts normalized coordinates to pixel coordinates and extracts features
+   * for each point. Points out of bounds or unavailable are skipped.
    *
-   * @param point Detected point with normalized coordinates
-   * @returns Image sample or null if sampling failed
+   * @param points Detected points with normalized coordinates
+   * @returns Map of point ID -> sample data, or Error on runtime failure
    */
-  sampleAt(point: DetectedPoint): ImageSample | null;
+  sampleAt(points: DetectedPoint[]): ErrorOr<Map<string, ImageSample>>;
 }
 
 /**
@@ -174,9 +178,8 @@ export interface Sonifier {
    * Must be called before processSamples(). Some browsers require user gesture
    * before AudioContext can start.
    *
-   * @throws Error if Web Audio API is unavailable
    */
-  initialize(): Promise<void>;
+  initialize(): Promise<ErrorOr<undefined>>;
 
   /**
    * Process image samples and update audio output.
@@ -186,7 +189,7 @@ export interface Sonifier {
    *
    * @param samples Map of point ID → image sample for currently detected points
    */
-  processSamples(samples: Map<string, ImageSample>): void;
+  processSamples(samples: Map<string, ImageSample>): ErrorOr<undefined>;
 
   /**
    * Stop all audio and release resources.

@@ -1,6 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+/**
+ * @vitest-environment happy-dom
+ */
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { pluginConfigDefaults } from "#src/pluginConfigRegistry";
 import { useAppConfigStore } from "./appConfigStore";
+import { APP_CONFIG_KEY } from "./persistenceKeys";
 
 describe("appConfigStore", () => {
   beforeEach(() => {
@@ -107,6 +112,32 @@ describe("appConfigStore", () => {
 
       expect(useAppConfigStore.getState().uiPreferences.dimLogoMark).toBe(initialDimLogoMark);
     });
+
+    it("persists updated preferences to localStorage with expected payload", async () => {
+      const setItemSpy = vi.spyOn(window.localStorage, "setItem");
+      const { setUiPreferences } = useAppConfigStore.getState();
+
+      setUiPreferences({ baseUiOpacity: 0.7, dimLogoMark: true });
+      await Promise.resolve();
+
+      const persistedWrites = setItemSpy.mock.calls.filter(([key]) => key === APP_CONFIG_KEY);
+      expect(persistedWrites.length).toBeGreaterThan(0);
+
+      const [, serializedPayload] = persistedWrites[persistedWrites.length - 1] as [string, string];
+      const persisted = JSON.parse(serializedPayload) as {
+        state: {
+          uiPreferences: {
+            baseUiOpacity: number;
+            dimLogoMark: boolean;
+          };
+        };
+      };
+
+      expect(persisted.state.uiPreferences).toEqual({
+        baseUiOpacity: 0.7,
+        dimLogoMark: true,
+      });
+    });
   });
 
   describe("resetAll", () => {
@@ -212,8 +243,12 @@ describe("appConfigStore", () => {
 
     it("should throw error for invalid JSON", () => {
       const { importConfig } = useAppConfigStore.getState();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
       expect(() => importConfig("not valid json")).toThrow("Invalid configuration JSON");
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

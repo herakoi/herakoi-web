@@ -133,7 +133,7 @@ export const DebugHudDisplay = ({ isRunning, frameDataRef }: VisualizerDisplayPr
       {displayData.detection.points.length === 0 &&
         displayData.sampling.size === 0 &&
         displayData.sonification.size === 0 && (
-          <div>No data yet. Start the pipeline and move your hand in front of the camera.</div>
+          <div>No data yet. Start the engine and move your hand in front of the camera.</div>
         )}
     </div>
   );

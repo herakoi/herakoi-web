@@ -11,7 +11,7 @@
  * stop any nodes missing from the latest frame with a short fade-out.
  */
 
-import type { ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
+import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
 
 export type OscillatorSonifierOptions = SonifierOptions & {
   minFreq?: number;
@@ -59,7 +59,7 @@ export class OscillatorSonifier implements Sonifier {
     this.configure(options);
   }
 
-  async initialize(): Promise<void> {
+  async initialize(): Promise<ErrorOr<undefined>> {
     if (this.initialized) return;
 
     if (!this.ctx) {
@@ -71,7 +71,7 @@ export class OscillatorSonifier implements Sonifier {
           : undefined;
 
       if (!NativeAudioContext) {
-        throw new Error("Web Audio API is not available in this environment.");
+        return new Error("Web Audio API is not available in this environment.");
       }
 
       this.ctx = new NativeAudioContext();
@@ -123,9 +123,9 @@ export class OscillatorSonifier implements Sonifier {
     }
   }
 
-  processSamples(samples: Map<string, ImageSample>): void {
+  processSamples(samples: Map<string, ImageSample>): ErrorOr<undefined> {
     if (!this.ctx) {
-      throw new Error("OscillatorSonifier must be initialized before processing samples.");
+      return new Error("OscillatorSonifier must be initialized before processing samples.");
     }
 
     if (this.stopped) {

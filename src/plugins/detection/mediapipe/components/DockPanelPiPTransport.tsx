@@ -24,7 +24,7 @@ export const DockPanelPiPTransport = ({
         {!isActive ? (
           <button
             type="button"
-            aria-label="Start pipeline"
+            aria-label="Start engine"
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-sm transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();
@@ -41,7 +41,7 @@ export const DockPanelPiPTransport = ({
         ) : (
           <button
             type="button"
-            aria-label="Stop pipeline"
+            aria-label="Stop engine"
             className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-sm opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={(event) => {
               event.stopPropagation();

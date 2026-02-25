@@ -1,30 +1,30 @@
 import { useMemo } from "react";
-import type { PipelineStatus } from "#src/state/appRuntimeStore";
+import type { EngineStatus } from "#src/state/appRuntimeStore";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 type Props = {
-  status: PipelineStatus;
+  status: EngineStatus;
 };
 
 /**
- * Announces pipeline status changes to screen readers.
+ * Announces engine status changes to screen readers.
  *
  * Converts status to human-readable messages using type-safe
  * discriminated union. Uses assertive politeness to immediately
  * interrupt screen reader output when status changes.
  */
-export const PipelineStatusAnnouncer = ({ status }: Props) => {
+export const EngineStatusAnnouncer = ({ status }: Props) => {
   const message = useMemo(() => {
     switch (status.status) {
       case "initializing":
-        return "Pipeline initializing";
+        return "Engine initializing";
       case "running":
-        return "Pipeline running";
+        return "Engine running";
       case "error":
-        // TypeScript knows errorMessage exists here due to discriminated union
-        return `Pipeline error: ${status.errorMessage}`;
+        // TypeScript knows error exists here due to discriminated union
+        return `Engine error: ${status.error.message}`;
       case "idle":
-        return "Pipeline stopped";
+        return "Engine stopped";
       default:
         return "";
     }

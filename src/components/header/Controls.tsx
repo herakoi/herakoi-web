@@ -30,7 +30,7 @@ export const Controls = ({
           "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
           restartActive && "border-white/40 bg-white/10 text-white",
         )}
-        aria-label="Restart pipeline"
+        aria-label="Restart engine"
         onClick={onRestart}
         onPointerDown={() => setRestartActive(true)}
         onPointerUp={() => setRestartActive(false)}
@@ -48,7 +48,7 @@ export const Controls = ({
             ? "border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20"
             : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",
         )}
-        aria-label={isActive ? "Stop pipeline" : "Start pipeline"}
+        aria-label={isActive ? "Stop engine" : "Start engine"}
         onClick={isActive ? onStop : onStart}
         disabled={isInitializing}
         ref={transportButtonRef}

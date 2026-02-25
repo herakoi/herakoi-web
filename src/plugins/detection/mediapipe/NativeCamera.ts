@@ -43,6 +43,12 @@ function getUserMediaErrorMessage(error: unknown): string {
   return "Errore durante l'accesso alla camera. Riprova.";
 }
 
+function isPlayInterruptedByNewLoad(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return message.includes("play() request was interrupted") && message.includes("new load request");
+}
+
 export interface DeviceInfo {
   deviceId: string;
   label: string;
@@ -119,6 +125,17 @@ export class NativeCamera {
         // stop() can be called while play() is pending (e.g. camera switch).
         // The browser aborts play() with an AbortError — expected, not a real error.
         if (this.stopped) return;
+        // Another flow may have replaced srcObject while this play() was in-flight.
+        // In that case treat this as a benign cancellation, not a runtime failure.
+        if (isPlayInterruptedByNewLoad(err) && this.videoElement.srcObject !== stream) {
+          for (const track of stream.getTracks()) {
+            track.stop();
+          }
+          if (this.stream === stream) {
+            this.stream = null;
+          }
+          return;
+        }
         throw err;
       }
 
@@ -147,24 +164,21 @@ export class NativeCamera {
       this.frameCallbackId = null;
     }
 
-    // Stop tracks from our stored reference
-    if (this.stream) {
-      for (const track of this.stream.getTracks()) {
+    const ownStream = this.stream;
+
+    // Stop tracks from our stored reference.
+    if (ownStream) {
+      for (const track of ownStream.getTracks()) {
         track.stop();
       }
       this.stream = null;
     }
 
-    // Also stop any tracks on the video element itself (belt-and-suspenders)
-    const existingSrc = this.videoElement.srcObject as MediaStream | null;
-    if (existingSrc) {
-      for (const track of existingSrc.getTracks()) {
-        track.stop();
-      }
+    // Do not clobber a newer camera instance attached to the same video element.
+    if (this.videoElement.srcObject === ownStream) {
+      this.videoElement.srcObject = null;
+      this.videoElement.pause();
     }
-
-    this.videoElement.srcObject = null;
-    this.videoElement.pause();
   }
 
   /** Returns the facingMode reported by the active video track, if available. */

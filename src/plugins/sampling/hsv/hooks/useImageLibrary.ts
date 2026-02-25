@@ -1,4 +1,7 @@
+import { isError, tryAsync } from "errore";
 import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
+import type { ErrorOr } from "#src/core/interfaces";
+import { ImageDecodeError, ImageReadError, ImageSelectError } from "../errors";
 import {
   formatBytes,
   formatImageType,
@@ -26,6 +29,8 @@ export const useImageLibrary = ({
   const hydrateUploads = useHSVRuntimeStore((state) => state.hydrateUploads);
   const upsertUpload = useHSVRuntimeStore((state) => state.upsertUpload);
   const removeUpload = useHSVRuntimeStore((state) => state.removeUpload);
+  const setImageLibraryOk = useHSVRuntimeStore((state) => state.setImageLibraryOk);
+  const setImageLibraryError = useHSVRuntimeStore((state) => state.setImageLibraryError);
 
   useEffect(() => {
     hydrateUploads();
@@ -47,41 +52,65 @@ export const useImageLibrary = ({
   }, [selectedImageId, entries, curatedImages, howItWorksImages, uploads]);
 
   const handleImageFile = useCallback(
-    async (file: File) => {
+    async (file: File): Promise<ErrorOr<undefined>> => {
       const id = `upload-${file.name}-${file.size}-${file.lastModified}`;
-      try {
-        const dataUrl = await readFileAsDataUrl(file);
-        const { width, height } = await loadImageDimensions(dataUrl);
-        const meta = `${width}x${height} - ${formatBytes(file.size)} - ${formatImageType(
-          file.type,
-        )}`;
-        const entry: ImageEntry = {
-          id,
-          title: file.name,
-          meta,
-          src: dataUrl,
-          previewSrc: dataUrl,
-          kind: "upload",
-          addedAt: Date.now(),
-        };
-        upsertUpload(entry);
-        await onSelectImage(entry);
-      } catch {
-        // ignore
+      const dataUrl = await tryAsync({
+        try: async () => readFileAsDataUrl(file),
+        catch: (error) => new ImageReadError({ cause: error }),
+      });
+      if (isError(dataUrl)) {
+        setImageLibraryError(dataUrl);
+        return dataUrl;
       }
+
+      const dimensions = await tryAsync({
+        try: async () => loadImageDimensions(dataUrl),
+        catch: (error) => new ImageDecodeError({ cause: error }),
+      });
+      if (isError(dimensions)) {
+        setImageLibraryError(dimensions);
+        return dimensions;
+      }
+
+      const { width, height } = dimensions;
+      const meta = `${width}x${height} - ${formatBytes(file.size)} - ${formatImageType(file.type)}`;
+      const entry: ImageEntry = {
+        id,
+        title: file.name,
+        meta,
+        src: dataUrl,
+        previewSrc: dataUrl,
+        kind: "upload",
+        addedAt: Date.now(),
+      };
+      upsertUpload(entry);
+      const selectResult = await tryAsync({
+        try: async () => onSelectImage(entry),
+        catch: (error) => new ImageSelectError({ cause: error }),
+      });
+      if (isError(selectResult)) {
+        setImageLibraryError(selectResult);
+        return selectResult;
+      }
+
+      setImageLibraryOk();
     },
-    [onSelectImage, upsertUpload],
+    [onSelectImage, setImageLibraryError, setImageLibraryOk, upsertUpload],
   );
 
   const handleSelectImage = useCallback(
-    async (entry: ImageEntry) => {
-      try {
-        await onSelectImage(entry);
-      } catch {
-        // ignore
+    async (entry: ImageEntry): Promise<ErrorOr<undefined>> => {
+      const result = await tryAsync({
+        try: async () => onSelectImage(entry),
+        catch: (error) => new ImageSelectError({ cause: error }),
+      });
+      if (isError(result)) {
+        setImageLibraryError(result);
+        return result;
       }
+      setImageLibraryOk();
     },
-    [onSelectImage],
+    [onSelectImage, setImageLibraryError, setImageLibraryOk],
   );
 
   const handleDeleteUpload = useCallback(
