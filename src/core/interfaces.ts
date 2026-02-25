@@ -135,15 +135,15 @@ export interface ImageSampler {
   loadImage(source: string | HTMLImageElement | HTMLCanvasElement): Promise<ErrorOr<undefined>>;
 
   /**
-   * Sample image data at a detected point.
+   * Sample image data for detected points.
    *
-   * Converts normalized coordinates to pixel coordinates and extracts features.
-   * Returns null if point is out of bounds or no image is loaded.
+   * Converts normalized coordinates to pixel coordinates and extracts features
+   * for each point. Points out of bounds or unavailable are skipped.
    *
-   * @param point Detected point with normalized coordinates
-   * @returns Image sample, null if out of bounds/no image, or Error on decoding/runtime failure
+   * @param points Detected points with normalized coordinates
+   * @returns Map of point ID -> sample data, or Error on runtime failure
    */
-  sampleAt(point: DetectedPoint): ErrorOr<ImageSample | null>;
+  sampleAt(points: DetectedPoint[]): ErrorOr<Map<string, ImageSample>>;
 }
 
 /**

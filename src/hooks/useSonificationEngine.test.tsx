@@ -127,7 +127,7 @@ describe("useSonificationEngine plugin switching", () => {
             [Symbol.dispose]: vi.fn(),
             sampler: {
               loadImage: vi.fn().mockResolvedValue(undefined),
-              sampleAt: vi.fn(() => null),
+              sampleAt: vi.fn(() => new Map()),
             },
             postInitialize: vi.fn().mockResolvedValue(undefined),
             cleanup: vi.fn(),

@@ -5,6 +5,7 @@
  * required by HSVImageSampler for RGB→HSV conversion testing.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DetectedPoint } from "#src/core/interfaces";
 
 import { HSVImageSampler } from "./HSVImageSampler";
 
@@ -46,13 +47,6 @@ const makeFakeCanvas = (imageData: ImageData): FakeCanvas => {
 };
 
 describe("HSVImageSampler", () => {
-  const expectSampleData = (
-    result: ReturnType<HSVImageSampler["sampleAt"]>,
-  ): Record<string, number> | undefined => {
-    if (result instanceof Error || !result) return undefined;
-    return result.data;
-  };
-
   beforeEach(() => {
     vi.stubGlobal("ImageData", FakeImageData);
   });
@@ -75,25 +69,34 @@ describe("HSVImageSampler", () => {
     const sampler = new HSVImageSampler();
     await sampler.loadImage(canvas);
 
-    expect(expectSampleData(sampler.sampleAt({ id: "p0", x: 0, y: 0 }))).toEqual({
+    const points: DetectedPoint[] = [
+      { id: "p0", x: 0, y: 0 },
+      { id: "p1", x: 1, y: 0 },
+      { id: "p2", x: 0, y: 1 },
+      { id: "p3", x: 1, y: 1 },
+    ];
+    const result = sampler.sampleAt(points);
+    if (result instanceof Error) throw result;
+
+    expect(result.get("p0")?.data).toEqual({
       hueByte: 0,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(expectSampleData(sampler.sampleAt({ id: "p1", x: 1, y: 0 }))).toEqual({
+    expect(result.get("p1")?.data).toEqual({
       hueByte: 85,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(expectSampleData(sampler.sampleAt({ id: "p2", x: 0, y: 1 }))).toEqual({
+    expect(result.get("p2")?.data).toEqual({
       hueByte: 170,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(expectSampleData(sampler.sampleAt({ id: "p3", x: 1, y: 1 }))).toEqual({
+    expect(result.get("p3")?.data).toEqual({
       hueByte: 0,
       saturationByte: 0,
       valueByte: 128,
@@ -101,7 +104,7 @@ describe("HSVImageSampler", () => {
     });
   });
 
-  it("rejects out-of-bounds normalized coordinates", async () => {
+  it("skips out-of-bounds normalized coordinates", async () => {
     const input = makeImageData(
       [255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255],
       2,
@@ -112,8 +115,15 @@ describe("HSVImageSampler", () => {
     const sampler = new HSVImageSampler();
     await sampler.loadImage(canvas);
 
-    expect(sampler.sampleAt({ id: "neg", x: -0.1, y: 0.5 })).toBeNull();
-    expect(sampler.sampleAt({ id: "over", x: 1.1, y: 0.5 })).toBeNull();
-    expect(sampler.sampleAt({ id: "overY", x: 0.5, y: 1.4 })).toBeNull();
+    const result = sampler.sampleAt([
+      { id: "neg", x: -0.1, y: 0.5 },
+      { id: "over", x: 1.1, y: 0.5 },
+      { id: "overY", x: 0.5, y: 1.4 },
+      { id: "ok", x: 0.5, y: 0.5 },
+    ]);
+    if (result instanceof Error) throw result;
+
+    expect(result.size).toBe(1);
+    expect(result.has("ok")).toBe(true);
   });
 });

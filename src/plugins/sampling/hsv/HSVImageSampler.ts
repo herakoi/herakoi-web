@@ -5,7 +5,7 @@
  * Why: We want the controller to ask for color data without touching raw ImageData,
  * keeping all RGB→HSV work centralized and reusable across detectors.
  * What: loadImage() pulls pixels from a canvas or image/URL, converts them once to
- * hue/value bytes, and sampleAt() maps normalized points to those precomputed bytes.
+ * hue/value bytes, and sampleAt() maps batches of normalized points to those bytes.
  * How: We normalize coordinates (0-1) to pixel indices, clamp to bounds, and return
  * a flexible data record so downstream sonifiers can choose the fields they need.
  */
@@ -88,9 +88,21 @@ export class HSVImageSampler implements ImageSamplerInterface {
   }
 
   /**
-   * Sample the pre-encoded HSV data at a normalized point.
+   * Sample the pre-encoded HSV data for normalized points.
    */
-  sampleAt(point: DetectedPoint): ErrorOr<ImageSampleResult | null> {
+  sampleAt(points: DetectedPoint[]): ErrorOr<Map<string, ImageSampleResult>> {
+    const samples = new Map<string, ImageSampleResult>();
+
+    for (const point of points) {
+      const sample = this.samplePoint(point);
+      if (!sample) continue;
+      samples.set(point.id, sample);
+    }
+
+    return samples;
+  }
+
+  private samplePoint(point: DetectedPoint): ImageSampleResult | null {
     if (!this.encoded) return null;
 
     const { width, height, data } = this.encoded;
