@@ -84,7 +84,10 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         const visibleWidth = Math.min(layout.x + layout.width, canvas.width) - visibleX;
         const visibleHeight = Math.min(layout.y + layout.height, canvas.height) - visibleY;
         visibleRect = { x: visibleX, y: visibleY, width: visibleWidth, height: visibleHeight };
-        await sampler.loadImage(canvas);
+        const loadError = await sampler.loadImage(canvas);
+        if (loadError instanceof Error) {
+          throw loadError;
+        }
         useHSVRuntimeStore.getState().setImageReady(true);
       };
 

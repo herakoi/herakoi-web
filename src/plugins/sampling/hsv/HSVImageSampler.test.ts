@@ -46,6 +46,13 @@ const makeFakeCanvas = (imageData: ImageData): FakeCanvas => {
 };
 
 describe("HSVImageSampler", () => {
+  const expectSampleData = (
+    result: ReturnType<HSVImageSampler["sampleAt"]>,
+  ): Record<string, number> | undefined => {
+    if (result instanceof Error || !result) return undefined;
+    return result.data;
+  };
+
   beforeEach(() => {
     vi.stubGlobal("ImageData", FakeImageData);
   });
@@ -68,25 +75,25 @@ describe("HSVImageSampler", () => {
     const sampler = new HSVImageSampler();
     await sampler.loadImage(canvas);
 
-    expect(sampler.sampleAt({ id: "p0", x: 0, y: 0 })?.data).toEqual({
+    expect(expectSampleData(sampler.sampleAt({ id: "p0", x: 0, y: 0 }))).toEqual({
       hueByte: 0,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(sampler.sampleAt({ id: "p1", x: 1, y: 0 })?.data).toEqual({
+    expect(expectSampleData(sampler.sampleAt({ id: "p1", x: 1, y: 0 }))).toEqual({
       hueByte: 85,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(sampler.sampleAt({ id: "p2", x: 0, y: 1 })?.data).toEqual({
+    expect(expectSampleData(sampler.sampleAt({ id: "p2", x: 0, y: 1 }))).toEqual({
       hueByte: 170,
       saturationByte: 255,
       valueByte: 255,
       alpha: 255,
     });
-    expect(sampler.sampleAt({ id: "p3", x: 1, y: 1 })?.data).toEqual({
+    expect(expectSampleData(sampler.sampleAt({ id: "p3", x: 1, y: 1 }))).toEqual({
       hueByte: 0,
       saturationByte: 0,
       valueByte: 128,

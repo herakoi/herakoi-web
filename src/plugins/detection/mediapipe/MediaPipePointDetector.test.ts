@@ -117,11 +117,13 @@ describe("MediaPipePointDetector", () => {
   });
 
   describe("start()", () => {
-    it("should throw if not initialized", async () => {
+    it("should return an error if not initialized", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
 
-      await expect(detector.start()).rejects.toThrow("must be initialized");
+      const result = await detector.start();
+      expect(result).toBeInstanceOf(Error);
+      expect((result as Error).message).toContain("must be initialized");
     });
 
     it("should create camera and start it after initialization", async () => {

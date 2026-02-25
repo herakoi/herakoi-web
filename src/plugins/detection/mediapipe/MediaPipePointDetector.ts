@@ -15,7 +15,12 @@
  */
 
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
-import type { DetectedPoint, PointDetectionCallback, PointDetector } from "#src/core/interfaces";
+import type {
+  DetectedPoint,
+  ErrorOr,
+  PointDetectionCallback,
+  PointDetector,
+} from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
 import { useDeviceStore } from "./deviceStore";
 import { NativeCamera } from "./NativeCamera";
@@ -76,23 +81,27 @@ export class MediaPipePointDetector implements PointDetector {
     this.config = config;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(): Promise<ErrorOr<undefined>> {
     if (this.initialized) {
       return;
     }
 
-    // Create MediaPipe Hands with caller options
-    const mediaPipeOptions: Options = {
-      maxNumHands: this.config.maxHands ?? 2,
-      ...this.config.mediaPipeOptions,
-    };
+    try {
+      // Create MediaPipe Hands with caller options
+      const mediaPipeOptions: Options = {
+        maxNumHands: this.config.maxHands ?? 2,
+        ...this.config.mediaPipeOptions,
+      };
 
-    this.hands = createHands(mediaPipeOptions);
+      this.hands = createHands(mediaPipeOptions);
 
-    // Register MediaPipe results handler
-    this.hands.onResults((results) => this.handleResults(results));
+      // Register MediaPipe results handler
+      this.hands.onResults((results) => this.handleResults(results));
 
-    this.initialized = true;
+      this.initialized = true;
+    } catch (error) {
+      return error instanceof Error ? error : new Error("Failed to initialize MediaPipe detector.");
+    }
   }
 
   /**
@@ -165,9 +174,9 @@ export class MediaPipePointDetector implements PointDetector {
     }
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<ErrorOr<undefined>> {
     if (!this.initialized) {
-      throw new Error("MediaPipePointDetector must be initialized before calling start()");
+      return new Error("MediaPipePointDetector must be initialized before calling start()");
     }
 
     if (this.started) {
@@ -194,7 +203,7 @@ export class MediaPipePointDetector implements PointDetector {
     // Handle error returned from camera.start()
     if (result instanceof Error) {
       useDeviceStore.getState().setCameraError(result.message);
-      throw result;
+      return result;
     }
 
     this.started = true;

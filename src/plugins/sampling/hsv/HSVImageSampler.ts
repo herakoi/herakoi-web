@@ -12,6 +12,7 @@
 
 import type {
   DetectedPoint,
+  ErrorOr,
   ImageSample as ImageSampleResult,
   ImageSampler as ImageSamplerInterface,
 } from "#src/core/interfaces";
@@ -71,21 +72,25 @@ export class HSVImageSampler implements ImageSamplerInterface {
   /**
    * Load pixels from an image, URL, or canvas and pre-encode them for sampling.
    */
-  async loadImage(source: LoadableSource): Promise<void> {
-    const canvas = await this.toCanvas(source);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      throw new Error("HSVImageSampler could not acquire a 2D context for decoding.");
-    }
+  async loadImage(source: LoadableSource): Promise<ErrorOr<undefined>> {
+    try {
+      const canvas = await this.toCanvas(source);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return new Error("HSVImageSampler could not acquire a 2D context for decoding.");
+      }
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    this.encoded = encodeHSV(imageData);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      this.encoded = encodeHSV(imageData);
+    } catch (error) {
+      return error instanceof Error ? error : new Error("Failed to load image for HSV sampling.");
+    }
   }
 
   /**
    * Sample the pre-encoded HSV data at a normalized point.
    */
-  sampleAt(point: DetectedPoint): ImageSampleResult | null {
+  sampleAt(point: DetectedPoint): ErrorOr<ImageSampleResult | null> {
     if (!this.encoded) return null;
 
     const { width, height, data } = this.encoded;
