@@ -8,7 +8,7 @@ import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
   config: PipelineConfig;
-  start: () => void | Promise<void>;
+  start: () => Promise<unknown>;
   stop: () => void;
 };
 

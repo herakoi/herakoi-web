@@ -1,7 +1,8 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
-import type { ImageSample } from "#src/core/interfaces";
+import type { ErrorOr, ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
 import { useAppConfigStore } from "../state/appConfigStore";
+import type { RuntimeErrorSource, RuntimeErrorValue } from "../state/appRuntimeStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasToContainer } from "./ui/canvas";
 
@@ -9,6 +10,17 @@ type Refs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
   imageOverlayRef: RefObject<HTMLCanvasElement>;
 };
+
+type EngineStartData = {
+  detectionPluginId: string;
+  samplingPluginId: string;
+  sonificationPluginId: string;
+};
+
+export type SonificationEngineStartResult = ErrorOr<{
+  status: "running";
+  data: EngineStartData;
+}>;
 
 export const useSonificationEngine = (
   config: PipelineConfig,
@@ -56,17 +68,33 @@ export const useSonificationEngine = (
     [],
   );
 
-  const failStart = useCallback(
-    (error: Error, context: string) => {
-      setStatus({ status: "error", errorMessage: error.message });
-      console.error(`${context}:`, error);
-    },
-    [setStatus],
+  const toRuntimeError = useCallback(
+    (error: Error, source: RuntimeErrorSource, code: string, cause?: Error): RuntimeErrorValue => ({
+      source,
+      code,
+      message: error.message,
+      cause,
+    }),
+    [],
   );
 
-  const start = useCallback(async () => {
+  const failStart = useCallback(
+    (error: Error, context: string, source: RuntimeErrorSource, code: string, cause?: Error) => {
+      setStatus({ status: "error", error: toRuntimeError(error, source, code, cause) });
+      console.error(`${context}:`, error);
+      return error;
+    },
+    [setStatus, toRuntimeError],
+  );
+
+  const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
-      return;
+      return failStart(
+        new Error("Image canvas not mounted."),
+        "Pipeline start failed",
+        "engine",
+        "canvas_not_ready",
+      );
     }
     setStatus({ status: "initializing" });
 
@@ -81,13 +109,14 @@ export const useSonificationEngine = (
     const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
 
     if (!activeDetection || !activeSampling || !activeSonification) {
-      failStart(
+      return failStart(
         new Error(
           "Invalid active plugin configuration. Check engineConfig and active IDs in store.",
         ),
         "Pipeline start failed",
+        "engine",
+        "invalid_plugin_configuration",
       );
-      return;
     }
 
     let dh: ReturnType<(typeof config.detection)[0]["createDetector"]>;
@@ -114,11 +143,12 @@ export const useSonificationEngine = (
         sonificationRuntime as never,
       );
     } catch (error) {
-      failStart(
+      return failStart(
         error instanceof Error ? error : new Error("Unknown plugin initialization error."),
         "Pipeline plugin creation failed",
+        "engine",
+        "plugin_creation_failed",
       );
-      return;
     }
 
     detectorHandleRef.current = dh;
@@ -133,24 +163,36 @@ export const useSonificationEngine = (
     try {
       await sh.postInitialize?.();
     } catch (error) {
-      failStart(
-        error instanceof Error ? error : new Error("Sampling plugin post-initialize failed."),
+      const samplingError =
+        error instanceof Error ? error : new Error("Sampling plugin post-initialize failed.");
+      return failStart(
+        samplingError,
         "Pipeline start failed",
+        "sampling",
+        "post_initialize_failed",
+        error instanceof Error ? error : undefined,
       );
-      return;
     }
 
     // Initialize detector and sonifier
     const detectorInitError = await dh.detector.initialize();
     if (detectorInitError instanceof Error) {
-      failStart(detectorInitError, "Detector initialization failed");
-      return;
+      return failStart(
+        detectorInitError,
+        "Detector initialization failed",
+        "detection",
+        "initialize_failed",
+      );
     }
 
     const sonifierInitError = await soh.sonifier.initialize();
     if (sonifierInitError instanceof Error) {
-      failStart(sonifierInitError, "Sonifier initialization failed");
-      return;
+      return failStart(
+        sonifierInitError,
+        "Sonifier initialization failed",
+        "sonification",
+        "initialize_failed",
+      );
     }
 
     // Register detection callback that orchestrates the sonification loop
@@ -221,7 +263,15 @@ export const useSonificationEngine = (
 
       const sonifierError = soh.sonifier.processSamples(samples);
       if (sonifierError instanceof Error) {
-        setStatus({ status: "error", errorMessage: sonifierError.message });
+        setStatus({
+          status: "error",
+          error: toRuntimeError(
+            sonifierError,
+            "sonification",
+            "frame_processing_failed",
+            sonifierError,
+          ),
+        });
         console.error("Sonification frame failed:", sonifierError);
         return;
       }
@@ -250,8 +300,7 @@ export const useSonificationEngine = (
     // Start detection
     const detectorStartError = await dh.detector.start();
     if (detectorStartError instanceof Error) {
-      failStart(detectorStartError, "Detector start failed");
-      return;
+      return failStart(detectorStartError, "Detector start failed", "detection", "start_failed");
     }
 
     // Run post-initialize hooks
@@ -277,6 +326,14 @@ export const useSonificationEngine = (
     }
 
     setStatus({ status: "running" });
+    return {
+      status: "running",
+      data: {
+        detectionPluginId: activeDetection.id,
+        samplingPluginId: activeSampling.id,
+        sonificationPluginId: activeSonification.id,
+      },
+    };
   }, [
     config,
     failStart,
@@ -285,6 +342,7 @@ export const useSonificationEngine = (
     imageCanvasRef,
     imageOverlayRef,
     setStatus,
+    toRuntimeError,
   ]);
 
   const stop = useCallback(() => {

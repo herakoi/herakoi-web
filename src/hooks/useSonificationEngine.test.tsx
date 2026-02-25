@@ -8,10 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PipelineConfig } from "#src/core/plugin";
 import { useActivePlugin, useAppConfigStore } from "#src/state/appConfigStore";
 import { useAppRuntimeStore } from "#src/state/appRuntimeStore";
+import type { SonificationEngineStartResult } from "./useSonificationEngine";
 import { useSonificationEngine } from "./useSonificationEngine";
 
 type HarnessApi = {
-  switchDetectionAndStart: (id: string) => Promise<void>;
+  switchDetectionAndStart: (id: string) => Promise<SonificationEngineStartResult>;
 };
 
 type HarnessProps = {
@@ -28,7 +29,7 @@ const HookHarness = ({ config, onReady }: HarnessProps) => {
   const switchDetectionAndStart = useCallback(
     async (id: string) => {
       setActiveDetectionId(id as never);
-      await start();
+      return start();
     },
     [setActiveDetectionId, start],
   );
@@ -157,7 +158,7 @@ describe("useSonificationEngine plugin switching", () => {
     setActivePlugin("sampling", "sampling/a" as never);
     setActivePlugin("sonification", "sonification/a" as never);
 
-    let api: HarnessApi | null = null;
+    let api: HarnessApi | undefined;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -173,15 +174,24 @@ describe("useSonificationEngine plugin switching", () => {
       );
     });
 
-    if (!api) {
+    const harnessApi = api;
+    if (!harnessApi) {
       throw new Error("Harness API not initialized");
     }
 
+    let startResult: SonificationEngineStartResult = new Error("Start result not set");
     await act(async () => {
-      await api?.switchDetectionAndStart("detection/b");
+      startResult = await harnessApi.switchDetectionAndStart("detection/b");
     });
 
     expect(createDetectorB).toHaveBeenCalledTimes(1);
     expect(createDetectorA).not.toHaveBeenCalled();
+    expect(startResult).not.toBeInstanceOf(Error);
+    expect(startResult).toEqual(
+      expect.objectContaining({
+        status: "running",
+        data: expect.objectContaining({ detectionPluginId: "detection/b" }),
+      }),
+    );
   });
 });

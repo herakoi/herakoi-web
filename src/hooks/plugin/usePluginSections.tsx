@@ -9,7 +9,7 @@ import { buildPluginSection } from "./buildPluginSection";
 
 type UsePluginSectionsParams = {
   config: PipelineConfig;
-  start: () => void | Promise<void>;
+  start: () => Promise<unknown>;
   stop: () => void;
 };
 

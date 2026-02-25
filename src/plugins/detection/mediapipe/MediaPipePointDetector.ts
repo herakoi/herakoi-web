@@ -109,9 +109,9 @@ export class MediaPipePointDetector implements PointDetector {
    *
    * @returns The active facingMode reported by the new camera track, if available.
    */
-  async restartCamera(deviceId?: string): Promise<string | undefined> {
+  async restartCamera(deviceId?: string): Promise<ErrorOr<string | undefined>> {
     if (!this.initialized) {
-      throw new Error("MediaPipePointDetector must be initialized before restarting camera");
+      return new Error("MediaPipePointDetector must be initialized before restarting camera");
     }
 
     // Stop existing camera
@@ -134,7 +134,7 @@ export class MediaPipePointDetector implements PointDetector {
       if (result instanceof Error) {
         this.camera = null;
         useDeviceStore.getState().setCameraError(result.message);
-        throw result;
+        return result;
       }
 
       return this.camera.activeFacingMode;

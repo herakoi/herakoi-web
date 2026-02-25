@@ -21,8 +21,8 @@ export const PipelineStatusAnnouncer = ({ status }: Props) => {
       case "running":
         return "Pipeline running";
       case "error":
-        // TypeScript knows errorMessage exists here due to discriminated union
-        return `Pipeline error: ${status.errorMessage}`;
+        // TypeScript knows error exists here due to discriminated union
+        return `Pipeline error: ${status.error.message}`;
       case "idle":
         return "Pipeline stopped";
       default:
