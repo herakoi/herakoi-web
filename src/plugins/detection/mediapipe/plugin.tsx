@@ -12,6 +12,7 @@ import { MediaPipeDockPanel } from "./components/DockPanel";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";
 import { useDeviceStore } from "./deviceStore";
+import { bindDeviceSync } from "./deviceSync";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
@@ -65,23 +66,13 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       });
 
       let unsubscribeConfig: (() => void) | null = null;
-      let unsubscribeDeviceStore: (() => void) | null = null;
-      let deviceChangeHandler: (() => void) | null = null;
+      let cleanupDeviceSync: (() => void) | null = null;
 
       const getSourceSize = () => {
         const width = videoEl.videoWidth;
         const height = videoEl.videoHeight;
         if (width <= 0 || height <= 0) return null;
         return { width, height };
-      };
-
-      const refreshDeviceList = async () => {
-        const devices = await MediaPipePointDetector.enumerateDevices();
-        useDeviceStore.getState().setDevices(devices);
-        const { deviceId } = useDeviceStore.getState();
-        if (deviceId && !devices.some((d) => d.deviceId === deviceId)) {
-          useDeviceStore.getState().setDeviceId(undefined);
-        }
       };
 
       return {
@@ -138,48 +129,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
             bindHandsUi(detector, canvases);
           }
 
-          // Expose restartCamera for the refresh button in the UI
-          const restartAndRefresh = async () => {
-            const currentDeviceId = useDeviceStore.getState().deviceId;
-            const facingMode = await detector.restartCamera(currentDeviceId);
-            await refreshDeviceList();
-            if (facingMode) {
-              const shouldMirror = facingMode === "user";
-              useDeviceStore.getState().setMirror(shouldMirror);
-              detector.setMirror(shouldMirror);
-            }
-          };
-          useDeviceStore.getState().setRestartCamera(restartAndRefresh);
-
-          // Enumerate devices and auto-mirror based on active facing mode
-          void refreshDeviceList().then(() => {
-            const facingMode = detector.getActiveFacingMode();
-            if (facingMode) {
-              const shouldMirror = facingMode === "user";
-              useDeviceStore.getState().setMirror(shouldMirror);
-              detector.setMirror(shouldMirror);
-            }
-          });
-
-          // Listen for device changes (plug/unplug cameras)
-          deviceChangeHandler = () => void refreshDeviceList();
-          navigator.mediaDevices?.addEventListener("devicechange", deviceChangeHandler);
-
-          // Subscribe to deviceStore for mirror and deviceId runtime changes
-          unsubscribeDeviceStore = useDeviceStore.subscribe((state, prevState) => {
-            if (state.mirror !== prevState.mirror) {
-              detector.setMirror(state.mirror);
-            }
-            if (state.deviceId !== prevState.deviceId) {
-              void detector.restartCamera(state.deviceId).then((facingMode) => {
-                if (facingMode) {
-                  const shouldMirror = facingMode === "user";
-                  useDeviceStore.getState().setMirror(shouldMirror);
-                  detector.setMirror(shouldMirror);
-                }
-              });
-            }
-          });
+          cleanupDeviceSync = bindDeviceSync(detector);
 
           // Subscribe to persisted config for maxHands only
           const prevConfig = { ...config };
@@ -192,16 +142,8 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         },
         cleanup: () => {
           unsubscribeConfig?.();
-          unsubscribeConfig = null;
-          unsubscribeDeviceStore?.();
-          unsubscribeDeviceStore = null;
-          if (deviceChangeHandler) {
-            navigator.mediaDevices?.removeEventListener("devicechange", deviceChangeHandler);
-            deviceChangeHandler = null;
-          }
+          cleanupDeviceSync?.();
           detector.stop();
-          useDeviceStore.getState().setDevices([]);
-          useDeviceStore.getState().setRestartCamera(null);
         },
       };
     },
