@@ -8,6 +8,41 @@
  * - Frame loop via requestVideoFrameCallback (fallback: requestAnimationFrame)
  */
 
+/**
+ * Convert DOMException errors from getUserMedia into user-friendly messages.
+ * Implements Go-style error handling: returns error as value rather than throwing.
+ */
+function getUserMediaErrorMessage(error: unknown): string {
+  // Check for DOMException with name property
+  if (typeof error === "object" && error !== null && "name" in error) {
+    const errorName = (error as { name: string }).name;
+
+    switch (errorName) {
+      case "NotAllowedError":
+      case "PermissionDeniedError":
+        return "La camera richiede i permessi. Verifica le impostazioni del browser e riprova.";
+      case "NotFoundError":
+        return "Nessuna camera trovata. Verifica che una camera sia collegata.";
+      case "NotReadableError":
+        return "La camera è già in uso da un'altra app. Chiudila e riprova.";
+      case "SecurityError":
+        return "L'accesso alla camera è bloccato per motivi di sicurezza.";
+      case "OverconstrainedError":
+        return "Le impostazioni richieste non sono supportate dalla tua camera.";
+      case "TypeError":
+        return "Camera non disponibile.";
+    }
+  }
+
+  // Fallback: use the original error message if available
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Last resort fallback
+  return "Errore durante l'accesso alla camera. Riprova.";
+}
+
 export interface DeviceInfo {
   deviceId: string;
   label: string;
@@ -39,9 +74,13 @@ export class NativeCamera {
     this.options = options;
   }
 
-  async start(): Promise<void> {
+  /**
+   * Start camera stream using Go-style error handling.
+   * Returns Error on failure, undefined on success.
+   */
+  async start(): Promise<Error | undefined> {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error(
+      return new Error(
         "Camera requires HTTPS or localhost. Use pnpm dev:https for HTTPS development.",
       );
     }
@@ -61,29 +100,35 @@ export class NativeCamera {
           },
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-    // If stop() was called while getUserMedia was pending, release immediately.
-    if (this.stopped) {
-      for (const track of stream.getTracks()) {
-        track.stop();
-      }
-      return;
-    }
-
-    this.stream = stream;
-    this.videoElement.srcObject = this.stream;
     try {
-      await this.videoElement.play();
-    } catch (err) {
-      // stop() can be called while play() is pending (e.g. camera switch).
-      // The browser aborts play() with an AbortError — expected, not a real error.
-      if (this.stopped) return;
-      throw err;
-    }
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    this.running = true;
-    this.scheduleFrame();
+      // If stop() was called while getUserMedia was pending, release immediately.
+      if (this.stopped) {
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
+        return;
+      }
+
+      this.stream = stream;
+      this.videoElement.srcObject = this.stream;
+      try {
+        await this.videoElement.play();
+      } catch (err) {
+        // stop() can be called while play() is pending (e.g. camera switch).
+        // The browser aborts play() with an AbortError — expected, not a real error.
+        if (this.stopped) return;
+        throw err;
+      }
+
+      this.running = true;
+      this.scheduleFrame();
+    } catch (err) {
+      // Convert DOMException or any error into a user-friendly message
+      const message = getUserMediaErrorMessage(err);
+      return new Error(message);
+    }
   }
 
   stop(): void {

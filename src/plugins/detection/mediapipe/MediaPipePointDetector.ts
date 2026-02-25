@@ -118,14 +118,16 @@ export class MediaPipePointDetector implements PointDetector {
     if (this.started) {
       this.camera = this.createCamera(deviceId);
       useDeviceStore.getState().setCameraError(null);
-      try {
-        await this.camera.start();
-      } catch (err) {
+
+      // Go-style error handling: camera.start() returns Error | void
+      const result = await this.camera.start();
+
+      if (result instanceof Error) {
         this.camera = null;
-        const msg = err instanceof Error ? err.message : "Camera error";
-        useDeviceStore.getState().setCameraError(msg);
-        throw err;
+        useDeviceStore.getState().setCameraError(result.message);
+        throw result;
       }
+
       return this.camera.activeFacingMode;
     }
 
@@ -178,21 +180,21 @@ export class MediaPipePointDetector implements PointDetector {
 
     this.camera = this.createCamera(this.config.deviceId);
     useDeviceStore.getState().setCameraError(null);
-    try {
-      await this.camera.start();
-    } catch (err) {
-      // If stop() fired while camera.start() was in progress, the AbortError is expected.
-      if (this.startAborted) return;
-      const msg = err instanceof Error ? err.message : "Camera error";
-      useDeviceStore.getState().setCameraError(msg);
-      throw err;
-    }
 
-    // stop() may have arrived while camera.start() was awaiting — clean up and bail.
+    // Go-style error handling: camera.start() returns Error | void
+    const result = await this.camera.start();
+
+    // If stop() fired while camera.start() was in progress, bail out.
     if (this.startAborted) {
       this.camera?.stop();
       this.camera = null;
       return;
+    }
+
+    // Handle error returned from camera.start()
+    if (result instanceof Error) {
+      useDeviceStore.getState().setCameraError(result.message);
+      throw result;
     }
 
     this.started = true;
