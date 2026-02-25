@@ -1,4 +1,4 @@
-import { Hand, Pointer } from "lucide-react";
+import { Hand } from "lucide-react";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPluginDefinition,
@@ -9,6 +9,7 @@ import type {
 } from "#src/core/plugin";
 import { defineDetectionPlugin } from "#src/core/plugin";
 import { MediaPipeDockPanel } from "./components/DockPanel";
+import { MediaPipeNotifications } from "./components/Notifications";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";
 import { useDeviceStore } from "./deviceStore";
@@ -27,6 +28,7 @@ const settingsTab: PluginTabMeta = {
 const ui: PluginUISlots<MediaPipeConfig> = {
   SettingsPanel: MediaPipeSettingsPanel,
   DockPanel: MediaPipeDockPanel,
+  Notifications: MediaPipeNotifications,
 };
 
 export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId, MediaPipeConfig> =
@@ -147,7 +149,17 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
 
           cleanupDeviceSync = bindDeviceSync(detector);
 
-          // Subscribe to persisted config for maxHands only
+          // Track hand presence for the Notifications component
+          let lastHasHands: boolean | null = null;
+          detector.onPointsDetected((points) => {
+            const has = points.length > 0;
+            if (has !== lastHasHands) {
+              lastHasHands = has;
+              useDeviceStore.getState().setHasHands(has);
+            }
+          });
+
+          // Subscribe to config changes for runtime updates
           const prevConfig = { ...config };
           unsubscribeConfig = runtime.subscribeConfig((currentConfig) => {
             if (currentConfig.maxHands !== prevConfig.maxHands) {
@@ -159,27 +171,10 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         cleanup: () => {
           unsubscribeConfig?.();
           cleanupDeviceSync?.();
+          unsubscribeConfig = null;
+          useDeviceStore.getState().setHasHands(null);
           detector.stop();
         },
       };
-    },
-
-    bindPipelineEvents(detector, { showNotification, hideNotification }) {
-      let lastDetected: boolean | null = null;
-
-      detector.onPointsDetected((points) => {
-        const hasHands = points.length > 0;
-        if (hasHands !== lastDetected) {
-          lastDetected = hasHands;
-          if (hasHands) {
-            hideNotification("mediapipe-hand-prompt");
-          } else {
-            showNotification("mediapipe-hand-prompt", {
-              message: "Move your index finger in front of the camera to play",
-              icon: Pointer,
-            });
-          }
-        }
-      });
     },
   });

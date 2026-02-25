@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
+import { NotificationArea } from "./components/NotificationArea";
 import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
-import { PluginNotifications } from "./components/PluginNotifications";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
@@ -29,11 +29,12 @@ const App = () => {
   // Idle dimming: dim UI after idle when points are detected
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
 
-  const { sections, SamplingToolbar, DockPanel, VisualizerDisplays } = usePluginUi({
-    config: engineConfig,
-    start,
-    stop,
-  });
+  const { sections, SamplingToolbar, DockPanel, VisualizerDisplays, PluginNotificationComponents } =
+    usePluginUi({
+      config: engineConfig,
+      start,
+      stop,
+    });
 
   const isRunning = status.status === "running";
   const isInitializing = status.status === "initializing";
@@ -82,7 +83,11 @@ const App = () => {
         />
       </div>
 
-      <PluginNotifications />
+      <NotificationArea>
+        {PluginNotificationComponents.map(({ id, Notifications }) => (
+          <Notifications key={id} />
+        ))}
+      </NotificationArea>
 
       <header className="pointer-events-none absolute left-2 right-2 top-3 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:left-1 sm:right-4 sm:top-4 sm:gap-2">
         <div className="justify-self-start">

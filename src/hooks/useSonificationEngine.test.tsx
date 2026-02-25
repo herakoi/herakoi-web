@@ -101,7 +101,6 @@ describe("useSonificationEngine plugin switching", () => {
           ui: {},
           config: { defaultConfig: {} },
           createDetector: createDetectorA,
-          bindPipelineEvents: vi.fn(),
         },
         {
           kind: "detection",
@@ -111,7 +110,6 @@ describe("useSonificationEngine plugin switching", () => {
           ui: {},
           config: { defaultConfig: {} },
           createDetector: createDetectorB,
-          bindPipelineEvents: vi.fn(),
         },
       ],
       sampling: [

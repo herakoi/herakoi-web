@@ -15,6 +15,9 @@ interface DeviceStoreState {
   /** Camera error message (e.g. permission denied). Null when no error. */
   cameraError: string | null;
   setCameraError: (error: string | null) => void;
+  /** Whether hands are currently detected. null = pipeline not started. */
+  hasHands: boolean | null;
+  setHasHands: (hasHands: boolean | null) => void;
 }
 
 export const useDeviceStore = create<DeviceStoreState>((set) => ({
@@ -28,4 +31,6 @@ export const useDeviceStore = create<DeviceStoreState>((set) => ({
   setRestartCamera: (fn) => set({ restartCamera: fn }),
   cameraError: null,
   setCameraError: (cameraError) => set({ cameraError }),
+  hasHands: null,
+  setHasHands: (hasHands) => set({ hasHands }),
 }));

@@ -43,7 +43,6 @@ const isDetectionPluginDefinition = (value: unknown): value is DetectionPluginDe
     typeof plugin.id === "string" &&
     typeof plugin.displayName === "string" &&
     typeof plugin.createDetector === "function" &&
-    typeof plugin.bindPipelineEvents === "function" &&
     typeof plugin.config === "object" &&
     plugin.config !== null &&
     "defaultConfig" in plugin.config

@@ -17,12 +17,14 @@ type UsePluginUiReturn = {
   SamplingToolbar: ComponentType | undefined;
   DockPanel: ComponentType<ShellDockPanelProps> | undefined;
   VisualizerDisplays: Array<{ id: string; Display: ComponentType<VisualizerDisplayProps> }>;
+  PluginNotificationComponents: Array<{ id: string; Notifications: ComponentType }>;
 };
 
 export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePluginUiReturn => {
   // Get active plugin IDs from store
   const [activeDetectionId] = useActivePlugin("detection");
   const [activeSamplingId] = useActivePlugin("sampling");
+  const [activeSonificationId] = useActivePlugin("sonification");
   const [activeVisualizerId] = useActivePlugin("visualization");
 
   // Build settings panel sections
@@ -45,10 +47,36 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
       }));
   }, [config.visualization, activeVisualizerId]);
 
+  // Collect Notifications components from all active pipeline plugins
+  const PluginNotificationComponents = useMemo(() => {
+    const result: Array<{ id: string; Notifications: ComponentType }> = [];
+
+    const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
+    if (activeDetection?.ui.Notifications) {
+      result.push({ id: activeDetection.id, Notifications: activeDetection.ui.Notifications });
+    }
+
+    const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
+    if (activeSampling?.ui.Notifications) {
+      result.push({ id: activeSampling.id, Notifications: activeSampling.ui.Notifications });
+    }
+
+    const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
+    if (activeSonification?.ui.Notifications) {
+      result.push({
+        id: activeSonification.id,
+        Notifications: activeSonification.ui.Notifications,
+      });
+    }
+
+    return result;
+  }, [config, activeDetectionId, activeSamplingId, activeSonificationId]);
+
   return {
     sections,
     SamplingToolbar,
     DockPanel,
     VisualizerDisplays,
+    PluginNotificationComponents,
   };
 };
