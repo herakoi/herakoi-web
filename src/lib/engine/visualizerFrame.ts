@@ -20,3 +20,25 @@ export const updateSonificationDebugFrame = (params: {
     tones: getLastFrameDebug(),
   };
 };
+
+export const initializeAnalyserForVisualizer = (params: {
+  sonifierHandleRef: { current: SonifierHandle | null };
+  analyserRef: { current: AnalyserNode | null };
+  visualizerFrameDataRef: { current: VisualizerFrameData };
+  options?: {
+    fftSize?: number;
+    smoothingTimeConstant?: number;
+  };
+}) => {
+  const { sonifierHandleRef, analyserRef, visualizerFrameDataRef, options } = params;
+  const getAnalyser = sonifierHandleRef.current?.extras?.getAnalyser;
+  if (typeof getAnalyser !== "function") return;
+
+  analyserRef.current = (
+    getAnalyser as (opts?: {
+      fftSize?: number;
+      smoothingTimeConstant?: number;
+    }) => AnalyserNode | null
+  )(options);
+  visualizerFrameDataRef.current.analyser = analyserRef.current;
+};

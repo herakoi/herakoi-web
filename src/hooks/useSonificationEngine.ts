@@ -1,15 +1,8 @@
-import { AsyncDisposableStack, isError, tryAsync } from "errore";
+import { AsyncDisposableStack, isError } from "errore";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import {
-  DetectionInitializeError,
-  DetectionPostInitializeError,
-  DetectionStartError,
   EngineCanvasNotReadyError,
-  InvalidPluginConfigurationError,
-  PluginCreationError,
-  SamplingPostInitializeError,
   SonificationFrameProcessingError,
-  SonifierInitializeError,
 } from "#src/core/domain-errors";
 import type { ErrorOr } from "#src/core/interfaces";
 import type {
@@ -20,12 +13,18 @@ import type {
   VisualizerFrameData,
 } from "#src/core/plugin";
 import { mapDetectedPointsForSampling } from "#src/lib/canvas/sampling";
-import { createAppConfigPluginRuntimeContext } from "#src/lib/engine/pluginRuntimeContext";
-import { safelyCreatePluginHandle } from "#src/lib/engine/runtime";
-import { updateSonificationDebugFrame } from "#src/lib/engine/visualizerFrame";
-import { useAppConfigStore } from "../state/appConfigStore";
+import {
+  createEngineHandles,
+  initializeEnginePlugins,
+  startEngineDetection,
+} from "#src/lib/engine/startup";
+import {
+  initializeAnalyserForVisualizer,
+  updateSonificationDebugFrame,
+} from "#src/lib/engine/visualizerFrame";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasRefToContainer } from "./ui/canvas";
+import { useResolvedEnginePlugins } from "./useResolvedEnginePlugins";
 
 type Refs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
@@ -61,6 +60,7 @@ export const useSonificationEngine = (
     sonification: { tones: new Map() },
     analyser: null,
   });
+  const resolvedActivePlugins = useResolvedEnginePlugins(config);
 
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
@@ -71,74 +71,22 @@ export const useSonificationEngine = (
     }
     setStatus({ status: "initializing" });
 
-    // Resolve active plugins
-    const {
-      detection: activeDetectionId,
-      sampling: activeSamplingId,
-      sonification: activeSonificationId,
-    } = useAppConfigStore.getState().activePlugins;
-    const activeDetection = config.detection.find((p) => p.id === activeDetectionId);
-    const activeSampling = config.sampling.find((p) => p.id === activeSamplingId);
-    const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
-
-    if (!activeDetection || !activeSampling || !activeSonification) {
-      const error = new InvalidPluginConfigurationError();
-      setStatus({ status: "error", error });
-      console.error("Engine start failed:", error);
-      return error;
+    // 1) Resolve active plugins.
+    if (isError(resolvedActivePlugins)) {
+      setStatus({ status: "error", error: resolvedActivePlugins });
+      console.error("Engine start failed:", resolvedActivePlugins);
+      return resolvedActivePlugins;
     }
 
-    const detectionPluginId = activeDetection.id;
-    const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
-    const detectionRuntime = createAppConfigPluginRuntimeContext(detectionPluginId);
-
-    const samplingPluginId = activeSampling.id;
-    const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
-    const samplingRuntime = createAppConfigPluginRuntimeContext(samplingPluginId);
-
-    const sonificationPluginId = activeSonification.id;
-    const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
-    const sonificationRuntime = createAppConfigPluginRuntimeContext(sonificationPluginId);
-
+    // 2) Create plugin handles.
     await using startupCleanup = new AsyncDisposableStack();
-    const [detectionHandleResult, samplingHandleResult, sonificationHandleResult] =
-      await Promise.all([
-        safelyCreatePluginHandle(() =>
-          activeDetection.createDetector(detectionConfig as never, detectionRuntime as never),
-        ),
-        safelyCreatePluginHandle(() =>
-          activeSampling.createSampler(samplingConfig as never, samplingRuntime as never),
-        ),
-        safelyCreatePluginHandle(() =>
-          activeSonification.createSonifier(
-            sonificationConfig as never,
-            sonificationRuntime as never,
-          ),
-        ),
-      ]);
-
-    if (isError(detectionHandleResult)) {
-      const error = new PluginCreationError({ cause: detectionHandleResult });
-      setStatus({ status: "error", error });
-      console.error("Detection plugin creation failed:", error);
-      return error;
+    const handlesResult = await createEngineHandles(resolvedActivePlugins);
+    if (isError(handlesResult)) {
+      setStatus({ status: "error", error: handlesResult });
+      console.error("Plugin creation failed:", handlesResult);
+      return handlesResult;
     }
-    if (isError(samplingHandleResult)) {
-      const error = new PluginCreationError({ cause: samplingHandleResult });
-      setStatus({ status: "error", error });
-      console.error("Sampling plugin creation failed:", error);
-      return error;
-    }
-    if (isError(sonificationHandleResult)) {
-      const error = new PluginCreationError({ cause: sonificationHandleResult });
-      setStatus({ status: "error", error });
-      console.error("Sonification plugin creation failed:", error);
-      return error;
-    }
-
-    const dh = detectionHandleResult;
-    const sh = samplingHandleResult;
-    const soh = sonificationHandleResult;
+    const { detectorHandle: dh, samplerHandle: sh, sonifierHandle: soh } = handlesResult;
 
     detectorHandleRef.current = dh;
     samplerHandleRef.current = sh;
@@ -154,46 +102,27 @@ export const useSonificationEngine = (
       useAppRuntimeStore.getState().setHasDetectedPoints(false);
     });
 
-    // Inject canvas refs to plugins (dependency injection)
-    dh.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
-    sh.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
-
-    const postInitializeResult = await tryAsync({
-      try: async () => sh.postInitialize?.(),
-      catch: (error) => new SamplingPostInitializeError({ cause: error }),
+    // 3) Configure and initialize plugins.
+    const initializeResult = await initializeEnginePlugins({
+      detectorHandle: dh,
+      samplerHandle: sh,
+      sonifierHandle: soh,
+      imageOverlayRef,
+      imageCanvasRef,
     });
-    if (isError(postInitializeResult)) {
-      setStatus({ status: "error", error: postInitializeResult });
-      console.error("Engine start failed:", postInitializeResult);
-      return postInitializeResult;
+    if (isError(initializeResult)) {
+      setStatus({ status: "error", error: initializeResult });
+      console.error("Engine initialization failed:", initializeResult);
+      return initializeResult;
     }
 
-    // Initialize detector and sonifier
-    const detectorInitError = await dh.detector.initialize();
-    if (isError(detectorInitError)) {
-      const error = new DetectionInitializeError({ cause: detectorInitError });
-      setStatus({ status: "error", error });
-      console.error("Detector initialization failed:", error);
-      return error;
-    }
-
-    const sonifierInitError = await soh.sonifier.initialize();
-    if (isError(sonifierInitError)) {
-      const error = new SonifierInitializeError({ cause: sonifierInitError });
-      setStatus({ status: "error", error });
-      console.error("Sonifier initialization failed:", error);
-      return error;
-    }
-
-    // Register detection callback that orchestrates the sonification loop
+    // 4) Register detection processing loop.
     dh.detector.onPointsDetected((points) => {
-      // Update detection data for visualizers
       visualizerFrameDataRef.current.detection = {
         points,
         handDetected: points.length > 0,
       };
 
-      // Update shell runtime state for idle dimming
       useAppRuntimeStore.getState().setHasDetectedPoints(points.length > 0);
 
       const sourceSize = detectorHandleRef.current?.getSourceSize?.();
@@ -215,8 +144,6 @@ export const useSonificationEngine = (
         return;
       }
       const samples = samplesResult;
-
-      // Update sampling data for visualizers
       visualizerFrameDataRef.current.sampling = { samples };
 
       const sonifierError = soh.sonifier.processSamples(samples);
@@ -229,65 +156,42 @@ export const useSonificationEngine = (
         return;
       }
 
-      // Update sonification data for visualizers
       updateSonificationDebugFrame({
         sonifierHandleRef,
         visualizerFrameDataRef,
       });
     });
 
+    // 5) Start detection and post-start setup.
     resizeCanvasRefToContainer(imageOverlayRef);
-
-    // Start detection
-    const detectorStartError = await dh.detector.start();
-    if (isError(detectorStartError)) {
-      const error = new DetectionStartError({ cause: detectorStartError });
-      setStatus({ status: "error", error });
-      console.error("Detector start failed:", error);
-      return error;
+    const startResult = await startEngineDetection(dh);
+    if (isError(startResult)) {
+      setStatus({ status: "error", error: startResult });
+      console.error("Engine start failed:", startResult);
+      return startResult;
     }
 
-    const postStartResult = await tryAsync({
-      try: async () => dh.postInitialize?.(),
-      catch: (error) => new DetectionPostInitializeError({ cause: error }),
-    });
-    if (isError(postStartResult)) {
-      setStatus({ status: "error", error: postStartResult });
-      console.error("Detector post-initialize failed:", postStartResult);
-      return postStartResult;
-    }
-
-    // Initialize analyser after controller has started and sonifier is ready
-    if (
-      sonifierHandleRef.current?.extras?.getAnalyser &&
-      typeof sonifierHandleRef.current.extras.getAnalyser === "function"
-    ) {
-      analyserRef.current = (
-        sonifierHandleRef.current.extras.getAnalyser as (options?: {
-          fftSize?: number;
-          smoothingTimeConstant?: number;
-        }) => AnalyserNode | null
-      )({
+    initializeAnalyserForVisualizer({
+      sonifierHandleRef,
+      analyserRef,
+      visualizerFrameDataRef,
+      options: {
         fftSize: 2048,
         smoothingTimeConstant: 0.65,
-      });
-
-      // Update visualizer frame data with analyser
-      visualizerFrameDataRef.current.analyser = analyserRef.current;
-    }
+      },
+    });
 
     setStatus({ status: "running" });
-    // Transfer ownership so `await using` does not rollback on successful start.
     startupCleanup.move();
     return {
       status: "running",
       data: {
-        detectionPluginId: activeDetection.id,
-        samplingPluginId: activeSampling.id,
-        sonificationPluginId: activeSonification.id,
+        detectionPluginId: resolvedActivePlugins.detection.id,
+        samplingPluginId: resolvedActivePlugins.sampling.id,
+        sonificationPluginId: resolvedActivePlugins.sonification.id,
       },
     };
-  }, [config, imageCanvasRef, imageOverlayRef, setStatus]);
+  }, [imageCanvasRef, imageOverlayRef, resolvedActivePlugins, setStatus]);
 
   const stop = useCallback(() => {
     // Handles own their cleanup/stop via Symbol.dispose.
