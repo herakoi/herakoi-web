@@ -227,6 +227,33 @@ describe("NativeCamera", () => {
       expect(result).toBeInstanceOf(Error);
       expect(result?.message).toBe("Some unknown error");
     });
+
+    it("should treat interrupted play as benign when stream was superseded", async () => {
+      const onFrame = vi.fn();
+      const camera = new NativeCamera(videoElement, { onFrame });
+
+      const newerTrack = {
+        stop: vi.fn(),
+        getSettings: vi.fn().mockReturnValue({ facingMode: "environment" }),
+      } as unknown as MediaStreamTrack;
+      const newerStream = {
+        getTracks: vi.fn().mockReturnValue([newerTrack]),
+        getVideoTracks: vi.fn().mockReturnValue([newerTrack]),
+      } as unknown as MediaStream;
+
+      vi.spyOn(videoElement, "play").mockImplementation(async () => {
+        videoElement.srcObject = newerStream;
+        throw new Error(
+          "The play() request was interrupted by a new load request. https://goo.gl/LdLk22",
+        );
+      });
+
+      const result = await camera.start();
+
+      expect(result).toBeUndefined();
+      expect(videoElement.srcObject).toBe(newerStream);
+      expect(newerTrack.stop).not.toHaveBeenCalled();
+    });
   });
 
   describe("stop()", () => {
@@ -246,6 +273,28 @@ describe("NativeCamera", () => {
       const camera = new NativeCamera(videoElement, { onFrame });
 
       expect(() => camera.stop()).not.toThrow();
+    });
+
+    it("should not clear a newer stream attached to the same video element", async () => {
+      const onFrame = vi.fn();
+      const firstCamera = new NativeCamera(videoElement, { onFrame });
+
+      await firstCamera.start();
+
+      const newerTrack = {
+        stop: vi.fn(),
+        getSettings: vi.fn().mockReturnValue({ facingMode: "environment" }),
+      } as unknown as MediaStreamTrack;
+      const newerStream = {
+        getTracks: vi.fn().mockReturnValue([newerTrack]),
+        getVideoTracks: vi.fn().mockReturnValue([newerTrack]),
+      } as unknown as MediaStream;
+
+      videoElement.srcObject = newerStream;
+      firstCamera.stop();
+
+      expect(videoElement.srcObject).toBe(newerStream);
+      expect(newerTrack.stop).not.toHaveBeenCalled();
     });
   });
 

@@ -71,6 +71,8 @@ export class MediaPipePointDetector implements PointDetector {
   private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
+  /** In-flight start promise used to dedupe concurrent start() calls. */
+  private startInFlight: Promise<ErrorOr<undefined>> | null = null;
   /**
    * Set by stop() so a concurrent start() (e.g. React StrictMode double-invoke)
    * bails out instead of racing with a newer start() on the same video element.
@@ -184,30 +186,16 @@ export class MediaPipePointDetector implements PointDetector {
       return;
     }
 
+    // Deduplicate concurrent starts on the same detector instance.
+    if (this.startInFlight) {
+      return this.startInFlight;
+    }
+
     // Bail out if stop() was already called on this instance (e.g. React StrictMode
     // calls stop() while initialize() is still pending, then start() resumes here).
     if (this.startAborted) return;
 
-    this.camera = this.createCamera(this.config.deviceId);
-    useDeviceStore.getState().setCameraOk();
-
-    // Go-style error handling: camera.start() returns Error | void
-    const result = await this.camera.start();
-
-    // If stop() fired while camera.start() was in progress, bail out.
-    if (this.startAborted) {
-      this.camera?.stop();
-      this.camera = null;
-      return;
-    }
-
-    // Handle error returned from camera.start()
-    if (result instanceof Error) {
-      useDeviceStore.getState().setCameraError(new CameraStartError({ cause: result }));
-      return result;
-    }
-
-    this.started = true;
+    return this.startCameraWithDedupe();
   }
 
   stop(): void {
@@ -268,6 +256,37 @@ export class MediaPipePointDetector implements PointDetector {
       ...landmark,
       x: 1 - landmark.x,
     })) as NormalizedLandmarkList;
+  }
+
+  private startCameraWithDedupe(): Promise<ErrorOr<undefined>> {
+    this.startInFlight = this.startCameraFlow().finally(() => {
+      this.startInFlight = null;
+    });
+    return this.startInFlight;
+  }
+
+  private async startCameraFlow(): Promise<ErrorOr<undefined>> {
+    this.camera = this.createCamera(this.config.deviceId);
+    useDeviceStore.getState().setCameraOk();
+
+    // Go-style error handling: camera.start() returns Error | void
+    const result = await this.camera.start();
+
+    // If stop() fired while camera.start() was in progress, bail out.
+    if (this.startAborted) {
+      this.camera?.stop();
+      this.camera = null;
+      return;
+    }
+
+    // Handle error returned from camera.start()
+    if (result instanceof Error) {
+      useDeviceStore.getState().setCameraError(new CameraStartError({ cause: result }));
+      return result;
+    }
+
+    this.started = true;
+    return;
   }
 
   private createCamera(deviceId?: string): NativeCamera {

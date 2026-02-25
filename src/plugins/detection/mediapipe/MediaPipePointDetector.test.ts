@@ -137,6 +137,38 @@ describe("MediaPipePointDetector", () => {
       expect(lastCameraInstance).not.toBeNull();
       expect(lastCameraInstance?.start).toHaveBeenCalled();
     });
+
+    it("should deduplicate concurrent start calls", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+
+      let resolveStart!: () => void;
+      const startGate = new Promise<void>((resolve) => {
+        resolveStart = resolve;
+      });
+      NativeCameraMock.mockImplementationOnce(
+        class {
+          public start = vi.fn(() => startGate);
+          public stop = vi.fn();
+          public activeFacingMode: string | undefined = undefined;
+          // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
+          constructor(_videoElement: HTMLVideoElement, _config: any) {
+            lastCameraInstance = this;
+          }
+        } as unknown as (...args: unknown[]) => unknown,
+      );
+
+      const firstStart = detector.start();
+      const secondStart = detector.start();
+
+      expect(NativeCameraMock).toHaveBeenCalledTimes(1);
+      expect(lastCameraInstance?.start).toHaveBeenCalledTimes(1);
+
+      resolveStart();
+      await Promise.all([firstStart, secondStart]);
+    });
   });
 
   describe("stop()", () => {
