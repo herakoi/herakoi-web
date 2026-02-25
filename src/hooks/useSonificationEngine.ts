@@ -157,12 +157,11 @@ export const useSonificationEngine = (
         })();
 
       if (!isError(frameResult)) return;
-      if (frameResult instanceof SonificationFrameProcessingError) {
-        setStatus({ status: "error", error: frameResult });
-        console.error("Sonification frame failed:", frameResult);
-        return;
-      }
-      console.error("Sampling failed for frame:", frameResult);
+      console.error("Frame pipeline failed:", frameResult);
+      setStatus({
+        status: "error",
+        error: new SonificationFrameProcessingError({ cause: frameResult }),
+      });
     });
 
     // 5) Start detection and post-start setup.
