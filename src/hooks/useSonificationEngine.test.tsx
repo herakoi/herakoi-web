@@ -74,6 +74,7 @@ describe("useSonificationEngine plugin switching", () => {
 
   it("uses latest detection plugin id when switching and starting in the same callback", async () => {
     const createDetectorA = vi.fn(() => ({
+      [Symbol.dispose]: vi.fn(),
       detector: {
         initialize: vi.fn().mockResolvedValue(undefined),
         start: vi.fn(),
@@ -83,6 +84,7 @@ describe("useSonificationEngine plugin switching", () => {
       cleanup: vi.fn(),
     }));
     const createDetectorB = vi.fn(() => ({
+      [Symbol.dispose]: vi.fn(),
       detector: {
         initialize: vi.fn().mockResolvedValue(undefined),
         start: vi.fn(),
@@ -122,6 +124,7 @@ describe("useSonificationEngine plugin switching", () => {
           ui: {},
           config: { defaultConfig: {} },
           createSampler: vi.fn(() => ({
+            [Symbol.dispose]: vi.fn(),
             sampler: {
               loadImage: vi.fn().mockResolvedValue(undefined),
               sampleAt: vi.fn(() => null),
@@ -140,6 +143,7 @@ describe("useSonificationEngine plugin switching", () => {
           ui: {},
           config: { defaultConfig: {} },
           createSonifier: vi.fn(() => ({
+            [Symbol.dispose]: vi.fn(),
             sonifier: {
               initialize: vi.fn().mockResolvedValue(undefined),
               processSamples: vi.fn(),

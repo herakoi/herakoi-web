@@ -115,6 +115,8 @@ export type DetectorHandle = {
    * Returns null if the source is not yet streaming.
    */
   getSourceSize?: () => { width: number; height: number } | null;
+  /** Standard disposal hook for teardown (unsubscribe, stop, release UI state). */
+  [Symbol.dispose]: () => void;
 };
 
 export interface DetectionPlugin<
@@ -161,6 +163,8 @@ export type SamplerHandle = {
    * Used by the engine for bounds-checking before sampling.
    */
   getVisibleRect?: () => { x: number; y: number; width: number; height: number } | null;
+  /** Standard disposal hook for teardown (unsubscribe, listeners, runtime flags). */
+  [Symbol.dispose]: () => void;
 };
 
 export interface SamplingPlugin<
@@ -190,6 +194,8 @@ export type SonifierHandle = {
   extras?: Record<string, unknown>;
   /** Optional cleanup when the pipeline stops. */
   cleanup?: () => void;
+  /** Standard disposal hook for teardown (unsubscribe + stop audio). */
+  [Symbol.dispose]: () => void;
 };
 
 export interface SonificationPlugin<

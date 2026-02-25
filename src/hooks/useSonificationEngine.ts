@@ -150,21 +150,15 @@ export const useSonificationEngine = (
     detectorHandleRef.current = dh;
     samplerHandleRef.current = sh;
     sonifierHandleRef.current = soh;
+    startupCleanup.use(dh);
+    startupCleanup.use(sh);
+    startupCleanup.use(soh);
     startupCleanup.defer(() => {
       if (detectorHandleRef.current === dh) detectorHandleRef.current = null;
       if (samplerHandleRef.current === sh) samplerHandleRef.current = null;
       if (sonifierHandleRef.current === soh) sonifierHandleRef.current = null;
       analyserRef.current = null;
       useAppRuntimeStore.getState().setHasDetectedPoints(false);
-    });
-    startupCleanup.defer(() => {
-      dh.cleanup?.();
-      sh.cleanup?.();
-      soh.cleanup?.();
-    });
-    startupCleanup.defer(() => {
-      dh.detector.stop();
-      soh.sonifier.stop();
     });
 
     // Inject canvas refs to plugins (dependency injection)
@@ -351,14 +345,13 @@ export const useSonificationEngine = (
   ]);
 
   const stop = useCallback(() => {
-    // Stop detection and sonification (inlined from ApplicationController)
-    detectorHandleRef.current?.detector.stop();
-    sonifierHandleRef.current?.sonifier.stop();
-
-    // Run plugin cleanup hooks
-    detectorHandleRef.current?.cleanup?.();
-    samplerHandleRef.current?.cleanup?.();
-    sonifierHandleRef.current?.cleanup?.();
+    // Handles own their cleanup/stop via Symbol.dispose.
+    detectorHandleRef.current?.[Symbol.dispose]();
+    samplerHandleRef.current?.[Symbol.dispose]();
+    sonifierHandleRef.current?.[Symbol.dispose]();
+    detectorHandleRef.current = null;
+    samplerHandleRef.current = null;
+    sonifierHandleRef.current = null;
 
     analyserRef.current = null;
     useAppRuntimeStore.getState().setCurrentUiOpacity(1);

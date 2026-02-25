@@ -59,6 +59,10 @@ export const plugin: SonificationPluginDefinition<
         oscillatorType: config.oscillatorType,
       });
     });
+    const dispose = () => {
+      unsubscribe();
+      sonifier.stop();
+    };
 
     return {
       sonifier,
@@ -67,7 +71,8 @@ export const plugin: SonificationPluginDefinition<
           sonifier.getAnalyserNode(options),
         getLastFrameDebug: () => sonifier.getLastFrameDebug(),
       },
-      cleanup: () => unsubscribe(),
+      cleanup: () => dispose(),
+      [Symbol.dispose]: dispose,
     };
   },
 });

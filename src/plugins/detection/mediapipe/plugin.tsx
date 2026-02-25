@@ -85,6 +85,14 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
 
       let unsubscribeConfig: (() => void) | null = null;
       let cleanupDeviceSync: (() => void) | null = null;
+      const dispose = () => {
+        unsubscribeConfig?.();
+        cleanupDeviceSync?.();
+        unsubscribeConfig = null;
+        cleanupDeviceSync = null;
+        useDeviceStore.getState().setHasHands(null);
+        detector.stop();
+      };
 
       const getSourceSize = () => {
         const width = videoEl.videoWidth;
@@ -169,12 +177,9 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           });
         },
         cleanup: () => {
-          unsubscribeConfig?.();
-          cleanupDeviceSync?.();
-          unsubscribeConfig = null;
-          useDeviceStore.getState().setHasHands(null);
-          detector.stop();
+          dispose();
         },
+        [Symbol.dispose]: dispose,
       };
     },
   });

@@ -69,6 +69,20 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
       let panZoomCleanup: (() => void) | null = null;
       let loadRequestVersion = 0;
       let visibleRect: { x: number; y: number; width: number; height: number } | null = null;
+      const dispose = () => {
+        configUnsub?.();
+        configUnsub = null;
+        if (resizeHandler) {
+          window.removeEventListener("resize", resizeHandler);
+          resizeHandler = null;
+        }
+        panZoomCleanup?.();
+        panZoomCleanup = null;
+        loadRequestVersion += 1;
+        imageBuffer = null;
+        visibleRect = null;
+        useHSVRuntimeStore.getState().setImageReady(false);
+      };
 
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
@@ -300,19 +314,9 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         },
 
         cleanup() {
-          configUnsub?.();
-          configUnsub = null;
-          if (resizeHandler) {
-            window.removeEventListener("resize", resizeHandler);
-            resizeHandler = null;
-          }
-          panZoomCleanup?.();
-          panZoomCleanup = null;
-          loadRequestVersion += 1;
-          imageBuffer = null;
-          visibleRect = null;
-          useHSVRuntimeStore.getState().setImageReady(false);
+          dispose();
         },
+        [Symbol.dispose]: dispose,
       };
     },
   });
