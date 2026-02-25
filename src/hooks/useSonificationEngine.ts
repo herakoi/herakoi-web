@@ -1,4 +1,6 @@
+import { isError, tryAsync } from "errore";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
+import { ensureError, getErrorMessage } from "#src/core/error-utils";
 import type { ErrorOr, ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
 import { useAppConfigStore } from "../state/appConfigStore";
@@ -21,19 +23,6 @@ export type SonificationEngineStartResult = ErrorOr<{
   status: "running";
   data: EngineStartData;
 }>;
-
-const toError = (error: unknown, fallback: string): Error =>
-  error instanceof Error ? error : new Error(fallback);
-
-const runSafely = async <T>(
-  operation: () => T | Promise<T>,
-  fallbackMessage: string,
-): Promise<ErrorOr<T>> => {
-  const result = await Promise.resolve()
-    .then(operation)
-    .catch((error: unknown) => toError(error, fallbackMessage));
-  return result;
-};
 
 export const useSonificationEngine = (
   config: PipelineConfig,
@@ -85,7 +74,7 @@ export const useSonificationEngine = (
     (error: Error, source: RuntimeErrorSource, code: string, cause?: Error): RuntimeErrorValue => ({
       source,
       code,
-      message: error.message,
+      message: getErrorMessage(error),
       cause,
     }),
     [],
@@ -132,35 +121,38 @@ export const useSonificationEngine = (
       );
     }
 
-    const pluginHandles = await runSafely(() => {
-      const detectionPluginId = activeDetection.id;
-      const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
-      const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
-      const detectionHandle = activeDetection.createDetector(
-        detectionConfig as never,
-        detectionRuntime as never,
-      );
+    const pluginHandles = await tryAsync({
+      try: async () => {
+        const detectionPluginId = activeDetection.id;
+        const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
+        const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
+        const detectionHandle = activeDetection.createDetector(
+          detectionConfig as never,
+          detectionRuntime as never,
+        );
 
-      const samplingPluginId = activeSampling.id;
-      const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
-      const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
-      const samplingHandle = activeSampling.createSampler(
-        samplingConfig as never,
-        samplingRuntime as never,
-      );
+        const samplingPluginId = activeSampling.id;
+        const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
+        const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
+        const samplingHandle = activeSampling.createSampler(
+          samplingConfig as never,
+          samplingRuntime as never,
+        );
 
-      const sonificationPluginId = activeSonification.id;
-      const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
-      const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
-      const sonificationHandle = activeSonification.createSonifier(
-        sonificationConfig as never,
-        sonificationRuntime as never,
-      );
+        const sonificationPluginId = activeSonification.id;
+        const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
+        const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
+        const sonificationHandle = activeSonification.createSonifier(
+          sonificationConfig as never,
+          sonificationRuntime as never,
+        );
 
-      return { detectionHandle, samplingHandle, sonificationHandle };
-    }, "Unknown plugin initialization error.");
+        return { detectionHandle, samplingHandle, sonificationHandle };
+      },
+      catch: (error) => ensureError(error, "Unknown plugin initialization error."),
+    });
 
-    if (pluginHandles instanceof Error) {
+    if (isError(pluginHandles)) {
       return failStart(
         pluginHandles,
         "Pipeline plugin creation failed",
@@ -179,11 +171,11 @@ export const useSonificationEngine = (
     dh.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
     sh.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
 
-    const postInitializeResult = await runSafely(
-      async () => sh.postInitialize?.(),
-      "Sampling plugin post-initialize failed.",
-    );
-    if (postInitializeResult instanceof Error) {
+    const postInitializeResult = await tryAsync({
+      try: async () => sh.postInitialize?.(),
+      catch: (error) => ensureError(error, "Sampling plugin post-initialize failed."),
+    });
+    if (isError(postInitializeResult)) {
       return failStart(
         postInitializeResult,
         "Pipeline start failed",
@@ -195,7 +187,7 @@ export const useSonificationEngine = (
 
     // Initialize detector and sonifier
     const detectorInitError = await dh.detector.initialize();
-    if (detectorInitError instanceof Error) {
+    if (isError(detectorInitError)) {
       return failStart(
         detectorInitError,
         "Detector initialization failed",
@@ -205,7 +197,7 @@ export const useSonificationEngine = (
     }
 
     const sonifierInitError = await soh.sonifier.initialize();
-    if (sonifierInitError instanceof Error) {
+    if (isError(sonifierInitError)) {
       return failStart(
         sonifierInitError,
         "Sonifier initialization failed",
@@ -268,7 +260,7 @@ export const useSonificationEngine = (
         }
 
         const sample = sh.sampler.sampleAt({ ...point, x: sx, y: sy });
-        if (sample instanceof Error) {
+        if (isError(sample)) {
           console.error("Sampling failed for point:", sample);
           continue;
         }
@@ -281,7 +273,7 @@ export const useSonificationEngine = (
       visualizerFrameDataRef.current.sampling = { samples };
 
       const sonifierError = soh.sonifier.processSamples(samples);
-      if (sonifierError instanceof Error) {
+      if (isError(sonifierError)) {
         setStatus({
           status: "error",
           error: toRuntimeError(
@@ -318,7 +310,7 @@ export const useSonificationEngine = (
 
     // Start detection
     const detectorStartError = await dh.detector.start();
-    if (detectorStartError instanceof Error) {
+    if (isError(detectorStartError)) {
       return failStart(detectorStartError, "Detector start failed", "detection", "start_failed");
     }
 
