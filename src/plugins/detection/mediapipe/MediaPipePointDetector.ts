@@ -65,6 +65,11 @@ export class MediaPipePointDetector implements PointDetector {
   private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
+  /**
+   * Set by stop() so a concurrent start() (e.g. React StrictMode double-invoke)
+   * bails out instead of racing with a newer start() on the same video element.
+   */
+  private startAborted = false;
 
   constructor(videoElement: HTMLVideoElement, config: MediaPipePointDetectorConfig = {}) {
     this.videoElement = videoElement;
@@ -167,19 +172,35 @@ export class MediaPipePointDetector implements PointDetector {
       return;
     }
 
+    // Bail out if stop() was already called on this instance (e.g. React StrictMode
+    // calls stop() while initialize() is still pending, then start() resumes here).
+    if (this.startAborted) return;
+
     this.camera = this.createCamera(this.config.deviceId);
     useDeviceStore.getState().setCameraError(null);
     try {
       await this.camera.start();
     } catch (err) {
+      // If stop() fired while camera.start() was in progress, the AbortError is expected.
+      if (this.startAborted) return;
       const msg = err instanceof Error ? err.message : "Camera error";
       useDeviceStore.getState().setCameraError(msg);
       throw err;
     }
+
+    // stop() may have arrived while camera.start() was awaiting — clean up and bail.
+    if (this.startAborted) {
+      this.camera?.stop();
+      this.camera = null;
+      return;
+    }
+
     this.started = true;
   }
 
   stop(): void {
+    // Set flag first so any in-flight start() sees it after its next await.
+    this.startAborted = true;
     if (this.camera) {
       this.camera.stop();
       this.camera = null;

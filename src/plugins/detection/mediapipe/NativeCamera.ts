@@ -63,7 +63,7 @@ export class NativeCamera {
 
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    // If stop() was called while getUserMedia was pending, release immediately
+    // If stop() was called while getUserMedia was pending, release immediately.
     if (this.stopped) {
       for (const track of stream.getTracks()) {
         track.stop();
@@ -73,7 +73,14 @@ export class NativeCamera {
 
     this.stream = stream;
     this.videoElement.srcObject = this.stream;
-    await this.videoElement.play();
+    try {
+      await this.videoElement.play();
+    } catch (err) {
+      // stop() can be called while play() is pending (e.g. camera switch).
+      // The browser aborts play() with an AbortError — expected, not a real error.
+      if (this.stopped) return;
+      throw err;
+    }
 
     this.running = true;
     this.scheduleFrame();
