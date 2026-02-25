@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { PluginCreationError } from "#src/core/domain-errors";
+import { DetectionInitializeError, PluginCreationError } from "#src/core/domain-errors";
 import type { ResolvedEnginePlugins } from "./startup";
-import { createEngineHandles } from "./startup";
+import { createEngineHandles, initializeEnginePlugins } from "./startup";
 
 describe("createEngineHandles", () => {
   it("disposes handles already created when one plugin handle creation fails", async () => {
@@ -72,5 +72,41 @@ describe("createEngineHandles", () => {
     expect(result).toBeInstanceOf(PluginCreationError);
     expect(detectorDispose).toHaveBeenCalledTimes(1);
     expect(samplerDispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("initializeEnginePlugins", () => {
+  it("normalizes thrown detector initialize errors into DetectionInitializeError", async () => {
+    const result = initializeEnginePlugins({
+      detectorHandle: {
+        [Symbol.dispose]: vi.fn(),
+        detector: {
+          initialize: vi.fn().mockRejectedValue(new Error("detector blew up")),
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn(),
+          onPointsDetected: vi.fn(),
+        },
+      },
+      samplerHandle: {
+        [Symbol.dispose]: vi.fn(),
+        sampler: {
+          loadImage: vi.fn().mockResolvedValue(undefined),
+          sampleAt: vi.fn(() => new Map()),
+        },
+      },
+      sonifierHandle: {
+        [Symbol.dispose]: vi.fn(),
+        sonifier: {
+          initialize: vi.fn().mockResolvedValue(undefined),
+          processSamples: vi.fn(),
+          stop: vi.fn(),
+          configure: vi.fn(),
+        },
+      },
+      imageOverlayRef: { current: null },
+      imageCanvasRef: { current: null },
+    });
+
+    await expect(result).resolves.toBeInstanceOf(DetectionInitializeError);
   });
 });

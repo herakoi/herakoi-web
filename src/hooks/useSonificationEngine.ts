@@ -64,6 +64,20 @@ export const useSonificationEngine = (
     analyser: null,
   });
 
+  const disposeActiveHandles = useCallback(() => {
+    // Handles own their cleanup/stop via Symbol.dispose.
+    detectorHandleRef.current?.[Symbol.dispose]();
+    samplerHandleRef.current?.[Symbol.dispose]();
+    sonifierHandleRef.current?.[Symbol.dispose]();
+    detectorHandleRef.current = null;
+    samplerHandleRef.current = null;
+    sonifierHandleRef.current = null;
+
+    analyserRef.current = null;
+    useAppRuntimeStore.getState().setCurrentUiOpacity(1);
+    useAppRuntimeStore.getState().setHasDetectedPoints(false);
+  }, []);
+
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
       const error = new EngineCanvasNotReadyError();
@@ -166,6 +180,7 @@ export const useSonificationEngine = (
 
       if (!isError(frameResult)) return;
       console.error("Frame pipeline failed:", frameResult);
+      disposeActiveHandles();
       setStatus({
         status: "error",
         error: new SonificationFrameProcessingError({ cause: frameResult }),
@@ -201,22 +216,12 @@ export const useSonificationEngine = (
         sonificationPluginId: resolvedActivePlugins.sonification.id,
       },
     };
-  }, [config, imageCanvasRef, imageOverlayRef, setStatus]);
+  }, [config, disposeActiveHandles, imageCanvasRef, imageOverlayRef, setStatus]);
 
   const stop = useCallback(() => {
-    // Handles own their cleanup/stop via Symbol.dispose.
-    detectorHandleRef.current?.[Symbol.dispose]();
-    samplerHandleRef.current?.[Symbol.dispose]();
-    sonifierHandleRef.current?.[Symbol.dispose]();
-    detectorHandleRef.current = null;
-    samplerHandleRef.current = null;
-    sonifierHandleRef.current = null;
-
-    analyserRef.current = null;
-    useAppRuntimeStore.getState().setCurrentUiOpacity(1);
-    useAppRuntimeStore.getState().setHasDetectedPoints(false);
+    disposeActiveHandles();
     setStatus({ status: "idle" });
-  }, [setStatus]);
+  }, [disposeActiveHandles, setStatus]);
 
   // Window resize handler (overlay canvas only — image canvas is handled by sampling plugin)
   useEffect(() => {

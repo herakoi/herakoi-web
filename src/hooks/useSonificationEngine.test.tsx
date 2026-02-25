@@ -12,6 +12,7 @@ import type { SonificationEngineStartResult } from "./useSonificationEngine";
 import { useSonificationEngine } from "./useSonificationEngine";
 
 type HarnessApi = {
+  start: () => Promise<SonificationEngineStartResult>;
   switchDetectionAndStart: (id: string) => Promise<SonificationEngineStartResult>;
 };
 
@@ -35,8 +36,8 @@ const HookHarness = ({ config, onReady }: HarnessProps) => {
   );
 
   useLayoutEffect(() => {
-    onReady({ switchDetectionAndStart });
-  }, [onReady, switchDetectionAndStart]);
+    onReady({ start, switchDetectionAndStart });
+  }, [onReady, start, switchDetectionAndStart]);
 
   return (
     <>
@@ -197,5 +198,145 @@ describe("useSonificationEngine plugin switching", () => {
         data: expect.objectContaining({ detectionPluginId: "detection/b" }),
       }),
     );
+  });
+});
+
+describe("useSonificationEngine runtime errors", () => {
+  let container: HTMLDivElement;
+  let root: ReturnType<typeof createRoot>;
+  let previousActFlag: unknown;
+
+  beforeEach(() => {
+    useAppConfigStore.getState().resetAll();
+    useAppRuntimeStore.getState().setStatus({ status: "idle" });
+    useAppRuntimeStore.getState().setCurrentUiOpacity(1);
+    useAppRuntimeStore.getState().setHasDetectedPoints(false);
+
+    previousActFlag = (globalThis as { IS_REACT_ACT_ENVIRONMENT?: unknown })
+      .IS_REACT_ACT_ENVIRONMENT;
+    (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
+      true;
+  });
+
+  afterEach(() => {
+    act(() => {
+      root?.unmount();
+    });
+    container?.remove();
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: unknown }).IS_REACT_ACT_ENVIRONMENT =
+      previousActFlag;
+  });
+
+  it("disposes active handles when frame processing enters error state", async () => {
+    let onPointsDetectedCb: ((points: Array<{ id: string; x: number; y: number }>) => void) | null =
+      null;
+    const detectorDispose = vi.fn();
+    const samplerDispose = vi.fn();
+    const sonifierDispose = vi.fn();
+
+    const config = {
+      detection: [
+        {
+          kind: "detection",
+          id: "detection/a",
+          displayName: "Detection A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createDetector: vi.fn(() => ({
+            [Symbol.dispose]: detectorDispose,
+            detector: {
+              initialize: vi.fn().mockResolvedValue(undefined),
+              start: vi.fn().mockResolvedValue(undefined),
+              stop: vi.fn(),
+              onPointsDetected: vi.fn((cb) => {
+                onPointsDetectedCb = cb;
+              }),
+            },
+            getSourceSize: vi.fn(() => ({ width: 100, height: 100 })),
+          })),
+        },
+      ],
+      sampling: [
+        {
+          kind: "sampling",
+          id: "sampling/a",
+          displayName: "Sampling A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createSampler: vi.fn(() => ({
+            [Symbol.dispose]: samplerDispose,
+            sampler: {
+              loadImage: vi.fn().mockResolvedValue(undefined),
+              sampleAt: vi.fn(() => new Error("frame failed")),
+            },
+            getVisibleRect: vi.fn(() => null),
+          })),
+        },
+      ],
+      sonification: [
+        {
+          kind: "sonification",
+          id: "sonification/a",
+          displayName: "Sonification A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createSonifier: vi.fn(() => ({
+            [Symbol.dispose]: sonifierDispose,
+            sonifier: {
+              initialize: vi.fn().mockResolvedValue(undefined),
+              processSamples: vi.fn().mockResolvedValue(undefined),
+              stop: vi.fn(),
+              configure: vi.fn(),
+            },
+          })),
+        },
+      ],
+      visualization: [],
+    } satisfies EngineConfig;
+
+    const { setActivePlugin } = useAppConfigStore.getState();
+    setActivePlugin("detection", "detection/a" as never);
+    setActivePlugin("sampling", "sampling/a" as never);
+    setActivePlugin("sonification", "sonification/a" as never);
+
+    let api: HarnessApi | undefined;
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <HookHarness
+          config={config}
+          onReady={(harnessApi) => {
+            api = harnessApi;
+          }}
+        />,
+      );
+    });
+
+    const harnessApi = api;
+    if (!harnessApi) {
+      throw new Error("Harness API not initialized");
+    }
+
+    await act(async () => {
+      await harnessApi.start();
+    });
+
+    if (!onPointsDetectedCb) {
+      throw new Error("Detection callback not initialized");
+    }
+
+    act(() => {
+      onPointsDetectedCb?.([{ id: "p1", x: 0.5, y: 0.5 }]);
+    });
+
+    expect(detectorDispose).toHaveBeenCalledTimes(1);
+    expect(samplerDispose).toHaveBeenCalledTimes(1);
+    expect(sonifierDispose).toHaveBeenCalledTimes(1);
   });
 });

@@ -167,13 +167,25 @@ export const initializeEnginePlugins = async (params: {
     return samplerPostInitialize;
   }
 
-  const detectorInitialize = await detectorHandle.detector.initialize();
+  const detectorInitialize = await tryAsync({
+    try: async () => detectorHandle.detector.initialize(),
+    catch: (error) => new DetectionInitializeError({ cause: error }),
+  });
   if (isError(detectorInitialize)) {
+    if (detectorInitialize instanceof DetectionInitializeError) {
+      return detectorInitialize;
+    }
     return new DetectionInitializeError({ cause: detectorInitialize });
   }
 
-  const sonifierInitialize = await sonifierHandle.sonifier.initialize();
+  const sonifierInitialize = await tryAsync({
+    try: async () => sonifierHandle.sonifier.initialize(),
+    catch: (error) => new SonifierInitializeError({ cause: error }),
+  });
   if (isError(sonifierInitialize)) {
+    if (sonifierInitialize instanceof SonifierInitializeError) {
+      return sonifierInitialize;
+    }
     return new SonifierInitializeError({ cause: sonifierInitialize });
   }
 };
@@ -181,8 +193,14 @@ export const initializeEnginePlugins = async (params: {
 export const startEngineDetection = async (
   detectorHandle: DetectorHandle,
 ): Promise<EngineResult<undefined>> => {
-  const detectorStart = await detectorHandle.detector.start();
+  const detectorStart = await tryAsync({
+    try: async () => detectorHandle.detector.start(),
+    catch: (error) => new DetectionStartError({ cause: error }),
+  });
   if (isError(detectorStart)) {
+    if (detectorStart instanceof DetectionStartError) {
+      return detectorStart;
+    }
     return new DetectionStartError({ cause: detectorStart });
   }
 
