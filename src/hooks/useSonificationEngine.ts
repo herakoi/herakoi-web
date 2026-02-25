@@ -22,6 +22,7 @@ import {
   initializeAnalyserForVisualizer,
   updateSonificationDebugFrame,
 } from "#src/lib/engine/visualizerFrame";
+import { syncChain } from "#src/lib/syncChain";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasRefToContainer } from "./ui/canvas";
 import { useResolvedEnginePlugins } from "./useResolvedEnginePlugins";
@@ -86,8 +87,8 @@ export const useSonificationEngine = (
       console.error("Plugin creation failed:", handlesResult);
       return handlesResult;
     }
-    const { detectorHandle: dh, samplerHandle: sh, sonifierHandle: soh } = handlesResult;
 
+    const { detectorHandle: dh, samplerHandle: sh, sonifierHandle: soh } = handlesResult;
     detectorHandleRef.current = dh;
     samplerHandleRef.current = sh;
     sonifierHandleRef.current = soh;
@@ -116,50 +117,52 @@ export const useSonificationEngine = (
       return initializeResult;
     }
 
-    // 4) Register detection processing loop.
+    // 4) Register detection processing loop (promise pipeline).
+
     dh.detector.onPointsDetected((points) => {
-      visualizerFrameDataRef.current.detection = {
-        points,
-        handDetected: points.length > 0,
-      };
+      const frameResult = syncChain(points)
+        .next((points) => {
+          const hasDetectedPoints = points.length > 0;
+          useAppRuntimeStore.getState().setHasDetectedPoints(hasDetectedPoints);
+          visualizerFrameDataRef.current.detection = {
+            points,
+            handDetected: hasDetectedPoints,
+          };
+          return points;
+        })
+        .next((points) =>
+          mapDetectedPointsForSampling({
+            points,
+            sourceSize: detectorHandleRef.current?.getSourceSize?.(),
+            visibleRect: samplerHandleRef.current?.getVisibleRect?.(),
+            canvasSize: {
+              width: imageOverlayRef.current?.width ?? 0,
+              height: imageOverlayRef.current?.height ?? 0,
+            },
+          }),
+        )
+        .next((mappedPoints) => sh.sampler.sampleAt(mappedPoints))
+        .next((samplesResult) => {
+          visualizerFrameDataRef.current.sampling = { samples: samplesResult };
 
-      useAppRuntimeStore.getState().setHasDetectedPoints(points.length > 0);
+          return samplesResult;
+        })
+        .next((samples) => soh.sonifier.processSamples(samples))
+        .next((samples) => {
+          updateSonificationDebugFrame({
+            sonifierHandleRef,
+            visualizerFrameDataRef,
+          });
+          return samples;
+        })();
 
-      const sourceSize = detectorHandleRef.current?.getSourceSize?.();
-      const visibleRect = samplerHandleRef.current?.getVisibleRect?.();
-      const overlayCanvas = imageOverlayRef.current;
-      const canvasSize = {
-        width: overlayCanvas?.width ?? 0,
-        height: overlayCanvas?.height ?? 0,
-      };
-      const mappedPoints = mapDetectedPointsForSampling({
-        points,
-        sourceSize,
-        visibleRect,
-        canvasSize,
-      });
-      const samplesResult = sh.sampler.sampleAt(mappedPoints);
-      if (isError(samplesResult)) {
-        console.error("Sampling failed for frame:", samplesResult);
+      if (!isError(frameResult)) return;
+      if (frameResult instanceof SonificationFrameProcessingError) {
+        setStatus({ status: "error", error: frameResult });
+        console.error("Sonification frame failed:", frameResult);
         return;
       }
-      const samples = samplesResult;
-      visualizerFrameDataRef.current.sampling = { samples };
-
-      const sonifierError = soh.sonifier.processSamples(samples);
-      if (isError(sonifierError)) {
-        setStatus({
-          status: "error",
-          error: new SonificationFrameProcessingError({ cause: sonifierError }),
-        });
-        console.error("Sonification frame failed:", sonifierError);
-        return;
-      }
-
-      updateSonificationDebugFrame({
-        sonifierHandleRef,
-        visualizerFrameDataRef,
-      });
+      console.error("Sampling failed for frame:", frameResult);
     });
 
     // 5) Start detection and post-start setup.
