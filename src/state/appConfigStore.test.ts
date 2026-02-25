@@ -4,8 +4,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { pluginConfigDefaults } from "#src/pluginConfigRegistry";
-import { APP_CONFIG_KEY } from "./persistenceKeys";
 import { useAppConfigStore } from "./appConfigStore";
+import { APP_CONFIG_KEY } from "./persistenceKeys";
 
 describe("appConfigStore", () => {
   beforeEach(() => {
