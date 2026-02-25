@@ -1,7 +1,7 @@
 import { isError, tryAsync } from "errore";
 import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
-import { ImageDecodeError, ImageReadError, ImageSelectError } from "#src/core/domain-errors";
 import type { ErrorOr } from "#src/core/interfaces";
+import { ImageDecodeError, ImageReadError, ImageSelectError } from "../errors";
 import {
   formatBytes,
   formatImageType,

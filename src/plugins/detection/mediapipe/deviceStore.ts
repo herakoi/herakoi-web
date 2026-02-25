@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CameraRuntimeError } from "#src/core/domain-errors";
+import type { CameraRuntimeError } from "./errors";
 import type { DeviceInfo } from "./NativeCamera";
 
 export type CameraStatus = { status: "ok" } | { status: "error"; error: CameraRuntimeError };

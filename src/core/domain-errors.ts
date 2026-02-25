@@ -45,56 +45,7 @@ export class SonificationFrameProcessingError extends createTaggedError({
   message: "Sonification frame processing failed.",
 }) {}
 
-export class CameraRestartError extends createTaggedError({
-  name: "CameraRestartError",
-  message: "Camera restart failed.",
-}) {}
-
-export class CameraStartError extends createTaggedError({
-  name: "CameraStartError",
-  message: "Camera start failed.",
-}) {}
-
-export class DeviceEnumerationError extends createTaggedError({
-  name: "DeviceEnumerationError",
-  message: "Unable to enumerate camera devices.",
-}) {}
-
-export class ImageReadError extends createTaggedError({
-  name: "ImageReadError",
-  message: "Failed to read image file.",
-}) {}
-
-export class ImageDecodeError extends createTaggedError({
-  name: "ImageDecodeError",
-  message: "Failed to decode uploaded image.",
-}) {}
-
-export class ImageSelectError extends createTaggedError({
-  name: "ImageSelectError",
-  message: "Failed to select image.",
-}) {}
-
-export class UploadCacheReadError extends createTaggedError({
-  name: "UploadCacheReadError",
-  message: "Failed to parse upload cache.",
-}) {}
-
-export class UploadCacheWriteError extends createTaggedError({
-  name: "UploadCacheWriteError",
-  message: "Failed to persist upload cache.",
-}) {}
-
-export type CameraRuntimeError = CameraStartError | CameraRestartError | DeviceEnumerationError;
-
-export type ImageLibraryRuntimeError =
-  | ImageReadError
-  | ImageDecodeError
-  | ImageSelectError
-  | UploadCacheReadError
-  | UploadCacheWriteError;
-
-export type PipelineRuntimeError =
+export type EngineRuntimeError =
   | EngineCanvasNotReadyError
   | InvalidPluginConfigurationError
   | PluginCreationError

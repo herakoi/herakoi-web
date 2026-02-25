@@ -1,6 +1,6 @@
-import { CameraRestartError, DeviceEnumerationError } from "#src/core/domain-errors";
 import type { ErrorOr } from "#src/core/interfaces";
 import { useDeviceStore } from "./deviceStore";
+import { CameraRestartError, DeviceEnumerationError } from "./errors";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 const applyFacingMode = (detector: MediaPipePointDetector, facingMode: string | undefined) => {

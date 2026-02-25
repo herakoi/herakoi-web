@@ -9,7 +9,7 @@
  */
 
 import { create } from "zustand";
-import type { PipelineRuntimeError } from "#src/core/domain-errors";
+import type { EngineRuntimeError } from "#src/core/domain-errors";
 
 // ──────────────────────────────────────────────────
 // Type Definitions
@@ -19,7 +19,7 @@ export type PipelineStatus =
   | { status: "idle" }
   | { status: "initializing" }
   | { status: "running" }
-  | { status: "error"; error: PipelineRuntimeError };
+  | { status: "error"; error: EngineRuntimeError };
 
 export interface AppRuntimeState {
   /** Current pipeline lifecycle status */

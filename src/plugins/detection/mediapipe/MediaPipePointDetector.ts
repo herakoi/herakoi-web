@@ -15,7 +15,6 @@
  */
 
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
-import { CameraRestartError, CameraStartError } from "#src/core/domain-errors";
 import type {
   DetectedPoint,
   ErrorOr,
@@ -24,6 +23,7 @@ import type {
 } from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
 import { useDeviceStore } from "./deviceStore";
+import { CameraRestartError, CameraStartError } from "./errors";
 import { NativeCamera } from "./NativeCamera";
 
 /**

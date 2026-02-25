@@ -9,8 +9,8 @@
  */
 
 import { create } from "zustand";
-import type { ImageLibraryRuntimeError } from "#src/core/domain-errors";
-import { UploadCacheReadError, UploadCacheWriteError } from "#src/core/domain-errors";
+import type { ImageLibraryRuntimeError } from "./errors";
+import { UploadCacheReadError, UploadCacheWriteError } from "./errors";
 import type { ImageEntry } from "./types/image";
 
 export type ImageLibraryError = ImageLibraryRuntimeError;

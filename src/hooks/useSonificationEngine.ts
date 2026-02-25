@@ -5,8 +5,8 @@ import {
   DetectionPostInitializeError,
   DetectionStartError,
   EngineCanvasNotReadyError,
+  type EngineRuntimeError,
   InvalidPluginConfigurationError,
-  type PipelineRuntimeError,
   PluginCreationError,
   SamplingPostInitializeError,
   SonificationFrameProcessingError,
@@ -81,7 +81,7 @@ export const useSonificationEngine = (
   );
 
   const failStart = useCallback(
-    (error: PipelineRuntimeError, context: string) => {
+    (error: EngineRuntimeError, context: string) => {
       setStatus({ status: "error", error });
       console.error(`${context}:`, error);
       return error;
