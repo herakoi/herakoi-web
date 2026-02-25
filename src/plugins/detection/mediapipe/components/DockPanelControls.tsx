@@ -12,7 +12,7 @@ import type { DeviceInfo } from "../NativeCamera";
 
 type DockPanelControlsProps = {
   pipOpen: boolean;
-  deviceId: string;
+  deviceId: string | undefined;
   devices: DeviceInfo[];
   restartCamera: (() => Promise<void>) | null;
   onTogglePip: () => void;

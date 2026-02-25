@@ -49,7 +49,7 @@ export const MediaPipeSettingsPanel = ({
         <Label htmlFor="camera-device">Active camera</Label>
         <div className="flex items-center gap-1.5">
           {devices.length > 0 ? (
-            <Select value={deviceId} onValueChange={setDeviceId}>
+            <Select value={deviceId ?? ""} onValueChange={setDeviceId}>
               <SelectTrigger id="camera-device" className="flex-1" aria-label="Active camera">
                 <SelectValue placeholder="Default camera" />
               </SelectTrigger>

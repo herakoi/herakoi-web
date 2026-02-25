@@ -56,7 +56,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       const detector = new MediaPipePointDetector(videoEl, {
         maxHands: config.maxHands,
         mirrorX: initialMirror,
-        deviceId: initialDeviceId || undefined,
+        deviceId: initialDeviceId,
         mediaPipeOptions: {
           modelComplexity: 1,
           minDetectionConfidence: 0.7,
@@ -78,6 +78,10 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       const refreshDeviceList = async () => {
         const devices = await MediaPipePointDetector.enumerateDevices();
         useDeviceStore.getState().setDevices(devices);
+        const { deviceId } = useDeviceStore.getState();
+        if (deviceId && !devices.some((d) => d.deviceId === deviceId)) {
+          useDeviceStore.getState().setDeviceId(undefined);
+        }
       };
 
       return {
@@ -137,7 +141,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           // Expose restartCamera for the refresh button in the UI
           const restartAndRefresh = async () => {
             const currentDeviceId = useDeviceStore.getState().deviceId;
-            const facingMode = await detector.restartCamera(currentDeviceId || undefined);
+            const facingMode = await detector.restartCamera(currentDeviceId);
             await refreshDeviceList();
             if (facingMode) {
               const shouldMirror = facingMode === "user";
@@ -167,7 +171,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
               detector.setMirror(state.mirror);
             }
             if (state.deviceId !== prevState.deviceId) {
-              void detector.restartCamera(state.deviceId || undefined).then((facingMode) => {
+              void detector.restartCamera(state.deviceId).then((facingMode) => {
                 if (facingMode) {
                   const shouldMirror = facingMode === "user";
                   useDeviceStore.getState().setMirror(shouldMirror);

@@ -4,10 +4,10 @@ import type { DeviceInfo } from "./NativeCamera";
 interface DeviceStoreState {
   // Runtime camera state (not persisted)
   devices: DeviceInfo[];
-  deviceId: string;
+  deviceId: string | undefined;
   mirror: boolean;
   setDevices: (devices: DeviceInfo[]) => void;
-  setDeviceId: (deviceId: string) => void;
+  setDeviceId: (deviceId: string | undefined) => void;
   setMirror: (mirror: boolean) => void;
   /** Restart the camera (re-triggers getUserMedia). Set by plugin at runtime. */
   restartCamera: (() => Promise<void>) | null;
@@ -16,7 +16,7 @@ interface DeviceStoreState {
 
 export const useDeviceStore = create<DeviceStoreState>((set) => ({
   devices: [],
-  deviceId: "",
+  deviceId: undefined,
   mirror: true,
   setDevices: (devices) => set({ devices }),
   setDeviceId: (deviceId) => set({ deviceId }),

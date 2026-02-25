@@ -4,6 +4,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultMediaPipeConfig } from "./config";
+import { useDeviceStore } from "./deviceStore";
+import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import { plugin } from "./plugin";
 import { mediaPipeRefs } from "./refs";
 
@@ -38,6 +40,12 @@ vi.mock("./MediaPipePointDetector", () => {
 describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useDeviceStore.setState({
+      devices: [],
+      deviceId: undefined,
+      mirror: true,
+      restartCamera: null,
+    });
     mediaPipeRefs.video = { current: document.createElement("video") };
     mediaPipeRefs.videoOverlay = null;
     mediaPipeRefs.imageOverlay = null;
@@ -57,6 +65,44 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
 
     expect(runtime.subscribeConfig).toHaveBeenCalledTimes(1);
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears stale selected device after refresh and does not reuse it on next start", async () => {
+    const staleDeviceId = "external-webcam";
+    const enumerateDevices = (
+      MediaPipePointDetector as unknown as { enumerateDevices: ReturnType<typeof vi.fn> }
+    ).enumerateDevices;
+
+    enumerateDevices.mockResolvedValueOnce([
+      { deviceId: "builtin-camera", label: "Built-in Camera" },
+    ]);
+
+    useDeviceStore.getState().setDeviceId(staleDeviceId);
+
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    const firstHandle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    firstHandle.postInitialize?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(useDeviceStore.getState().devices).toEqual([
+      { deviceId: "builtin-camera", label: "Built-in Camera" },
+    ]);
+    expect(useDeviceStore.getState().deviceId).toBeUndefined();
+
+    firstHandle.cleanup?.();
+    plugin.createDetector(defaultMediaPipeConfig, runtime);
+
+    expect(MediaPipePointDetector).toHaveBeenNthCalledWith(
+      2,
+      expect.any(HTMLVideoElement),
+      expect.objectContaining({ deviceId: undefined }),
+    );
   });
 });
 
