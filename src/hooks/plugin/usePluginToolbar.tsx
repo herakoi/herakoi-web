@@ -1,9 +1,9 @@
 import { type ComponentType, useMemo, useRef } from "react";
-import type { PipelineConfig } from "#src/core/plugin";
+import type { EngineConfig } from "#src/core/plugin";
 import { usePluginConfig } from "../../state/appConfigStore";
 
 type UsePluginToolbarParams = {
-  config: PipelineConfig;
+  config: EngineConfig;
   activeSamplingId: string;
 };
 

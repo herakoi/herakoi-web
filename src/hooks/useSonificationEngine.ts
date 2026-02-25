@@ -13,7 +13,7 @@ import {
   SonifierInitializeError,
 } from "#src/core/domain-errors";
 import type { ErrorOr, ImageSample } from "#src/core/interfaces";
-import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
+import type { EngineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
 import { useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasToContainer } from "./ui/canvas";
@@ -35,10 +35,10 @@ export type SonificationEngineStartResult = ErrorOr<{
 }>;
 
 export const useSonificationEngine = (
-  config: PipelineConfig,
+  config: EngineConfig,
   { imageCanvasRef, imageOverlayRef }: Refs,
 ) => {
-  const status = useAppRuntimeStore((state) => state.pipelineStatus);
+  const status = useAppRuntimeStore((state) => state.engineStatus);
   const setStatus = useAppRuntimeStore((state) => state.setStatus);
 
   const detectorHandleRef = useRef<ReturnType<
@@ -91,7 +91,7 @@ export const useSonificationEngine = (
 
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
-      return failStart(new EngineCanvasNotReadyError(), "Pipeline start failed");
+      return failStart(new EngineCanvasNotReadyError(), "Engine start failed");
     }
     setStatus({ status: "initializing" });
 
@@ -106,7 +106,7 @@ export const useSonificationEngine = (
     const activeSonification = config.sonification.find((p) => p.id === activeSonificationId);
 
     if (!activeDetection || !activeSampling || !activeSonification) {
-      return failStart(new InvalidPluginConfigurationError(), "Pipeline start failed");
+      return failStart(new InvalidPluginConfigurationError(), "Engine start failed");
     }
 
     await using startupCleanup = new AsyncDisposableStack();
@@ -142,7 +142,7 @@ export const useSonificationEngine = (
     });
 
     if (isError(pluginHandles)) {
-      return failStart(pluginHandles, "Pipeline plugin creation failed");
+      return failStart(pluginHandles, "Engine plugin creation failed");
     }
 
     const { detectionHandle: dh, samplingHandle: sh, sonificationHandle: soh } = pluginHandles;
@@ -170,7 +170,7 @@ export const useSonificationEngine = (
       catch: (error) => new SamplingPostInitializeError({ cause: error }),
     });
     if (isError(postInitializeResult)) {
-      return failStart(postInitializeResult, "Pipeline start failed");
+      return failStart(postInitializeResult, "Engine start failed");
     }
 
     // Initialize detector and sonifier

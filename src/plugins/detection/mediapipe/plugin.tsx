@@ -49,7 +49,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
 
       if (!videoEl) {
         throw new Error(
-          "MediaPipe detection plugin: video element not mounted. DockPanel must be rendered before pipeline starts.",
+          "MediaPipe detection plugin: video element not mounted. DockPanel must be rendered before engine starts.",
         );
       }
 

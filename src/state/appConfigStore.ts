@@ -25,10 +25,10 @@ import { APP_CONFIG_KEY } from "#src/state/persistenceKeys";
 // Type Definitions
 // ──────────────────────────────────────────────────
 
-export type PipelineSlot = "detection" | "sampling" | "sonification" | "visualization";
+export type EngineSlot = "detection" | "sampling" | "sonification" | "visualization";
 
 /**
- * Active plugin selections for each pipeline slot.
+ * Active plugin selections for each engine slot.
  * Keys are slot names, values are plugin IDs inferred from engineConfig.
  */
 export type ActivePlugins = AppActivePlugins;

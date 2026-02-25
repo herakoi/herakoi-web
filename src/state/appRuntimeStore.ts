@@ -2,7 +2,7 @@
  * Application runtime state store.
  *
  * Manages transient state that changes during execution but should NOT persist
- * across sessions. This includes pipeline status, current UI opacity (controlled
+ * across sessions. This includes engine status, current UI opacity (controlled
  * by idle dimmer), and other dynamic application state.
  *
  * Unlike appConfigStore, this store has NO persistence middleware.
@@ -15,15 +15,15 @@ import type { EngineRuntimeError } from "#src/core/domain-errors";
 // Type Definitions
 // ──────────────────────────────────────────────────
 
-export type PipelineStatus =
+export type EngineStatus =
   | { status: "idle" }
   | { status: "initializing" }
   | { status: "running" }
   | { status: "error"; error: EngineRuntimeError };
 
 export interface AppRuntimeState {
-  /** Current pipeline lifecycle status */
-  pipelineStatus: PipelineStatus;
+  /** Current engine lifecycle status */
+  engineStatus: EngineStatus;
   /** Current UI opacity (0-1), controlled by idle dimmer */
   currentUiOpacity: number;
   /** Whether any detection plugin is currently detecting points (generic, plugin-agnostic) */
@@ -31,8 +31,8 @@ export interface AppRuntimeState {
 }
 
 export interface AppRuntimeActions {
-  /** Update pipeline status */
-  setStatus: (status: PipelineStatus) => void;
+  /** Update engine status */
+  setStatus: (status: EngineStatus) => void;
   /** Update current UI opacity (idle dimmer control) */
   setCurrentUiOpacity: (opacity: number) => void;
   /** Update whether any points are detected (for idle dimming) */
@@ -44,7 +44,7 @@ export interface AppRuntimeActions {
 // ──────────────────────────────────────────────────
 
 const defaultState: AppRuntimeState = {
-  pipelineStatus: { status: "idle" },
+  engineStatus: { status: "idle" },
   currentUiOpacity: 1,
   hasDetectedPoints: false,
 };
@@ -52,7 +52,7 @@ const defaultState: AppRuntimeState = {
 export const useAppRuntimeStore = create<AppRuntimeState & AppRuntimeActions>((set) => ({
   ...defaultState,
 
-  setStatus: (status) => set({ pipelineStatus: status }),
+  setStatus: (status) => set({ engineStatus: status }),
 
   setCurrentUiOpacity: (opacity) => set({ currentUiOpacity: opacity }),
 

@@ -1,5 +1,5 @@
 /**
- * Core interfaces for the Herakoi detection → sampling → sonification pipeline.
+ * Core interfaces for the Herakoi detection → sampling → sonification engine.
  *
  * These interfaces define the contracts between modules:
  * - PointDetector: Tracks points (e.g., fingertips) in normalized coordinates

@@ -1,9 +1,9 @@
 import { type ComponentType, useMemo, useRef } from "react";
-import type { PipelineConfig, ShellDockPanelProps } from "#src/core/plugin";
+import type { EngineConfig, ShellDockPanelProps } from "#src/core/plugin";
 import { usePluginConfig } from "../../state/appConfigStore";
 
 type UsePluginDockPanelParams = {
-  config: PipelineConfig;
+  config: EngineConfig;
   activeDetectionId: string;
 };
 

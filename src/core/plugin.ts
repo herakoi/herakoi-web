@@ -1,13 +1,13 @@
 /**
- * Plugin type system for the Herakoi pipeline.
+ * Plugin type system for the Herakoi engine.
  *
- * Each pipeline stage (detection, sampling, sonification) can be implemented
+ * Each engine stage (detection, sampling, sonification) can be implemented
  * as a self-contained plugin that bundles:
- * - A pipeline implementation (conforming to core interfaces)
+ * - An engine implementation (conforming to core interfaces)
  * - React UI components (settings panel, dock panel, toolbar items)
  * - Plugin-local state management (own Zustand store)
  *
- * Plugins are composed at compile-time in a PipelineConfig and the shell
+ * Plugins are composed at compile-time in an EngineConfig and the shell
  * renders their UI into designated slots. Multiple plugins per slot enables
  * runtime switching via a PluginSelector dropdown.
  */
@@ -21,13 +21,13 @@ import type { ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces
 
 /** Props the shell passes directly to the DockPanel wrapper. */
 export type ShellDockPanelProps = {
-  /** Whether the pipeline is currently running */
+  /** Whether the engine is currently running */
   isRunning: boolean;
-  /** Whether the pipeline is initializing */
+  /** Whether the engine is initializing */
   isInitializing: boolean;
-  /** Start the pipeline */
+  /** Start the engine */
   onStart: () => void;
-  /** Stop the pipeline */
+  /** Stop the engine */
   onStop: () => void;
 };
 
@@ -102,7 +102,7 @@ export type DetectorHandle = {
    * For MediaPipe this binds hand overlays; for mouse this is a no-op.
    */
   postInitialize?: () => void;
-  /** Optional cleanup when the pipeline stops. */
+  /** Optional cleanup when the engine stops. */
   cleanup?: () => void;
   /**
    * Optional method to receive canvas refs from the shell.
@@ -151,7 +151,7 @@ export type SamplerHandle = {
    * For HSV this restores the persisted image and draws it to canvas.
    */
   postInitialize?: () => Promise<void>;
-  /** Optional cleanup when the pipeline stops. */
+  /** Optional cleanup when the engine stops. */
   cleanup?: () => void;
   /**
    * Optional method to receive canvas refs from the shell.
@@ -192,7 +192,7 @@ export type SonifierHandle = {
   sonifier: Sonifier;
   /** Expose implementation-specific extras (e.g., AnalyserNode). */
   extras?: Record<string, unknown>;
-  /** Optional cleanup when the pipeline stops. */
+  /** Optional cleanup when the engine stops. */
   cleanup?: () => void;
   /** Standard disposal hook for teardown (unsubscribe + stop audio). */
   [Symbol.dispose]: () => void;
@@ -219,7 +219,7 @@ export interface SonificationPlugin<
 // ──────────────────────────────────────────────────
 
 /**
- * Frame data passed to visualizers from all pipeline stages.
+ * Frame data passed to visualizers from all engine stages.
  * Updated each frame via ref to avoid React re-renders.
  */
 export type VisualizerFrameData = {
@@ -247,7 +247,7 @@ export type VisualizerFrameData = {
 
 /** Props passed to a visualizer display component. */
 export type VisualizerDisplayProps = {
-  /** Whether the pipeline is currently running */
+  /** Whether the engine is currently running */
   isRunning: boolean;
   /** Ref to frame data updated each frame (read-only) */
   frameDataRef: RefObject<VisualizerFrameData>;
@@ -275,7 +275,7 @@ export interface VisualizationPlugin {
 // ──────────────────────────────────────────────────
 
 /**
- * Declares all available plugins per pipeline slot.
+ * Declares all available plugins per engine slot.
  *
  * Each slot holds an array of plugins. The shell manages which plugin
  * is active per slot (persisted in appConfigStore). When only one plugin

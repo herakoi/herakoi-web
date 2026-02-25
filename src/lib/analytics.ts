@@ -34,7 +34,7 @@ declare global {
  * @example
  * ```ts
  * trackEvent('image_uploaded', { source: 'drag_drop', fileSize: 1024 });
- * trackEvent('pipeline_error', { error: 'camera_permission_denied' });
+ * trackEvent('engine_error', { error: 'camera_permission_denied' });
  * ```
  */
 export const trackEvent = (eventName: string, metadata?: Record<string, unknown>): void => {
@@ -51,16 +51,16 @@ export const trackEvent = (eventName: string, metadata?: Record<string, unknown>
 };
 
 /**
- * Track camera/pipeline start event.
- * Indicates user activated the hand detection pipeline.
+ * Track camera/engine start event.
+ * Indicates user activated the hand detection engine.
  */
 export const trackCameraStart = (): void => {
   trackEvent("camera_started");
 };
 
 /**
- * Track camera/pipeline stop event.
- * Indicates user deactivated the hand detection pipeline.
+ * Track camera/engine stop event.
+ * Indicates user deactivated the hand detection engine.
  */
 export const trackCameraStop = (): void => {
   trackEvent("camera_stopped");
@@ -86,21 +86,21 @@ export const trackImageSelect = (imageId: string, collection?: string): void => 
 };
 
 /**
- * Track pipeline error events.
+ * Track engine error events.
  * Helps identify common failure modes and browser compatibility issues.
  *
  * @param error - Error message or code
  */
-export const trackPipelineError = (error: string): void => {
-  trackEvent("pipeline_error", { error });
+export const trackEngineError = (error: string): void => {
+  trackEvent("engine_error", { error });
 };
 
 /**
- * Track pipeline restart action.
- * Indicates user clicked the restart button to reinitialize the pipeline.
+ * Track engine restart action.
+ * Indicates user clicked the restart button to reinitialize the engine.
  */
-export const trackPipelineRestart = (): void => {
-  trackEvent("pipeline_restarted");
+export const trackEngineRestart = (): void => {
+  trackEvent("engine_restarted");
 };
 
 /**

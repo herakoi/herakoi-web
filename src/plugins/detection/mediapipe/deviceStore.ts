@@ -19,7 +19,7 @@ interface DeviceStoreState {
   cameraStatus: CameraStatus;
   setCameraOk: () => void;
   setCameraError: (error: CameraRuntimeError) => void;
-  /** Whether hands are currently detected. null = pipeline not started. */
+  /** Whether hands are currently detected. null = engine not started. */
   hasHands: boolean | null;
   setHasHands: (hasHands: boolean | null) => void;
 }

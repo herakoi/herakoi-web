@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
+import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
 import { NotificationArea } from "./components/NotificationArea";
-import { PipelineStatusAnnouncer } from "./components/PipelineStatusAnnouncer";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
@@ -138,7 +138,7 @@ const App = () => {
         <Display key={id} isRunning={isRunning} frameDataRef={visualizerFrameDataRef} />
       ))}
 
-      <PipelineStatusAnnouncer status={status} />
+      <EngineStatusAnnouncer status={status} />
     </main>
   );
 };

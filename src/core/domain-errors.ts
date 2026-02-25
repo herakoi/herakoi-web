@@ -12,7 +12,7 @@ export class InvalidPluginConfigurationError extends createTaggedError({
 
 export class PluginCreationError extends createTaggedError({
   name: "PluginCreationError",
-  message: "Pipeline plugin creation failed.",
+  message: "Engine plugin creation failed.",
 }) {}
 
 export class SamplingPostInitializeError extends createTaggedError({

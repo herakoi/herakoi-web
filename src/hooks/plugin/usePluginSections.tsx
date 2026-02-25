@@ -1,6 +1,6 @@
 import { Eye } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
-import type { PipelineConfig } from "#src/core/plugin";
+import type { EngineConfig } from "#src/core/plugin";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 import type { ActivePlugins } from "../../state/appConfigStore";
@@ -8,7 +8,7 @@ import { useActivePlugin, usePluginConfig } from "../../state/appConfigStore";
 import { buildPluginSection } from "./buildPluginSection";
 
 type UsePluginSectionsParams = {
-  config: PipelineConfig;
+  config: EngineConfig;
   start: () => Promise<unknown>;
   stop: () => void;
 };

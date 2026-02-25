@@ -24,7 +24,7 @@ type PluginSelectorProps = {
  *
  * Always shown to indicate plugin system. When only one plugin is available,
  * shows a "More coming soon..." placeholder. When the user switches plugins,
- * the shell stops the pipeline, updates the active plugin ID, and restarts
+ * the shell stops the engine, updates the active plugin ID, and restarts
  * with the new plugin.
  */
 export const PluginSelector = ({ label, plugins, activeId, onSelect }: PluginSelectorProps) => {

@@ -5,7 +5,7 @@
 import { act, useCallback, useLayoutEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PipelineConfig } from "#src/core/plugin";
+import type { EngineConfig } from "#src/core/plugin";
 import { useActivePlugin, useAppConfigStore } from "#src/state/appConfigStore";
 import { useAppRuntimeStore } from "#src/state/appRuntimeStore";
 import type { SonificationEngineStartResult } from "./useSonificationEngine";
@@ -16,7 +16,7 @@ type HarnessApi = {
 };
 
 type HarnessProps = {
-  config: PipelineConfig;
+  config: EngineConfig;
   onReady: (api: HarnessApi) => void;
 };
 
@@ -155,7 +155,7 @@ describe("useSonificationEngine plugin switching", () => {
         },
       ],
       visualization: [],
-    } satisfies PipelineConfig;
+    } satisfies EngineConfig;
 
     const { setActivePlugin } = useAppConfigStore.getState();
     setActivePlugin("detection", "detection/a" as never);
