@@ -2,7 +2,6 @@ import { Hand } from "lucide-react";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPluginDefinition,
-  DetectorHandle,
   PluginRuntimeContext,
   PluginTabMeta,
   PluginUISlots,
@@ -14,6 +13,7 @@ import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";
 import { useDeviceStore } from "./deviceStore";
 import { bindDeviceSync } from "./deviceSync";
+import { MediaPipeVideoNotMountedError } from "./errors";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
@@ -41,16 +41,11 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
       defaultConfig: defaultMediaPipeConfig,
     },
 
-    createDetector(
-      config: MediaPipeConfig,
-      runtime: PluginRuntimeContext<MediaPipeConfig>,
-    ): DetectorHandle {
+    createDetector(config: MediaPipeConfig, runtime: PluginRuntimeContext<MediaPipeConfig>) {
       const videoEl = mediaPipeRefs.video?.current;
 
       if (!videoEl) {
-        throw new Error(
-          "MediaPipe detection plugin: video element not mounted. DockPanel must be rendered before engine starts.",
-        );
+        return new MediaPipeVideoNotMountedError();
       }
 
       // Read runtime state (not persisted)

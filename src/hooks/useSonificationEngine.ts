@@ -13,7 +13,14 @@ import {
   SonifierInitializeError,
 } from "#src/core/domain-errors";
 import type { ErrorOr, ImageSample } from "#src/core/interfaces";
-import type { EngineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
+import type {
+  DetectorHandle,
+  EngineConfig,
+  PluginRuntimeContext,
+  SamplerHandle,
+  SonifierHandle,
+  VisualizerFrameData,
+} from "#src/core/plugin";
 import { useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasToContainer } from "./ui/canvas";
@@ -41,15 +48,9 @@ export const useSonificationEngine = (
   const status = useAppRuntimeStore((state) => state.engineStatus);
   const setStatus = useAppRuntimeStore((state) => state.setStatus);
 
-  const detectorHandleRef = useRef<ReturnType<
-    (typeof config.detection)[0]["createDetector"]
-  > | null>(null);
-  const samplerHandleRef = useRef<ReturnType<(typeof config.sampling)[0]["createSampler"]> | null>(
-    null,
-  );
-  const sonifierHandleRef = useRef<ReturnType<
-    (typeof config.sonification)[0]["createSonifier"]
-  > | null>(null);
+  const detectorHandleRef = useRef<DetectorHandle | null>(null);
+  const samplerHandleRef = useRef<SamplerHandle | null>(null);
+  const sonifierHandleRef = useRef<SonifierHandle | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
   const visualizerFrameDataRef = useRef<VisualizerFrameData>({
@@ -89,6 +90,16 @@ export const useSonificationEngine = (
     [setStatus],
   );
 
+  const createPluginHandle = useCallback(
+    async <T>(create: () => ErrorOr<T> | Promise<ErrorOr<T>>): Promise<ErrorOr<T>> => {
+      return tryAsync({
+        try: async () => create(),
+        catch: (error) => new PluginCreationError({ cause: error }),
+      });
+    },
+    [],
+  );
+
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
       return failStart(new EngineCanvasNotReadyError(), "Engine start failed");
@@ -109,43 +120,57 @@ export const useSonificationEngine = (
       return failStart(new InvalidPluginConfigurationError(), "Engine start failed");
     }
 
+    const detectionPluginId = activeDetection.id;
+    const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
+    const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
+
+    const samplingPluginId = activeSampling.id;
+    const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
+    const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
+
+    const sonificationPluginId = activeSonification.id;
+    const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
+    const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
+
     await using startupCleanup = new AsyncDisposableStack();
-    const pluginHandles = await tryAsync({
-      try: async () => {
-        const detectionPluginId = activeDetection.id;
-        const detectionConfig = useAppConfigStore.getState().pluginConfigs[detectionPluginId];
-        const detectionRuntime = createPluginRuntimeContext(detectionPluginId);
-        const detectionHandle = activeDetection.createDetector(
-          detectionConfig as never,
-          detectionRuntime as never,
-        );
+    const [detectionHandleResult, samplingHandleResult, sonificationHandleResult] =
+      await Promise.all([
+        createPluginHandle(() =>
+          activeDetection.createDetector(detectionConfig as never, detectionRuntime as never),
+        ),
+        createPluginHandle(() =>
+          activeSampling.createSampler(samplingConfig as never, samplingRuntime as never),
+        ),
+        createPluginHandle(() =>
+          activeSonification.createSonifier(
+            sonificationConfig as never,
+            sonificationRuntime as never,
+          ),
+        ),
+      ]);
 
-        const samplingPluginId = activeSampling.id;
-        const samplingConfig = useAppConfigStore.getState().pluginConfigs[samplingPluginId];
-        const samplingRuntime = createPluginRuntimeContext(samplingPluginId);
-        const samplingHandle = activeSampling.createSampler(
-          samplingConfig as never,
-          samplingRuntime as never,
-        );
-
-        const sonificationPluginId = activeSonification.id;
-        const sonificationConfig = useAppConfigStore.getState().pluginConfigs[sonificationPluginId];
-        const sonificationRuntime = createPluginRuntimeContext(sonificationPluginId);
-        const sonificationHandle = activeSonification.createSonifier(
-          sonificationConfig as never,
-          sonificationRuntime as never,
-        );
-
-        return { detectionHandle, samplingHandle, sonificationHandle };
-      },
-      catch: (error) => new PluginCreationError({ cause: error }),
-    });
-
-    if (isError(pluginHandles)) {
-      return failStart(pluginHandles, "Engine plugin creation failed");
+    if (isError(detectionHandleResult)) {
+      return failStart(
+        new PluginCreationError({ cause: detectionHandleResult }),
+        "Detection plugin creation failed",
+      );
+    }
+    if (isError(samplingHandleResult)) {
+      return failStart(
+        new PluginCreationError({ cause: samplingHandleResult }),
+        "Sampling plugin creation failed",
+      );
+    }
+    if (isError(sonificationHandleResult)) {
+      return failStart(
+        new PluginCreationError({ cause: sonificationHandleResult }),
+        "Sonification plugin creation failed",
+      );
     }
 
-    const { detectionHandle: dh, samplingHandle: sh, sonificationHandle: soh } = pluginHandles;
+    const dh = detectionHandleResult;
+    const sh = samplingHandleResult;
+    const soh = sonificationHandleResult;
 
     detectorHandleRef.current = dh;
     samplerHandleRef.current = sh;
@@ -337,6 +362,7 @@ export const useSonificationEngine = (
   }, [
     config,
     failStart,
+    createPluginHandle,
     ensureCanvasesSized,
     createPluginRuntimeContext,
     imageCanvasRef,

@@ -13,7 +13,7 @@
  */
 
 import type { ComponentType, ReactNode, RefObject } from "react";
-import type { ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
+import type { ErrorOr, ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
 
 // ──────────────────────────────────────────────────
 // Shared UI slot types
@@ -134,7 +134,7 @@ export interface DetectionPlugin<
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the PointDetector instance from provided configuration. */
-  createDetector(config: TConfig, runtime: PluginRuntimeContext<TConfig>): DetectorHandle;
+  createDetector(config: TConfig, runtime: PluginRuntimeContext<TConfig>): ErrorOr<DetectorHandle>;
 }
 
 // ──────────────────────────────────────────────────
@@ -180,7 +180,7 @@ export interface SamplingPlugin<
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the ImageSampler instance from provided configuration. */
-  createSampler(config: TConfig, runtime: PluginRuntimeContext<TConfig>): SamplerHandle;
+  createSampler(config: TConfig, runtime: PluginRuntimeContext<TConfig>): ErrorOr<SamplerHandle>;
 }
 
 // ──────────────────────────────────────────────────
@@ -211,7 +211,7 @@ export interface SonificationPlugin<
   readonly config: PluginConfigSpec<TConfig>;
 
   /** Create the Sonifier instance from provided configuration. */
-  createSonifier(config: TConfig, runtime: PluginRuntimeContext<TConfig>): SonifierHandle;
+  createSonifier(config: TConfig, runtime: PluginRuntimeContext<TConfig>): ErrorOr<SonifierHandle>;
 }
 
 // ──────────────────────────────────────────────────

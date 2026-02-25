@@ -9,6 +9,11 @@ import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import { plugin } from "./plugin";
 import { mediaPipeRefs } from "./refs";
 
+const expectDetectorHandle = (result: ReturnType<typeof plugin.createDetector>) => {
+  if (result instanceof Error) throw result;
+  return result;
+};
+
 const { setMirror, setMaxHands, restartCamera, stop } = vi.hoisted(() => ({
   setMirror: vi.fn(),
   setMaxHands: vi.fn(),
@@ -60,7 +65,7 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
       subscribeConfig: vi.fn(() => unsubscribe),
     };
 
-    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
     handle.cleanup?.();
 
@@ -86,7 +91,9 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
       subscribeConfig: vi.fn(() => vi.fn()),
     };
 
-    const firstHandle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const firstHandle = expectDetectorHandle(
+      plugin.createDetector(defaultMediaPipeConfig, runtime),
+    );
     firstHandle.postInitialize?.();
     await Promise.resolve();
     await Promise.resolve();
@@ -135,7 +142,7 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
       subscribeConfig: vi.fn(() => vi.fn()),
     };
 
-    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
     useDeviceStore.getState().setHasHands(true);
     handle.cleanup?.();
@@ -160,7 +167,7 @@ describe("MediaPipe detection plugin hand tracking", () => {
       subscribeConfig: vi.fn(() => vi.fn()),
     };
 
-    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
 
     // Find the onPointsDetected callback registered by postInitialize
@@ -185,7 +192,7 @@ describe("MediaPipe detection plugin hand tracking", () => {
       subscribeConfig: vi.fn(() => vi.fn()),
     };
 
-    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
 
     const { onPointsDetected } = handle.detector as unknown as {
@@ -207,7 +214,7 @@ describe("MediaPipe detection plugin hand tracking", () => {
       subscribeConfig: vi.fn(() => vi.fn()),
     };
 
-    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
 
     const { onPointsDetected } = handle.detector as unknown as {

@@ -6,6 +6,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultHSVSamplingConfig, type HSVSamplingConfig } from "./config";
 import { plugin } from "./plugin";
 
+const expectSamplerHandle = (result: ReturnType<typeof plugin.createSampler>) => {
+  if (result instanceof Error) throw result;
+  return result;
+};
+
 const mocks = vi.hoisted(() => ({
   samplerLoadImage: vi.fn().mockResolvedValue(undefined),
   drawImageToCanvas: vi.fn(
@@ -92,7 +97,7 @@ describe("HSV sampling plugin initialization", () => {
       }),
     };
 
-    const handle = plugin.createSampler(currentConfig, runtime);
+    const handle = expectSamplerHandle(plugin.createSampler(currentConfig, runtime));
     handle.setCanvasRefs?.({ imageCanvas: { current: imageCanvas } });
 
     await handle.postInitialize?.();
@@ -147,7 +152,7 @@ describe("HSV sampling plugin initialization", () => {
       },
     };
 
-    const handle = plugin.createSampler(currentConfig, runtime);
+    const handle = expectSamplerHandle(plugin.createSampler(currentConfig, runtime));
     handle.setCanvasRefs?.({ imageCanvas: { current: imageCanvas } });
     const initializePromise = handle.postInitialize?.();
 

@@ -15,4 +15,9 @@ export class DeviceEnumerationError extends createTaggedError({
   message: "Unable to enumerate camera devices.",
 }) {}
 
+export class MediaPipeVideoNotMountedError extends createTaggedError({
+  name: "MediaPipeVideoNotMountedError",
+  message: "MediaPipe video element is not mounted.",
+}) {}
+
 export type CameraRuntimeError = CameraStartError | CameraRestartError | DeviceEnumerationError;
