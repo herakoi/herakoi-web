@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { DockPanelProps } from "#src/core/plugin";
 import { Floating } from "#src/shared/components/Floating";
 import type { MediaPipeConfig } from "../config";
+import { useDeviceStore } from "../deviceStore";
 import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
 import { DockPanelControls } from "./DockPanelControls";
 import { DockPanelPiPActions } from "./DockPanelPiPActions";
@@ -15,7 +16,13 @@ export const MediaPipeDockPanel = ({
   config,
   setConfig,
 }: DockPanelProps<MediaPipeConfig>) => {
-  const { mirror, maxHands, facingMode } = config;
+  const { maxHands } = config;
+  const devices = useDeviceStore((s) => s.devices);
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  const mirror = useDeviceStore((s) => s.mirror);
+  const setDeviceId = useDeviceStore((s) => s.setDeviceId);
+  const setMirror = useDeviceStore((s) => s.setMirror);
+  const restartCamera = useDeviceStore((s) => s.restartCamera);
 
   const { videoRef, overlayRef, videoReady } = useMediaPipeDockBindings();
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -36,9 +43,11 @@ export const MediaPipeDockPanel = ({
       <div ref={controlsRef}>
         <DockPanelControls
           pipOpen={pipOpen}
-          facingMode={facingMode}
+          deviceId={deviceId}
+          devices={devices}
+          restartCamera={restartCamera}
           onTogglePip={() => setPipOpen((prev) => !prev)}
-          onFacingModeChange={(value) => setConfig({ facingMode: value })}
+          onDeviceChange={setDeviceId}
         />
       </div>
       <Floating
@@ -81,7 +90,7 @@ export const MediaPipeDockPanel = ({
                 maxHands={maxHands}
                 isResizing={isResizing}
                 onHide={() => setPipOpen(false)}
-                onToggleMirror={() => setConfig({ mirror: !mirror })}
+                onToggleMirror={() => setMirror(!mirror)}
                 onCycleMaxHands={() => setConfig({ maxHands: maxHands >= 4 ? 1 : maxHands + 1 })}
                 onResizePointerDown={onResizePointerDown}
                 onResizeKeyDown={onResizeKeyDown}

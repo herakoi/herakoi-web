@@ -1,31 +1,7 @@
 /**
  * Tests for MediaPipePointDetector
  *
- * This test suite verifies MediaPipePointDetector implements the PointDetector interface
- * correctly by wrapping MediaPipe Hands and Camera utilities.
- *
- * Test strategy:
- * - Use real MediaPipe hands factory (tests actual integration)
- * - Mock external dependencies (@mediapipe/hands, @mediapipe/camera_utils)
- * - Verify lifecycle and point detection conversion
- *
  * @vitest-environment happy-dom
- *
- * This directive tells Vitest to run these tests in a happy-dom environment instead
- * of the default Node.js environment. happy-dom is a lightweight JavaScript implementation
- * of browser APIs (window, document, HTMLElement, etc.).
- *
- * Why we need it here:
- * - Tests work with HTMLVideoElement (camera input for MediaPipe)
- * - MediaPipe expects browser globals and DOM APIs
- * - Mocking requires browser-like environment for proper type checking
- *
- * Alternative environments:
- * - node (default): No DOM, fastest, use for pure logic tests
- * - jsdom: Full DOM implementation, heavier/slower, use only if happy-dom insufficient
- *
- * Convention: Add this directive only to test files that need browser APIs.
- * Omit it for pure TypeScript logic tests to keep them fast.
  */
 
 import type { Results } from "@mediapipe/hands";
@@ -34,10 +10,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Store MediaPipe Hands onResults callback for test simulation
 let mockOnResultsCallback: ((results: Results) => void) | null = null;
 
-// Store Camera instances for test assertions
+// Store NativeCamera instances for test assertions
 let lastCameraInstance: {
   start: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
+  activeFacingMode: string | undefined;
 } | null = null;
 
 // Mock MediaPipe Hands class
@@ -46,10 +23,10 @@ vi.mock("@mediapipe/hands", () => ({
   Hands: HandsMock,
 }));
 
-// Mock Camera class
-const CameraMock = vi.fn();
-vi.mock("@mediapipe/camera_utils", () => ({
-  Camera: CameraMock,
+// Mock NativeCamera class
+const NativeCameraMock = vi.fn();
+vi.mock("./NativeCamera", () => ({
+  NativeCamera: NativeCameraMock,
 }));
 
 describe("MediaPipePointDetector", () => {
@@ -61,9 +38,7 @@ describe("MediaPipePointDetector", () => {
     lastCameraInstance = null;
     videoElement = document.createElement("video") as HTMLVideoElement;
 
-    // Setup Hands mock - must be a class constructor
-    // Using `as unknown as (...args: any[]) => any` because vitest mockImplementation
-    // expects a function signature, not a constructor type
+    // Setup Hands mock
     HandsMock.mockImplementation(
       class {
         public setOptions = vi.fn();
@@ -73,57 +48,52 @@ describe("MediaPipePointDetector", () => {
         public send = vi.fn().mockResolvedValue(undefined);
         public initialize = vi.fn().mockResolvedValue(undefined);
         public close = vi.fn();
-        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening in this test double
+        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
       } as unknown as (...args: any[]) => any,
     );
 
-    // Setup Camera mock - must be a class constructor
-    CameraMock.mockImplementation(
+    // Setup NativeCamera mock
+    NativeCameraMock.mockImplementation(
       class {
         public start = vi.fn().mockResolvedValue(undefined);
         public stop = vi.fn();
+        public activeFacingMode: string | undefined = undefined;
 
         constructor(_videoElement: HTMLVideoElement, _config: unknown) {
           lastCameraInstance = this;
         }
-        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening in this test double
+        // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
       } as unknown as (...args: any[]) => any,
     );
+    (NativeCameraMock as unknown as Record<string, unknown>).enumerateVideoDevices = vi
+      .fn()
+      .mockResolvedValue([]);
   });
 
   describe("Constructor", () => {
     it("should accept video element and config", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
-
       const detector = new MediaPipePointDetector(videoElement, { maxHands: 2 });
-
       expect(detector).toBeDefined();
     });
 
     it("should accept video element without config", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
-
       const detector = new MediaPipePointDetector(videoElement);
-
       expect(detector).toBeDefined();
     });
   });
 
   describe("initialize()", () => {
-    it("should create MediaPipe Hands and Camera", async () => {
+    it("should create MediaPipe Hands but not camera", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement, { maxHands: 2 });
 
       await detector.initialize();
 
-      // createHands should construct a Hands instance
       expect(HandsMock).toHaveBeenCalled();
-
-      // Camera should be created
-      expect(CameraMock).toHaveBeenCalledWith(
-        videoElement,
-        expect.objectContaining({ onFrame: expect.any(Function) }),
-      );
+      // Camera is NOT created in initialize — it's created in start()
+      expect(NativeCameraMock).not.toHaveBeenCalled();
     });
 
     it("should register onResults callback", async () => {
@@ -142,7 +112,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       await detector.initialize();
 
-      // Should only create resources once
       expect(HandsMock).toHaveBeenCalledTimes(1);
     });
   });
@@ -152,16 +121,17 @@ describe("MediaPipePointDetector", () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
 
-      expect(() => detector.start()).toThrow("must be initialized");
+      await expect(detector.start()).rejects.toThrow("must be initialized");
     });
 
-    it("should start camera after initialization", async () => {
+    it("should create camera and start it after initialization", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
 
       await detector.initialize();
-      detector.start();
+      await detector.start();
 
+      expect(NativeCameraMock).toHaveBeenCalled();
       expect(lastCameraInstance).not.toBeNull();
       expect(lastCameraInstance?.start).toHaveBeenCalled();
     });
@@ -173,10 +143,9 @@ describe("MediaPipePointDetector", () => {
       const detector = new MediaPipePointDetector(videoElement);
 
       await detector.initialize();
-      detector.start();
+      await detector.start();
       detector.stop();
 
-      expect(lastCameraInstance).not.toBeNull();
       expect(lastCameraInstance?.stop).toHaveBeenCalled();
     });
 
@@ -185,11 +154,10 @@ describe("MediaPipePointDetector", () => {
       const detector = new MediaPipePointDetector(videoElement);
 
       await detector.initialize();
-      detector.start();
+      await detector.start();
       detector.stop();
       detector.stop();
 
-      // Should not throw
       expect(true).toBe(true);
     });
   });
@@ -202,7 +170,7 @@ describe("MediaPipePointDetector", () => {
 
       detector.onPointsDetected(callback);
 
-      expect(callback).not.toHaveBeenCalled(); // Not called yet
+      expect(callback).not.toHaveBeenCalled();
     });
 
     it("should invoke callback when hands detected", async () => {
@@ -213,12 +181,10 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onPointsDetected(callback);
 
-      // Simulate MediaPipe detecting one hand with index finger
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
         multiHandLandmarks: [
-          // Hand 0 with index finger tip at (0.5, 0.6)
           Array.from({ length: 21 }, (_, i) =>
             i === 8 ? { x: 0.5, y: 0.6, z: 0 } : { x: 0, y: 0, z: 0 },
           ),
@@ -229,13 +195,7 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      expect(callback).toHaveBeenCalledWith([
-        {
-          id: "hand-0-index-tip",
-          x: 0.5,
-          y: 0.6,
-        },
-      ]);
+      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.5, y: 0.6 }]);
     });
 
     it("should emit multiple points for multiple hands", async () => {
@@ -246,16 +206,13 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onPointsDetected(callback);
 
-      // Simulate MediaPipe detecting two hands
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
         multiHandLandmarks: [
-          // Hand 0 index finger at (0.3, 0.4)
           Array.from({ length: 21 }, (_, i) =>
             i === 8 ? { x: 0.3, y: 0.4, z: 0 } : { x: 0, y: 0, z: 0 },
           ),
-          // Hand 1 index finger at (0.7, 0.8)
           Array.from({ length: 21 }, (_, i) =>
             i === 8 ? { x: 0.7, y: 0.8, z: 0 } : { x: 0, y: 0, z: 0 },
           ),
@@ -280,7 +237,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onPointsDetected(callback);
 
-      // Simulate MediaPipe detecting no hands
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -304,7 +260,6 @@ describe("MediaPipePointDetector", () => {
       detector.onPointsDetected(callback1);
       detector.onPointsDetected(callback2);
 
-      // Simulate detection
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -331,7 +286,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onPointsDetected(callback);
 
-      // Simulate MediaPipe detecting one hand with index finger at (0.3, 0.4)
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -346,14 +300,7 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      // x should be mirrored: 1 - 0.3 = 0.7, y stays the same
-      expect(callback).toHaveBeenCalledWith([
-        {
-          id: "hand-0-index-tip",
-          x: 0.7,
-          y: 0.4,
-        },
-      ]);
+      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.7, y: 0.4 }]);
     });
 
     it("should not mirror coordinates when mirrorX is false", async () => {
@@ -364,7 +311,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onPointsDetected(callback);
 
-      // Simulate MediaPipe detecting one hand with index finger at (0.3, 0.4)
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -379,14 +325,7 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      // Coordinates should remain unchanged
-      expect(callback).toHaveBeenCalledWith([
-        {
-          id: "hand-0-index-tip",
-          x: 0.3,
-          y: 0.4,
-        },
-      ]);
+      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.3, y: 0.4 }]);
     });
   });
 
@@ -399,7 +338,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onHandsDrawn(drawer);
 
-      // Simulate MediaPipe detecting one hand
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -410,11 +348,8 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      // Drawer should receive mirrored landmarks
       expect(drawer).toHaveBeenCalledWith([
-        expect.arrayContaining([
-          expect.objectContaining({ x: 0.7, y: 0.4, z: 0 }), // x mirrored: 1 - 0.3 = 0.7
-        ]),
+        expect.arrayContaining([expect.objectContaining({ x: 0.7, y: 0.4, z: 0 })]),
       ]);
     });
 
@@ -426,7 +361,6 @@ describe("MediaPipePointDetector", () => {
       await detector.initialize();
       detector.onHandsDrawn(drawer);
 
-      // Simulate MediaPipe detecting one hand
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
         image: mockImage,
@@ -437,11 +371,8 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      // Drawer should receive original landmarks
       expect(drawer).toHaveBeenCalledWith([
-        expect.arrayContaining([
-          expect.objectContaining({ x: 0.3, y: 0.4, z: 0 }), // x unchanged
-        ]),
+        expect.arrayContaining([expect.objectContaining({ x: 0.3, y: 0.4, z: 0 })]),
       ]);
     });
   });

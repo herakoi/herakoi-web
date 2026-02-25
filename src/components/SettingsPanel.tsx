@@ -16,14 +16,12 @@ export type SettingsPanelSection<K extends string = string> = {
 };
 
 type SettingsPanelProps<K extends string> = {
-  error: string | null;
   className?: string;
   style?: React.CSSProperties;
   sections: SettingsPanelSection<K>[];
 };
 
 export const SettingsPanel = <K extends string>({
-  error,
   className,
   style,
   sections,
@@ -104,11 +102,6 @@ export const SettingsPanel = <K extends string>({
                     </TabsContent>
                   ))}
                 </Tabs>
-                {error ? (
-                  <p className="text-xs text-red-200" role="alert">
-                    Error: {error}
-                  </p>
-                ) : null}
               </CardContent>
             </PopoverContent>
           ) : null}

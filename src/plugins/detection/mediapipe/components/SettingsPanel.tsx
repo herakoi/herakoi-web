@@ -1,4 +1,6 @@
+import { RefreshCw } from "lucide-react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { Button } from "#src/shared/components/ui/button";
 import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
@@ -10,11 +12,25 @@ import {
 import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
 import type { MediaPipeConfig } from "../config";
+import { useDeviceStore } from "../deviceStore";
+
+function deviceLabel(device: { label: string; facingMode?: string }): string {
+  if (device.facingMode === "user") return "Frontale";
+  if (device.facingMode === "environment") return "Posteriore";
+  return device.label;
+}
 
 export const MediaPipeSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<MediaPipeConfig>) => {
+  const devices = useDeviceStore((s) => s.devices);
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  const mirror = useDeviceStore((s) => s.mirror);
+  const setDeviceId = useDeviceStore((s) => s.setDeviceId);
+  const setMirror = useDeviceStore((s) => s.setMirror);
+  const restartCamera = useDeviceStore((s) => s.restartCamera);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -30,29 +46,47 @@ export const MediaPipeSettingsPanel = ({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="camera-facing">Active camera</Label>
-        <Select
-          value={config.facingMode}
-          onValueChange={(value) => setConfig({ facingMode: value as "user" | "environment" })}
-        >
-          <SelectTrigger id="camera-facing" aria-label="Active camera">
-            <SelectValue placeholder="Choose camera" />
-          </SelectTrigger>
-          <SelectContent position="popper">
-            <SelectItem value="user">Front (user)</SelectItem>
-            <SelectItem value="environment">Rear (environment)</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="camera-device">Active camera</Label>
+        <div className="flex items-center gap-1.5">
+          {devices.length > 0 ? (
+            <Select value={deviceId ?? ""} onValueChange={setDeviceId}>
+              <SelectTrigger id="camera-device" className="flex-1" aria-label="Active camera">
+                <SelectValue placeholder="Default camera" />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {devices.map((d) => (
+                  <SelectItem key={d.deviceId} value={d.deviceId}>
+                    {deviceLabel(d)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Select disabled>
+              <SelectTrigger id="camera-device" className="flex-1" aria-label="Active camera">
+                <SelectValue placeholder="Start to select camera" />
+              </SelectTrigger>
+              <SelectContent position="popper" />
+            </Select>
+          )}
+          {restartCamera && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Refresh camera"
+              onClick={() => void restartCamera()}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex items-center justify-between gap-3">
         <Label className="text-sm font-medium" htmlFor="mirror-toggle">
           Mirror camera
         </Label>
-        <Switch
-          id="mirror-toggle"
-          checked={config.mirror}
-          onCheckedChange={(checked) => setConfig({ mirror: checked })}
-        />
+        <Switch id="mirror-toggle" checked={mirror} onCheckedChange={setMirror} />
       </div>
     </div>
   );

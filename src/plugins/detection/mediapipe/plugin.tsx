@@ -11,6 +11,8 @@ import { defineDetectionPlugin } from "#src/core/plugin";
 import { MediaPipeDockPanel } from "./components/DockPanel";
 import { MediaPipeSettingsPanel } from "./components/SettingsPanel";
 import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginId } from "./config";
+import { useDeviceStore } from "./deviceStore";
+import { bindDeviceSync } from "./deviceSync";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
@@ -49,17 +51,38 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         );
       }
 
+      // Read runtime state (not persisted)
+      const {
+        mirror: initialMirror,
+        deviceId: selectedDeviceId,
+        devices: knownDevices,
+        setDeviceId,
+      } = useDeviceStore.getState();
+
+      // Guard against stale selections from previously unplugged cameras.
+      // If selection is not known at startup, fall back to browser default camera.
+      const initialDeviceId =
+        selectedDeviceId && knownDevices.some((device) => device.deviceId === selectedDeviceId)
+          ? selectedDeviceId
+          : undefined;
+
+      if (selectedDeviceId && !initialDeviceId) {
+        setDeviceId(undefined);
+      }
+
       const detector = new MediaPipePointDetector(videoEl, {
         maxHands: config.maxHands,
-        mirrorX: config.mirror,
-        facingMode: config.facingMode,
+        mirrorX: initialMirror,
+        deviceId: initialDeviceId,
         mediaPipeOptions: {
           modelComplexity: 1,
           minDetectionConfidence: 0.7,
           minTrackingConfidence: 0.7,
         },
       });
+
       let unsubscribeConfig: (() => void) | null = null;
+      let cleanupDeviceSync: (() => void) | null = null;
 
       const getSourceSize = () => {
         const width = videoEl.videoWidth;
@@ -72,7 +95,6 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         detector,
         getSourceSize,
         setCanvasRefs: (refs) => {
-          // Register image overlay ref if provided
           if (refs.imageOverlay) {
             mediaPipeRefs.imageOverlay = refs.imageOverlay;
           }
@@ -88,27 +110,17 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
                 style?: HandOverlayStyle;
                 getPointStyle?: (point: DetectedPoint) => HandOverlayStyle;
                 sourceSize?:
-                  | {
-                      width: number;
-                      height: number;
-                    }
+                  | { width: number; height: number }
                   | (() => { width: number; height: number } | null);
                 fitMode?: "fill" | "contain" | "cover";
               }
           > = [];
 
           if (videoOverlay) {
-            canvases.push({
-              canvas: videoOverlay,
-              // PiP video is rendered with object-cover in a 16:9 frame; project
-              // landmarks with the same fit mode so hand geometry is not stretched.
-              fitMode: "cover",
-              sourceSize: getSourceSize,
-            });
+            canvases.push({ canvas: videoOverlay, fitMode: "cover", sourceSize: getSourceSize });
           }
 
           if (imageOverlay) {
-            // Image overlay uses dynamic hue coloring
             const imageOverlayStyle: HandOverlayStyle = {
               connectorColor: "rgba(200, 200, 200, 0.85)",
               connectorWidth: 1.2,
@@ -121,7 +133,6 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
               shadowColor: "rgba(210, 210, 210, 0.35)",
               shadowBlur: 8,
             };
-
             canvases.push({
               canvas: imageOverlay,
               style: imageOverlayStyle,
@@ -134,26 +145,20 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
             bindHandsUi(detector, canvases);
           }
 
-          // Subscribe to config changes for runtime updates
+          cleanupDeviceSync = bindDeviceSync(detector);
+
+          // Subscribe to persisted config for maxHands only
           const prevConfig = { ...config };
           unsubscribeConfig = runtime.subscribeConfig((currentConfig) => {
-            if (currentConfig.mirror !== prevConfig.mirror) {
-              prevConfig.mirror = currentConfig.mirror;
-              detector.setMirror(currentConfig.mirror);
-            }
             if (currentConfig.maxHands !== prevConfig.maxHands) {
               prevConfig.maxHands = currentConfig.maxHands;
               detector.setMaxHands(currentConfig.maxHands);
-            }
-            if (currentConfig.facingMode !== prevConfig.facingMode) {
-              prevConfig.facingMode = currentConfig.facingMode;
-              void detector.restartCamera(currentConfig.facingMode);
             }
           });
         },
         cleanup: () => {
           unsubscribeConfig?.();
-          unsubscribeConfig = null;
+          cleanupDeviceSync?.();
           detector.stop();
         },
       };
