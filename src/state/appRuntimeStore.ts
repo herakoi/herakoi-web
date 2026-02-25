@@ -9,25 +9,17 @@
  */
 
 import { create } from "zustand";
+import type { PipelineRuntimeError } from "#src/core/domain-errors";
 
 // ──────────────────────────────────────────────────
 // Type Definitions
 // ──────────────────────────────────────────────────
 
-export type RuntimeErrorSource = "engine" | "detection" | "sampling" | "sonification" | "device";
-
-export interface RuntimeErrorValue {
-  source: RuntimeErrorSource;
-  code: string;
-  message: string;
-  cause?: Error;
-}
-
 export type PipelineStatus =
   | { status: "idle" }
   | { status: "initializing" }
   | { status: "running" }
-  | { status: "error"; error: RuntimeErrorValue };
+  | { status: "error"; error: PipelineRuntimeError };
 
 export interface AppRuntimeState {
   /** Current pipeline lifecycle status */

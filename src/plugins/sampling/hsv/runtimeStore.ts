@@ -9,14 +9,11 @@
  */
 
 import { create } from "zustand";
-import type { ErrorOr } from "#src/core/interfaces";
+import type { ImageLibraryRuntimeError } from "#src/core/domain-errors";
+import { UploadCacheReadError, UploadCacheWriteError } from "#src/core/domain-errors";
 import type { ImageEntry } from "./types/image";
 
-export type ImageLibraryError = {
-  code: string;
-  message: string;
-  cause?: Error;
-};
+export type ImageLibraryError = ImageLibraryRuntimeError;
 
 export type ImageLibraryStatus = { status: "ok" } | { status: "error"; error: ImageLibraryError };
 
@@ -45,7 +42,7 @@ const IMAGE_CACHE_KEY = "herakoi.image-cache.v1";
 const asError = (error: unknown, fallback: string): Error =>
   error instanceof Error ? error : new Error(fallback);
 
-const readUploadCache = (): ErrorOr<ImageEntry[]> => {
+const readUploadCache = (): UploadCacheReadError | ImageEntry[] => {
   if (typeof window === "undefined") return [];
   const stored = localStorage.getItem(IMAGE_CACHE_KEY);
   if (!stored) return [];
@@ -54,7 +51,7 @@ const readUploadCache = (): ErrorOr<ImageEntry[]> => {
     try {
       return JSON.parse(stored) as ImageEntry[];
     } catch (error) {
-      return asError(error, "Failed to parse upload cache.");
+      return new UploadCacheReadError({ cause: asError(error, "Failed to parse upload cache.") });
     }
   })();
 
@@ -67,13 +64,15 @@ const readUploadCache = (): ErrorOr<ImageEntry[]> => {
     .map((entry) => ({ ...entry, previewSrc: entry.previewSrc ?? entry.src }));
 };
 
-const persistUploadCache = (uploads: ImageEntry[]): ErrorOr<undefined> => {
+const persistUploadCache = (uploads: ImageEntry[]): UploadCacheWriteError | undefined => {
   if (typeof window === "undefined") return;
   const result = (() => {
     try {
       localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(uploads));
     } catch (error) {
-      return asError(error, "Failed to persist upload cache.");
+      return new UploadCacheWriteError({
+        cause: asError(error, "Failed to persist upload cache."),
+      });
     }
   })();
   return result;
@@ -100,11 +99,7 @@ export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((s
         uploadsHydrated: true,
         imageLibraryStatus: {
           status: "error",
-          error: {
-            code: "upload_cache_read_failed",
-            message: uploads.message,
-            cause: uploads,
-          },
+          error: uploads,
         },
       });
       return;
@@ -124,14 +119,7 @@ export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((s
         uploadsHydrated: true,
         imageLibraryStatus:
           persistError instanceof Error
-            ? {
-                status: "error",
-                error: {
-                  code: "upload_cache_write_failed",
-                  message: persistError.message,
-                  cause: persistError,
-                },
-              }
+            ? { status: "error", error: persistError }
             : { status: "ok" },
       };
     }),
@@ -144,14 +132,7 @@ export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((s
         uploadsHydrated: true,
         imageLibraryStatus:
           persistError instanceof Error
-            ? {
-                status: "error",
-                error: {
-                  code: "upload_cache_write_failed",
-                  message: persistError.message,
-                  cause: persistError,
-                },
-              }
+            ? { status: "error", error: persistError }
             : { status: "ok" },
       };
     }),

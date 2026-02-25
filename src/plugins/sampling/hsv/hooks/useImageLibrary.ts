@@ -1,6 +1,6 @@
 import { isError, tryAsync } from "errore";
 import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
-import { ensureError } from "#src/core/error-utils";
+import { ImageDecodeError, ImageReadError, ImageSelectError } from "#src/core/domain-errors";
 import type { ErrorOr } from "#src/core/interfaces";
 import {
   formatBytes,
@@ -56,27 +56,19 @@ export const useImageLibrary = ({
       const id = `upload-${file.name}-${file.size}-${file.lastModified}`;
       const dataUrl = await tryAsync({
         try: async () => readFileAsDataUrl(file),
-        catch: (error) => ensureError(error, "Failed to read image file."),
+        catch: (error) => new ImageReadError({ cause: error }),
       });
       if (isError(dataUrl)) {
-        setImageLibraryError({
-          code: "image_read_failed",
-          message: dataUrl.message,
-          cause: dataUrl,
-        });
+        setImageLibraryError(dataUrl);
         return dataUrl;
       }
 
       const dimensions = await tryAsync({
         try: async () => loadImageDimensions(dataUrl),
-        catch: (error) => ensureError(error, "Failed to decode uploaded image."),
+        catch: (error) => new ImageDecodeError({ cause: error }),
       });
       if (isError(dimensions)) {
-        setImageLibraryError({
-          code: "image_decode_failed",
-          message: dimensions.message,
-          cause: dimensions,
-        });
+        setImageLibraryError(dimensions);
         return dimensions;
       }
 
@@ -94,14 +86,10 @@ export const useImageLibrary = ({
       upsertUpload(entry);
       const selectResult = await tryAsync({
         try: async () => onSelectImage(entry),
-        catch: (error) => ensureError(error, "Failed to select uploaded image."),
+        catch: (error) => new ImageSelectError({ cause: error }),
       });
       if (isError(selectResult)) {
-        setImageLibraryError({
-          code: "image_select_failed",
-          message: selectResult.message,
-          cause: selectResult,
-        });
+        setImageLibraryError(selectResult);
         return selectResult;
       }
 
@@ -114,14 +102,10 @@ export const useImageLibrary = ({
     async (entry: ImageEntry): Promise<ErrorOr<undefined>> => {
       const result = await tryAsync({
         try: async () => onSelectImage(entry),
-        catch: (error) => ensureError(error, "Failed to select image."),
+        catch: (error) => new ImageSelectError({ cause: error }),
       });
       if (isError(result)) {
-        setImageLibraryError({
-          code: "image_select_failed",
-          message: result.message,
-          cause: result,
-        });
+        setImageLibraryError(result);
         return result;
       }
       setImageLibraryOk();

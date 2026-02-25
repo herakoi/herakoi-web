@@ -15,6 +15,7 @@
  */
 
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
+import { CameraRestartError, CameraStartError } from "#src/core/domain-errors";
 import type {
   DetectedPoint,
   ErrorOr,
@@ -133,11 +134,7 @@ export class MediaPipePointDetector implements PointDetector {
 
       if (result instanceof Error) {
         this.camera = null;
-        useDeviceStore.getState().setCameraError({
-          code: "camera_restart_failed",
-          message: result.message,
-          cause: result,
-        });
+        useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: result }));
         return result;
       }
 
@@ -206,11 +203,7 @@ export class MediaPipePointDetector implements PointDetector {
 
     // Handle error returned from camera.start()
     if (result instanceof Error) {
-      useDeviceStore.getState().setCameraError({
-        code: "camera_start_failed",
-        message: result.message,
-        cause: result,
-      });
+      useDeviceStore.getState().setCameraError(new CameraStartError({ cause: result }));
       return result;
     }
 
