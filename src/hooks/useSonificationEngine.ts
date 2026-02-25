@@ -13,9 +13,11 @@ import type {
   VisualizerFrameData,
 } from "#src/core/plugin";
 import { mapDetectedPointsForSampling } from "#src/lib/canvas/sampling";
+import { createAppConfigPluginRuntimeContext } from "#src/lib/engine/pluginRuntimeContext";
 import {
   createEngineHandles,
   initializeEnginePlugins,
+  resolveActiveEnginePlugins,
   startEngineDetection,
 } from "#src/lib/engine/startup";
 import {
@@ -23,9 +25,9 @@ import {
   updateSonificationDebugFrame,
 } from "#src/lib/engine/visualizerFrame";
 import { syncChain } from "#src/lib/syncChain";
+import { useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
 import { resizeCanvasRefToContainer } from "./ui/canvas";
-import { useResolvedEnginePlugins } from "./useResolvedEnginePlugins";
 
 type Refs = {
   imageCanvasRef: RefObject<HTMLCanvasElement>;
@@ -61,7 +63,6 @@ export const useSonificationEngine = (
     sonification: { tones: new Map() },
     analyser: null,
   });
-  const resolvedActivePlugins = useResolvedEnginePlugins(config);
 
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
     if (!imageCanvasRef.current) {
@@ -73,6 +74,13 @@ export const useSonificationEngine = (
     setStatus({ status: "initializing" });
 
     // 1) Resolve active plugins.
+    const { activePlugins, pluginConfigs } = useAppConfigStore.getState();
+    const resolvedActivePlugins = resolveActiveEnginePlugins({
+      config,
+      activePlugins,
+      pluginConfigs,
+      createRuntimeContext: createAppConfigPluginRuntimeContext,
+    });
     if (isError(resolvedActivePlugins)) {
       setStatus({ status: "error", error: resolvedActivePlugins });
       console.error("Engine start failed:", resolvedActivePlugins);
@@ -193,7 +201,7 @@ export const useSonificationEngine = (
         sonificationPluginId: resolvedActivePlugins.sonification.id,
       },
     };
-  }, [imageCanvasRef, imageOverlayRef, resolvedActivePlugins, setStatus]);
+  }, [config, imageCanvasRef, imageOverlayRef, setStatus]);
 
   const stop = useCallback(() => {
     // Handles own their cleanup/stop via Symbol.dispose.

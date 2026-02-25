@@ -72,7 +72,7 @@ describe("useSonificationEngine plugin switching", () => {
       previousActFlag;
   });
 
-  it("uses resolved plugin snapshot when switching and starting in the same callback", async () => {
+  it("starts with the newly selected plugin when switching and starting in the same callback", async () => {
     const createDetectorA = vi.fn(() => ({
       [Symbol.dispose]: vi.fn(),
       detector: {
@@ -188,13 +188,13 @@ describe("useSonificationEngine plugin switching", () => {
       startResult = await harnessApi.switchDetectionAndStart("detection/b");
     });
 
-    expect(createDetectorA).toHaveBeenCalledTimes(1);
-    expect(createDetectorB).not.toHaveBeenCalled();
+    expect(createDetectorA).not.toHaveBeenCalled();
+    expect(createDetectorB).toHaveBeenCalledTimes(1);
     expect(startResult).not.toBeInstanceOf(Error);
     expect(startResult).toEqual(
       expect.objectContaining({
         status: "running",
-        data: expect.objectContaining({ detectionPluginId: "detection/a" }),
+        data: expect.objectContaining({ detectionPluginId: "detection/b" }),
       }),
     );
   });

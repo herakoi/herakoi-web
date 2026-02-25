@@ -1,4 +1,4 @@
-import { isError, tryAsync } from "errore";
+import { AsyncDisposableStack, isError, tryAsync } from "errore";
 import {
   DetectionInitializeError,
   DetectionPostInitializeError,
@@ -102,6 +102,7 @@ export const resolveActiveEnginePlugins = (params: {
 export const createEngineHandles = async (
   resolved: ResolvedEnginePlugins,
 ): Promise<EngineResult<EngineHandles>> => {
+  await using startupCleanup = new AsyncDisposableStack();
   const [detectionHandleResult, samplingHandleResult, sonificationHandleResult] = await Promise.all(
     [
       safelyCreatePluginHandle(() =>
@@ -125,15 +126,19 @@ export const createEngineHandles = async (
     ],
   );
 
-  if (isError(detectionHandleResult)) {
+  if (!isError(detectionHandleResult)) startupCleanup.use(detectionHandleResult);
+  if (!isError(samplingHandleResult)) startupCleanup.use(samplingHandleResult);
+  if (!isError(sonificationHandleResult)) startupCleanup.use(sonificationHandleResult);
+
+  if (isError(detectionHandleResult))
     return new PluginCreationError({ cause: detectionHandleResult });
-  }
-  if (isError(samplingHandleResult)) {
+  if (isError(samplingHandleResult))
     return new PluginCreationError({ cause: samplingHandleResult });
-  }
   if (isError(sonificationHandleResult)) {
     return new PluginCreationError({ cause: sonificationHandleResult });
   }
+
+  startupCleanup.move();
 
   return {
     detectorHandle: detectionHandleResult,
