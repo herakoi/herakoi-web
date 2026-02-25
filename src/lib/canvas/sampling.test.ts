@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import type { ImageSample } from "#src/core/interfaces";
+import { describe, expect, it } from "vitest";
 import {
-  buildSamplesForDetectedPoints,
   isPointInsideVisibleRect,
+  mapDetectedPointsForSampling,
   mapPointToCanvasSpace,
 } from "./sampling";
 
@@ -35,16 +34,8 @@ describe("canvas sampling utils", () => {
     expect(isPointInsideVisibleRect({ x: 0.9, y: 0.9 }, visibleRect, canvasSize)).toBe(false);
   });
 
-  it("builds samples with mapping/filtering and ignores null/error samples", () => {
-    const onSampleError = vi.fn();
-    const sampleAt: (point: { id: string; x: number; y: number }) => ImageSample | null | Error =
-      vi.fn((point: { id: string; x: number; y: number }) => {
-        if (point.id === "inside-1") return { data: { hue: 100 } };
-        if (point.id === "inside-2") return new Error("boom");
-        return null;
-      });
-
-    const samples = buildSamplesForDetectedPoints({
+  it("maps and filters points for sampling", () => {
+    const mappedPoints = mapDetectedPointsForSampling({
       points: [
         { id: "inside-1", x: 0.5, y: 0.5 },
         { id: "inside-2", x: 0.4, y: 0.4 },
@@ -53,13 +44,11 @@ describe("canvas sampling utils", () => {
       sourceSize: undefined,
       visibleRect: { x: 0, y: 0, width: 80, height: 80 },
       canvasSize: { width: 100, height: 100 },
-      sampleAt,
-      onSampleError,
     });
 
-    expect(sampleAt).toHaveBeenCalledTimes(2);
-    expect(samples.size).toBe(1);
-    expect(samples.get("inside-1")).toEqual({ data: { hue: 100 } });
-    expect(onSampleError).toHaveBeenCalledTimes(1);
+    expect(mappedPoints).toEqual([
+      { id: "inside-1", x: 0.5, y: 0.5 },
+      { id: "inside-2", x: 0.4, y: 0.4 },
+    ]);
   });
 });

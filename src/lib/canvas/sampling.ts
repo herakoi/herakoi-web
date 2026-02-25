@@ -1,6 +1,3 @@
-import { isError } from "errore";
-import type { ErrorOr, ImageSample } from "#src/core/interfaces";
-
 export type SamplePoint = {
   id: string;
   x: number;
@@ -72,31 +69,23 @@ export const isPointInsideVisibleRect = (
   );
 };
 
-export const buildSamplesForDetectedPoints = <T extends SamplePoint>(params: {
+export const mapDetectedPointsForSampling = <T extends SamplePoint>(params: {
   points: T[];
   sourceSize: Size | null | undefined;
   visibleRect: Rect | null | undefined;
   canvasSize: CanvasSize;
-  sampleAt: (point: T) => ErrorOr<ImageSample | null>;
-  onSampleError?: (error: Error) => void;
 }) => {
-  const { points, sourceSize, visibleRect, canvasSize, sampleAt, onSampleError } = params;
-  const samples = new Map<string, ImageSample>();
+  const { points, sourceSize, visibleRect, canvasSize } = params;
+  const mappedPoints: T[] = [];
 
   for (const point of points) {
-    const mappedPoint = mapPointToCanvasSpace(point, sourceSize, canvasSize);
+    const mappedPoint = {
+      ...point,
+      ...mapPointToCanvasSpace(point, sourceSize, canvasSize),
+    } as T;
     if (!isPointInsideVisibleRect(mappedPoint, visibleRect, canvasSize)) continue;
-
-    const sample = sampleAt({ ...point, ...mappedPoint });
-    if (isError(sample)) {
-      onSampleError?.(sample);
-      continue;
-    }
-
-    if (sample) {
-      samples.set(point.id, sample);
-    }
+    mappedPoints.push(mappedPoint);
   }
 
-  return samples;
+  return mappedPoints;
 };

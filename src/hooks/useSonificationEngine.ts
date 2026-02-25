@@ -11,7 +11,7 @@ import {
   SonificationFrameProcessingError,
   SonifierInitializeError,
 } from "#src/core/domain-errors";
-import type { ErrorOr } from "#src/core/interfaces";
+import type { ErrorOr, ImageSample } from "#src/core/interfaces";
 import type {
   DetectorHandle,
   EngineConfig,
@@ -19,7 +19,7 @@ import type {
   SonifierHandle,
   VisualizerFrameData,
 } from "#src/core/plugin";
-import { buildSamplesForDetectedPoints } from "#src/lib/canvas/sampling";
+import { mapDetectedPointsForSampling } from "#src/lib/canvas/sampling";
 import { createAppConfigPluginRuntimeContext } from "#src/lib/engine/pluginRuntimeContext";
 import { safelyCreatePluginHandle } from "#src/lib/engine/runtime";
 import { updateSonificationDebugFrame } from "#src/lib/engine/visualizerFrame";
@@ -203,16 +203,23 @@ export const useSonificationEngine = (
         width: overlayCanvas?.width ?? 0,
         height: overlayCanvas?.height ?? 0,
       };
-      const samples = buildSamplesForDetectedPoints({
+      const mappedPoints = mapDetectedPointsForSampling({
         points,
         sourceSize,
         visibleRect,
         canvasSize,
-        sampleAt: (point) => sh.sampler.sampleAt(point),
-        onSampleError: (error) => {
-          console.error("Sampling failed for point:", error);
-        },
       });
+      const samples = new Map<string, ImageSample>();
+      for (const mappedPoint of mappedPoints) {
+        const sample = sh.sampler.sampleAt(mappedPoint);
+        if (isError(sample)) {
+          console.error("Sampling failed for point:", sample);
+          continue;
+        }
+        if (sample) {
+          samples.set(mappedPoint.id, sample);
+        }
+      }
 
       // Update sampling data for visualizers
       visualizerFrameDataRef.current.sampling = { samples };
