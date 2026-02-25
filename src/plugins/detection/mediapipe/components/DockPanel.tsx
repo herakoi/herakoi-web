@@ -16,8 +16,12 @@ export const MediaPipeDockPanel = ({
   config,
   setConfig,
 }: DockPanelProps<MediaPipeConfig>) => {
-  const { mirror, maxHands, deviceId } = config;
+  const { maxHands } = config;
   const devices = useDeviceStore((s) => s.devices);
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  const mirror = useDeviceStore((s) => s.mirror);
+  const setDeviceId = useDeviceStore((s) => s.setDeviceId);
+  const setMirror = useDeviceStore((s) => s.setMirror);
   const restartCamera = useDeviceStore((s) => s.restartCamera);
 
   const { videoRef, overlayRef, videoReady } = useMediaPipeDockBindings();
@@ -43,7 +47,7 @@ export const MediaPipeDockPanel = ({
           devices={devices}
           restartCamera={restartCamera}
           onTogglePip={() => setPipOpen((prev) => !prev)}
-          onDeviceChange={(value) => setConfig({ deviceId: value })}
+          onDeviceChange={setDeviceId}
         />
       </div>
       <Floating
@@ -86,7 +90,7 @@ export const MediaPipeDockPanel = ({
                 maxHands={maxHands}
                 isResizing={isResizing}
                 onHide={() => setPipOpen(false)}
-                onToggleMirror={() => setConfig({ mirror: !mirror })}
+                onToggleMirror={() => setMirror(!mirror)}
                 onCycleMaxHands={() => setConfig({ maxHands: maxHands >= 4 ? 1 : maxHands + 1 })}
                 onResizePointerDown={onResizePointerDown}
                 onResizeKeyDown={onResizeKeyDown}

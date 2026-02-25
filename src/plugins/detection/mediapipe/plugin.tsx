@@ -50,17 +50,22 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         );
       }
 
+      // Read runtime state (not persisted)
+      const { mirror: initialMirror, deviceId: initialDeviceId } = useDeviceStore.getState();
+
       const detector = new MediaPipePointDetector(videoEl, {
         maxHands: config.maxHands,
-        mirrorX: config.mirror,
-        deviceId: config.deviceId || undefined,
+        mirrorX: initialMirror,
+        deviceId: initialDeviceId || undefined,
         mediaPipeOptions: {
           modelComplexity: 1,
           minDetectionConfidence: 0.7,
           minTrackingConfidence: 0.7,
         },
       });
+
       let unsubscribeConfig: (() => void) | null = null;
+      let unsubscribeDeviceStore: (() => void) | null = null;
       let deviceChangeHandler: (() => void) | null = null;
 
       const getSourceSize = () => {
@@ -94,21 +99,14 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
                 style?: HandOverlayStyle;
                 getPointStyle?: (point: DetectedPoint) => HandOverlayStyle;
                 sourceSize?:
-                  | {
-                      width: number;
-                      height: number;
-                    }
+                  | { width: number; height: number }
                   | (() => { width: number; height: number } | null);
                 fitMode?: "fill" | "contain" | "cover";
               }
           > = [];
 
           if (videoOverlay) {
-            canvases.push({
-              canvas: videoOverlay,
-              fitMode: "cover",
-              sourceSize: getSourceSize,
-            });
+            canvases.push({ canvas: videoOverlay, fitMode: "cover", sourceSize: getSourceSize });
           }
 
           if (imageOverlay) {
@@ -124,7 +122,6 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
               shadowColor: "rgba(210, 210, 210, 0.35)",
               shadowBlur: 8,
             };
-
             canvases.push({
               canvas: imageOverlay,
               style: imageOverlayStyle,
@@ -137,14 +134,14 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
             bindHandsUi(detector, canvases);
           }
 
-          // Expose restartCamera for UI (e.g. refresh button to retrigger permissions)
+          // Expose restartCamera for the refresh button in the UI
           const restartAndRefresh = async () => {
-            const currentDeviceId = runtime.getConfig().deviceId;
+            const currentDeviceId = useDeviceStore.getState().deviceId;
             const facingMode = await detector.restartCamera(currentDeviceId || undefined);
             await refreshDeviceList();
             if (facingMode) {
               const shouldMirror = facingMode === "user";
-              runtime.setConfig({ mirror: shouldMirror });
+              useDeviceStore.getState().setMirror(shouldMirror);
               detector.setMirror(shouldMirror);
             }
           };
@@ -155,7 +152,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
             const facingMode = detector.getActiveFacingMode();
             if (facingMode) {
               const shouldMirror = facingMode === "user";
-              runtime.setConfig({ mirror: shouldMirror });
+              useDeviceStore.getState().setMirror(shouldMirror);
               detector.setMirror(shouldMirror);
             }
           });
@@ -164,34 +161,36 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           deviceChangeHandler = () => void refreshDeviceList();
           navigator.mediaDevices?.addEventListener("devicechange", deviceChangeHandler);
 
-          // Subscribe to config changes for runtime updates
+          // Subscribe to deviceStore for mirror and deviceId runtime changes
+          unsubscribeDeviceStore = useDeviceStore.subscribe((state, prevState) => {
+            if (state.mirror !== prevState.mirror) {
+              detector.setMirror(state.mirror);
+            }
+            if (state.deviceId !== prevState.deviceId) {
+              void detector.restartCamera(state.deviceId || undefined).then((facingMode) => {
+                if (facingMode) {
+                  const shouldMirror = facingMode === "user";
+                  useDeviceStore.getState().setMirror(shouldMirror);
+                  detector.setMirror(shouldMirror);
+                }
+              });
+            }
+          });
+
+          // Subscribe to persisted config for maxHands only
           const prevConfig = { ...config };
           unsubscribeConfig = runtime.subscribeConfig((currentConfig) => {
-            if (currentConfig.mirror !== prevConfig.mirror) {
-              prevConfig.mirror = currentConfig.mirror;
-              detector.setMirror(currentConfig.mirror);
-            }
             if (currentConfig.maxHands !== prevConfig.maxHands) {
               prevConfig.maxHands = currentConfig.maxHands;
               detector.setMaxHands(currentConfig.maxHands);
-            }
-            if (currentConfig.deviceId !== prevConfig.deviceId) {
-              prevConfig.deviceId = currentConfig.deviceId;
-              void detector
-                .restartCamera(currentConfig.deviceId || undefined)
-                .then((facingMode) => {
-                  if (facingMode) {
-                    const shouldMirror = facingMode === "user";
-                    runtime.setConfig({ mirror: shouldMirror });
-                    detector.setMirror(shouldMirror);
-                  }
-                });
             }
           });
         },
         cleanup: () => {
           unsubscribeConfig?.();
           unsubscribeConfig = null;
+          unsubscribeDeviceStore?.();
+          unsubscribeDeviceStore = null;
           if (deviceChangeHandler) {
             navigator.mediaDevices?.removeEventListener("devicechange", deviceChangeHandler);
             deviceChangeHandler = null;

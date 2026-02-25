@@ -25,6 +25,10 @@ export const MediaPipeSettingsPanel = ({
   setConfig,
 }: PluginSettingsPanelProps<MediaPipeConfig>) => {
   const devices = useDeviceStore((s) => s.devices);
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  const mirror = useDeviceStore((s) => s.mirror);
+  const setDeviceId = useDeviceStore((s) => s.setDeviceId);
+  const setMirror = useDeviceStore((s) => s.setMirror);
   const restartCamera = useDeviceStore((s) => s.restartCamera);
 
   return (
@@ -45,10 +49,7 @@ export const MediaPipeSettingsPanel = ({
         <Label htmlFor="camera-device">Active camera</Label>
         <div className="flex items-center gap-1.5">
           {devices.length > 0 ? (
-            <Select
-              value={config.deviceId || ""}
-              onValueChange={(value) => setConfig({ deviceId: value })}
-            >
+            <Select value={deviceId} onValueChange={setDeviceId}>
               <SelectTrigger id="camera-device" className="flex-1" aria-label="Active camera">
                 <SelectValue placeholder="Default camera" />
               </SelectTrigger>
@@ -85,11 +86,7 @@ export const MediaPipeSettingsPanel = ({
         <Label className="text-sm font-medium" htmlFor="mirror-toggle">
           Mirror camera
         </Label>
-        <Switch
-          id="mirror-toggle"
-          checked={config.mirror}
-          onCheckedChange={(checked) => setConfig({ mirror: checked })}
-        />
+        <Switch id="mirror-toggle" checked={mirror} onCheckedChange={setMirror} />
       </div>
     </div>
   );
