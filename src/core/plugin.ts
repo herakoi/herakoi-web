@@ -62,6 +62,8 @@ export type PluginUISlots<TConfig> = {
   DockPanel?: ComponentType<DockPanelProps<TConfig>>;
   /** Optional items rendered in the header toolbar area */
   ToolbarItems?: ComponentType<PluginSettingsPanelProps<TConfig>>;
+  /** Declarative notification component — portals into NotificationArea when mounted */
+  Notifications?: ComponentType;
 };
 
 /** Metadata for a settings panel tab. */
@@ -77,22 +79,6 @@ export type PluginTabMeta = {
 export type PluginConfigSpec<TConfig extends object> = {
   /** Default configuration used for reset and first run. */
   defaultConfig: TConfig;
-};
-
-// ──────────────────────────────────────────────────
-// Notification system
-// ──────────────────────────────────────────────────
-
-export type NotificationData = {
-  message: string;
-  icon?: ComponentType<{ className?: string }>;
-  screenReaderMessage?: string;
-  politeness?: "polite" | "assertive";
-};
-
-export type PipelineCallbacks = {
-  showNotification: (id: string, data: NotificationData) => void;
-  hideNotification: (id: string) => void;
 };
 
 export type PluginRuntimeContext<TConfig extends object> = {
@@ -147,13 +133,6 @@ export interface DetectionPlugin<
 
   /** Create the PointDetector instance from provided configuration. */
   createDetector(config: TConfig, runtime: PluginRuntimeContext<TConfig>): DetectorHandle;
-
-  /**
-   * Subscribe to pipeline-relevant events from the detector.
-   * The shell passes notification callbacks so plugins can show prompts
-   * without importing shell stores.
-   */
-  bindPipelineEvents(detector: PointDetector, callbacks: PipelineCallbacks): void;
 }
 
 // ──────────────────────────────────────────────────

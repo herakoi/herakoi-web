@@ -65,6 +65,11 @@ export class MediaPipePointDetector implements PointDetector {
   private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
+  /**
+   * Set by stop() so a concurrent start() (e.g. React StrictMode double-invoke)
+   * bails out instead of racing with a newer start() on the same video element.
+   */
+  private startAborted = false;
 
   constructor(videoElement: HTMLVideoElement, config: MediaPipePointDetectorConfig = {}) {
     this.videoElement = videoElement;
@@ -113,14 +118,16 @@ export class MediaPipePointDetector implements PointDetector {
     if (this.started) {
       this.camera = this.createCamera(deviceId);
       useDeviceStore.getState().setCameraError(null);
-      try {
-        await this.camera.start();
-      } catch (err) {
+
+      // Go-style error handling: camera.start() returns Error | void
+      const result = await this.camera.start();
+
+      if (result instanceof Error) {
         this.camera = null;
-        const msg = err instanceof Error ? err.message : "Camera error";
-        useDeviceStore.getState().setCameraError(msg);
-        throw err;
+        useDeviceStore.getState().setCameraError(result.message);
+        throw result;
       }
+
       return this.camera.activeFacingMode;
     }
 
@@ -167,19 +174,35 @@ export class MediaPipePointDetector implements PointDetector {
       return;
     }
 
+    // Bail out if stop() was already called on this instance (e.g. React StrictMode
+    // calls stop() while initialize() is still pending, then start() resumes here).
+    if (this.startAborted) return;
+
     this.camera = this.createCamera(this.config.deviceId);
     useDeviceStore.getState().setCameraError(null);
-    try {
-      await this.camera.start();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Camera error";
-      useDeviceStore.getState().setCameraError(msg);
-      throw err;
+
+    // Go-style error handling: camera.start() returns Error | void
+    const result = await this.camera.start();
+
+    // If stop() fired while camera.start() was in progress, bail out.
+    if (this.startAborted) {
+      this.camera?.stop();
+      this.camera = null;
+      return;
     }
+
+    // Handle error returned from camera.start()
+    if (result instanceof Error) {
+      useDeviceStore.getState().setCameraError(result.message);
+      throw result;
+    }
+
     this.started = true;
   }
 
   stop(): void {
+    // Set flag first so any in-flight start() sees it after its next await.
+    this.startAborted = true;
     if (this.camera) {
       this.camera.stop();
       this.camera = null;

@@ -3,7 +3,6 @@ import type { ImageSample } from "#src/core/interfaces";
 import type { PipelineConfig, PluginRuntimeContext, VisualizerFrameData } from "#src/core/plugin";
 import { useAppConfigStore } from "../state/appConfigStore";
 import { useAppRuntimeStore } from "../state/appRuntimeStore";
-import { useNotificationStore } from "../state/notificationStore";
 import { resizeCanvasToContainer } from "./ui/canvas";
 
 type Refs = {
@@ -115,12 +114,6 @@ export const useSonificationEngine = (
       // Inject canvas refs to plugins (dependency injection)
       dh.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
       sh.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
-
-      // Wire up pipeline events
-      activeDetection.bindPipelineEvents(dh.detector, {
-        showNotification: useNotificationStore.getState().show,
-        hideNotification: useNotificationStore.getState().hide,
-      });
 
       // Run sampling plugin post-initialize (loads image, draws to canvas, encodes HSV)
       await sh.postInitialize?.();
@@ -266,7 +259,6 @@ export const useSonificationEngine = (
     sonifierHandleRef.current?.cleanup?.();
 
     analyserRef.current = null;
-    useNotificationStore.getState().clearAll();
     useAppRuntimeStore.getState().setCurrentUiOpacity(1);
     useAppRuntimeStore.getState().setHasDetectedPoints(false);
     setStatus({ status: "idle" });

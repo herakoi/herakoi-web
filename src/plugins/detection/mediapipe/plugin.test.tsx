@@ -49,6 +49,7 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
     mediaPipeRefs.video = { current: document.createElement("video") };
     mediaPipeRefs.videoOverlay = null;
     mediaPipeRefs.imageOverlay = null;
+    useDeviceStore.getState().setHasHands(null);
   });
 
   it("unsubscribes config listener during cleanup", () => {
@@ -126,51 +127,103 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
       expect.objectContaining({ deviceId: undefined }),
     );
   });
+
+  it("resets hasHands to null on cleanup", () => {
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    handle.postInitialize?.();
+    useDeviceStore.getState().setHasHands(true);
+    handle.cleanup?.();
+
+    expect(useDeviceStore.getState().hasHands).toBeNull();
+  });
 });
 
-describe("MediaPipe detection plugin notification flow", () => {
-  it("shows the no-hand prompt on the first empty detection frame", () => {
-    const onPointsDetected = vi.fn();
-    const detector = { onPointsDetected };
-    const showNotification = vi.fn();
-    const hideNotification = vi.fn();
-
-    plugin.bindPipelineEvents(detector as never, { showNotification, hideNotification });
-
-    const pointsHandler = onPointsDetected.mock.calls[0]?.[0] as
-      | ((points: unknown[]) => void)
-      | undefined;
-    expect(pointsHandler).toBeTypeOf("function");
-
-    pointsHandler?.([]);
-
-    expect(showNotification).toHaveBeenCalledTimes(1);
-    expect(showNotification).toHaveBeenCalledWith(
-      "mediapipe-hand-prompt",
-      expect.objectContaining({
-        message: "Move your index finger in front of the camera to play",
-      }),
-    );
-    expect(hideNotification).not.toHaveBeenCalled();
+describe("MediaPipe detection plugin hand tracking", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mediaPipeRefs.video = { current: document.createElement("video") };
+    mediaPipeRefs.videoOverlay = null;
+    mediaPipeRefs.imageOverlay = null;
+    useDeviceStore.getState().setHasHands(null);
   });
 
-  it("does not re-show the prompt on repeated empty detection frames", () => {
-    const onPointsDetected = vi.fn();
-    const detector = { onPointsDetected };
-    const showNotification = vi.fn();
-    const hideNotification = vi.fn();
+  it("sets hasHands to false on first empty detection frame", () => {
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
 
-    plugin.bindPipelineEvents(detector as never, { showNotification, hideNotification });
+    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    handle.postInitialize?.();
 
-    const pointsHandler = onPointsDetected.mock.calls[0]?.[0] as
+    // Find the onPointsDetected callback registered by postInitialize
+    // (it is the last registered callback; no canvases means no bindHandsUi call)
+    const { onPointsDetected } = handle.detector as unknown as {
+      onPointsDetected: ReturnType<typeof vi.fn>;
+    };
+    const callback = onPointsDetected.mock.calls[0]?.[0] as
       | ((points: unknown[]) => void)
       | undefined;
-    expect(pointsHandler).toBeTypeOf("function");
+    expect(callback).toBeTypeOf("function");
 
-    pointsHandler?.([]);
-    pointsHandler?.([]);
+    callback?.([]);
 
-    expect(showNotification).toHaveBeenCalledTimes(1);
-    expect(hideNotification).not.toHaveBeenCalled();
+    expect(useDeviceStore.getState().hasHands).toBe(false);
+  });
+
+  it("sets hasHands to true when points are detected", () => {
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    handle.postInitialize?.();
+
+    const { onPointsDetected } = handle.detector as unknown as {
+      onPointsDetected: ReturnType<typeof vi.fn>;
+    };
+    const callback = onPointsDetected.mock.calls[0]?.[0] as
+      | ((points: unknown[]) => void)
+      | undefined;
+
+    callback?.([{ id: "index-0", x: 0.5, y: 0.5 }]);
+
+    expect(useDeviceStore.getState().hasHands).toBe(true);
+  });
+
+  it("does not call setHasHands on repeated frames with the same state", () => {
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    const handle = plugin.createDetector(defaultMediaPipeConfig, runtime);
+    handle.postInitialize?.();
+
+    const { onPointsDetected } = handle.detector as unknown as {
+      onPointsDetected: ReturnType<typeof vi.fn>;
+    };
+    const callback = onPointsDetected.mock.calls[0]?.[0] as
+      | ((points: unknown[]) => void)
+      | undefined;
+
+    // Spy after postInitialize to only catch subsequent setHasHands calls
+    const setHasHands = vi.spyOn(useDeviceStore.getState(), "setHasHands");
+
+    callback?.([]);
+    callback?.([]);
+
+    expect(setHasHands).toHaveBeenCalledTimes(1);
+    expect(setHasHands).toHaveBeenCalledWith(false);
   });
 });

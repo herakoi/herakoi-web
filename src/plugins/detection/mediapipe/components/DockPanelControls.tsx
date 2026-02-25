@@ -64,7 +64,7 @@ export const DockPanelControls = ({
           <Camera className="h-4 w-4" />
         </Button>
         {devices.length > 0 ? (
-          <Select value={deviceId || ""} onValueChange={onDeviceChange}>
+          <Select value={deviceId} onValueChange={onDeviceChange}>
             <SelectTrigger
               aria-label="Active camera"
               className={cn(
