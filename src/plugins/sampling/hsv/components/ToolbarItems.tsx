@@ -1,12 +1,4 @@
-import {
-  ChevronDown,
-  Crop,
-  Image as ImageIcon,
-  Lock,
-  LockOpen,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { ChevronDown, Image as ImageIcon, Lock, LockOpen, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import {
@@ -107,26 +99,6 @@ export const HSVToolbarItems = ({
               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
             </button>
           </PopoverTrigger>
-          <button
-            type="button"
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              baseButtonClass,
-              isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
-            )}
-            aria-label="Toggle cover mode"
-            aria-pressed={isCoverMode}
-            onClick={() => {
-              if (isCoverMode) {
-                setViewportMode({ kind: "contain" });
-                setPanInteractionEnabled(false);
-                return;
-              }
-              setViewportMode({ kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 });
-            }}
-          >
-            <Crop className="h-4 w-4" />
-          </button>
           <button
             type="button"
             className={cn(

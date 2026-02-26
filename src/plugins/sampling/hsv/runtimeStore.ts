@@ -93,7 +93,7 @@ const persistUploadCache = (uploads: ImageEntry[]): UploadCacheWriteError | unde
 
 const defaultState: HSVRuntimeState = {
   imageReady: false,
-  viewportMode: { kind: "contain" },
+  viewportMode: { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
   coverModeActive: false,
   panInteractionEnabled: false,
   coverModeActivationToken: 0,

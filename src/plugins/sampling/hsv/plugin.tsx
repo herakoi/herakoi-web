@@ -83,7 +83,9 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         visibleRect = null;
         useHSVRuntimeStore.getState().setCoverModeActive(false);
         useHSVRuntimeStore.getState().setPanInteractionEnabled(false);
-        useHSVRuntimeStore.getState().setViewportMode({ kind: "contain" });
+        useHSVRuntimeStore
+          .getState()
+          .setViewportMode({ kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 });
         useHSVRuntimeStore.getState().setImageReady(false);
       };
 
@@ -172,9 +174,14 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             }
           }
           const runtimeState = useHSVRuntimeStore.getState();
-          runtimeState.setViewportMode({ kind: "contain" });
+          runtimeState.setViewportMode({
+            kind: "cover",
+            pan: { x: 0, y: 0 },
+            zoom: 1,
+            rotation: 0,
+          });
           runtimeState.setPanInteractionEnabled(false);
-          runtimeState.setCoverModeActive(false);
+          runtimeState.notifyCoverModeActivated();
 
           // Subscribe to persisted config changes (image selection only)
           let previousImageId = config.currentImageId;

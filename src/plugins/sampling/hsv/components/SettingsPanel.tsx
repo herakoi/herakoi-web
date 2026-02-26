@@ -37,7 +37,6 @@ export const HSVSettingsPanel = ({
   const imageLibraryStatus = useHSVRuntimeStore((state) => state.imageLibraryStatus);
   const viewportMode = useHSVRuntimeStore((state) => state.viewportMode);
   const panInteractionEnabled = useHSVRuntimeStore((state) => state.panInteractionEnabled);
-  const setViewportMode = useHSVRuntimeStore((state) => state.setViewportMode);
   const setPanInteractionEnabled = useHSVRuntimeStore((state) => state.setPanInteractionEnabled);
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -69,25 +68,6 @@ export const HSVSettingsPanel = ({
           ))}
         </SelectContent>
       </Select>
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm font-medium" htmlFor="cover-toggle">
-          Cover image
-        </Label>
-        <Switch
-          id="cover-toggle"
-          checked={isCoverMode}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              if (!isCoverMode) {
-                setViewportMode({ kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 });
-              }
-              return;
-            }
-            setViewportMode({ kind: "contain" });
-            setPanInteractionEnabled(false);
-          }}
-        />
-      </div>
       <div className="flex items-center justify-between gap-3">
         <Label className="text-sm font-medium" htmlFor="pan-toggle">
           Enable pan gesture
