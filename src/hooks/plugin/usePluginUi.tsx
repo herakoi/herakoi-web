@@ -4,6 +4,7 @@ import type { SettingsPanelSection } from "../../components/SettingsPanel";
 import { useActivePlugin } from "../../state/appConfigStore";
 import { usePluginDockPanel } from "./usePluginDockPanel";
 import { usePluginSections } from "./usePluginSections";
+import { usePluginSonificationPanel } from "./usePluginSonificationPanel";
 import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
@@ -15,6 +16,7 @@ type UsePluginUiParams = {
 type UsePluginUiReturn = {
   sections: SettingsPanelSection[];
   SamplingToolbar: ComponentType | undefined;
+  SonificationPanel: ComponentType | undefined;
   DockPanel: ComponentType<ShellDockPanelProps> | undefined;
   VisualizerDisplays: Array<{ id: string; Display: ComponentType<VisualizerDisplayProps> }>;
   PluginNotificationComponents: Array<{ id: string; Notifications: ComponentType }>;
@@ -40,6 +42,7 @@ export const usePluginUi = ({
 
   // Resolve sampling toolbar
   const SamplingToolbar = usePluginToolbar({ config, activeSamplingId });
+  const SonificationPanel = usePluginSonificationPanel({ config, activeSonificationId });
 
   // Resolve detection dock panel
   const DockPanel = usePluginDockPanel({ config, activeDetectionId });
@@ -83,6 +86,7 @@ export const usePluginUi = ({
   return {
     sections,
     SamplingToolbar,
+    SonificationPanel,
     DockPanel,
     VisualizerDisplays,
     PluginNotificationComponents,

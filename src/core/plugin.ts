@@ -58,6 +58,8 @@ export type PluginSettingsPanelProps<TConfig> = {
 export type PluginUISlots<TConfig> = {
   /** Content rendered inside a tab in the settings popover */
   SettingsPanel?: ComponentType<PluginSettingsPanelProps<TConfig>>;
+  /** Optional sonification side panel content rendered by the shell */
+  SonificationPanel?: ComponentType<PluginSettingsPanelProps<TConfig>>;
   /** Floating dock content (e.g., camera PiP window) */
   DockPanel?: ComponentType<DockPanelProps<TConfig>>;
   /** Optional items rendered in the header toolbar area */

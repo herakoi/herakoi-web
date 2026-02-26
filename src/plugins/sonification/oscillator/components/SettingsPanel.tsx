@@ -1,4 +1,5 @@
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
@@ -9,15 +10,19 @@ import {
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
 import type { OscillatorConfig } from "../config";
+import { useOscillatorAudioStore } from "../store";
 
 export const OscillatorSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<OscillatorConfig>) => {
   const { minFreq, maxFreq, minVol, maxVol, oscillatorType } = config;
+  const sinkId = useOscillatorAudioStore((state) => state.sinkId);
+  const setSinkId = useOscillatorAudioStore((state) => state.setSinkId);
 
   return (
     <div className="space-y-4">
+      <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
       <div className="space-y-2">
         <Label>
           Frequency range ({minFreq}Hz – {maxFreq}Hz)

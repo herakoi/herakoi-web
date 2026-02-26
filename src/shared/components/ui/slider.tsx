@@ -28,14 +28,17 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
     return (
       <SliderPrimitive.Root
         ref={ref}
-        className={cn("relative flex w-full touch-none select-none items-center", className)}
+        className={cn(
+          "relative flex w-full touch-none select-none items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-6 data-[orientation=vertical]:justify-center",
+          className,
+        )}
         value={value}
         defaultValue={defaultValue}
         aria-label={ariaLabel}
         {...props}
       >
-        <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted">
-          <SliderPrimitive.Range className="absolute h-full bg-primary" />
+        <SliderPrimitive.Track className="relative overflow-hidden rounded-full bg-muted data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:grow data-[orientation=vertical]:mx-auto data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5">
+          <SliderPrimitive.Range className="absolute bg-primary data-[orientation=horizontal]:h-full data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full" />
         </SliderPrimitive.Track>
         {labels.map((label) => (
           <SliderPrimitive.Thumb

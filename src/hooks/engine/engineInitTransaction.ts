@@ -1,4 +1,4 @@
-import { AsyncDisposableStack, isError } from "errore";
+import { isError } from "errore";
 import type { EngineConfig } from "#src/core/plugin";
 import { createAppConfigPluginRuntimeContext } from "#src/lib/engine/pluginRuntimeContext";
 import {
@@ -51,40 +51,47 @@ export const runEngineInitTransaction = async (params: {
     };
   }
 
-  await using initCleanup = new AsyncDisposableStack();
-  const handlesResult = await createEngineHandles(resolvedActivePlugins);
-  const abortedAfterCreate = getAbortError();
-  if (abortedAfterCreate) return abortedAfterCreate;
-  if (isError(handlesResult)) return handlesResult;
+  let nextHandles: EngineHandles | null = null;
+  let retainHandles = false;
 
-  const nextHandles: EngineHandles = {
-    detectorHandle: handlesResult.detectorHandle,
-    samplerHandle: handlesResult.samplerHandle,
-    sonifierHandle: handlesResult.sonifierHandle,
-  };
-  initCleanup.use(nextHandles.detectorHandle);
-  initCleanup.use(nextHandles.samplerHandle);
-  initCleanup.use(nextHandles.sonifierHandle);
+  try {
+    const handlesResult = await createEngineHandles(resolvedActivePlugins);
+    const abortedAfterCreate = getAbortError();
+    if (abortedAfterCreate) return abortedAfterCreate;
+    if (isError(handlesResult)) return handlesResult;
 
-  const initializeResult = await initializeEnginePlugins({
-    detectorHandle: nextHandles.detectorHandle,
-    samplerHandle: nextHandles.samplerHandle,
-    sonifierHandle: nextHandles.sonifierHandle,
-    imageOverlayRef,
-    imageCanvasRef,
-  });
-  const abortedAfterInitialize = getAbortError();
-  if (abortedAfterInitialize) return abortedAfterInitialize;
-  if (isError(initializeResult)) return initializeResult;
+    nextHandles = {
+      detectorHandle: handlesResult.detectorHandle,
+      samplerHandle: handlesResult.samplerHandle,
+      sonifierHandle: handlesResult.sonifierHandle,
+    };
 
-  const startResult = await startEngineDetection(nextHandles.detectorHandle);
-  const abortedAfterStart = getAbortError();
-  if (abortedAfterStart) return abortedAfterStart;
-  if (isError(startResult)) return startResult;
+    const initializeResult = await initializeEnginePlugins({
+      detectorHandle: nextHandles.detectorHandle,
+      samplerHandle: nextHandles.samplerHandle,
+      sonifierHandle: nextHandles.sonifierHandle,
+      imageOverlayRef,
+      imageCanvasRef,
+    });
+    const abortedAfterInitialize = getAbortError();
+    if (abortedAfterInitialize) return abortedAfterInitialize;
+    if (isError(initializeResult)) return initializeResult;
 
-  initCleanup.move();
-  return {
-    ids,
-    handles: nextHandles,
-  };
+    const startResult = await startEngineDetection(nextHandles.detectorHandle);
+    const abortedAfterStart = getAbortError();
+    if (abortedAfterStart) return abortedAfterStart;
+    if (isError(startResult)) return startResult;
+
+    retainHandles = true;
+    return {
+      ids,
+      handles: nextHandles,
+    };
+  } finally {
+    if (!retainHandles && nextHandles) {
+      nextHandles.detectorHandle[Symbol.dispose]();
+      nextHandles.samplerHandle[Symbol.dispose]();
+      nextHandles.sonifierHandle[Symbol.dispose]();
+    }
+  }
 };

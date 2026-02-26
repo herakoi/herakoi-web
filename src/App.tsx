@@ -33,12 +33,18 @@ const App = () => {
   // Idle dimming: dim UI after idle when points are detected
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
 
-  const { sections, SamplingToolbar, DockPanel, VisualizerDisplays, PluginNotificationComponents } =
-    usePluginUi({
-      config: engineConfig,
-      startTransport,
-      stopTransport,
-    });
+  const {
+    sections,
+    SamplingToolbar,
+    SonificationPanel,
+    DockPanel,
+    VisualizerDisplays,
+    PluginNotificationComponents,
+  } = usePluginUi({
+    config: engineConfig,
+    startTransport,
+    stopTransport,
+  });
 
   const isRunning = transportStatus.status === "running";
   const isInitializing = engineStatus === "initializing";
@@ -137,6 +143,11 @@ const App = () => {
       </header>
 
       <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
+      {SonificationPanel ? (
+        <div className="transition-opacity" style={uiFadeStyle}>
+          <SonificationPanel />
+        </div>
+      ) : null}
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (
