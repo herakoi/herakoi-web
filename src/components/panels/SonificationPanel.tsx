@@ -1,5 +1,5 @@
 import { Volume2, VolumeX } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { oscillatorSonificationPluginId } from "#src/plugins/sonification/oscillator/config";
 import { useOscillatorAudioStore } from "#src/plugins/sonification/oscillator/store";
 import { Button } from "#src/shared/components/ui/button";
@@ -16,8 +16,6 @@ import { Slider } from "#src/shared/components/ui/slider";
 import { cn } from "#src/shared/utils/cn";
 import { useActivePlugin } from "#src/state/appConfigStore";
 
-const DEFAULT_OUTPUT_VALUE = "__default_output__";
-
 type SonificationPanelProps = {
   className?: string;
   style?: React.CSSProperties;
@@ -27,6 +25,10 @@ type SinkableAudioContextCtor = {
   prototype: {
     setSinkId?: (sinkId: string) => Promise<void>;
   };
+};
+
+type MediaDevicesWithOutputSelection = MediaDevices & {
+  selectAudioOutput?: () => Promise<MediaDeviceInfo>;
 };
 
 const supportsSinkSelection = (): boolean => {
@@ -52,6 +54,85 @@ export const SonificationPanel = ({ className, style }: SonificationPanelProps) 
   const canSelectOutput = useMemo(() => supportsSinkSelection(), []);
   const volumePercent = Math.round(volume * 100);
   const [outputPopoverOpen, setOutputPopoverOpen] = useState(false);
+  const [isRequestingOutputAccess, setIsRequestingOutputAccess] = useState(false);
+  const [hasAutoRequestedOutputAccess, setHasAutoRequestedOutputAccess] = useState(false);
+  const [inferredDefaultDeviceId, setInferredDefaultDeviceId] = useState("");
+
+  const refreshOutputDevices = useCallback(async () => {
+    if (!isOscillatorActive) return;
+    if (!canSelectOutput) return;
+    if (typeof navigator === "undefined") return;
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+
+    try {
+      const allDevices = await navigator.mediaDevices.enumerateDevices();
+      const allOutputs = allDevices.filter((device) => device.kind === "audiooutput");
+      const defaultPseudo = allOutputs.find((device) => device.deviceId.trim() === "default");
+      const seenLabels = new Set<string>();
+      const outputs = allOutputs
+        .filter((device) => {
+          const deviceId = device.deviceId.trim();
+          if (!deviceId) return false;
+          // Hide browser pseudo-devices.
+          if (deviceId === "default" || deviceId === "communications") return false;
+          return true;
+        })
+        .map((device, index) => {
+          const rawLabel = device.label || `Audio output ${index + 1}`;
+          const cleanLabel = rawLabel.replace(/^default\s*-\s*/i, "").trim();
+          return {
+            deviceId: device.deviceId,
+            label: cleanLabel || rawLabel,
+          };
+        })
+        .filter((device) => {
+          const normalizedLabel = device.label.toLowerCase();
+          if (seenLabels.has(normalizedLabel)) return false;
+          seenLabels.add(normalizedLabel);
+          return true;
+        });
+      setOutputDevices(outputs);
+
+      const cleanedDefaultLabel = defaultPseudo?.label?.replace(/^default\s*-\s*/i, "").trim();
+      const matchedDefault = cleanedDefaultLabel
+        ? outputs.find((device) => device.label.toLowerCase() === cleanedDefaultLabel.toLowerCase())
+        : undefined;
+      setInferredDefaultDeviceId(matchedDefault?.deviceId ?? outputs[0]?.deviceId ?? "");
+    } catch {
+      setOutputDevices([]);
+      setInferredDefaultDeviceId("");
+    }
+  }, [canSelectOutput, isOscillatorActive, setOutputDevices]);
+
+  const requestOutputAccess = useCallback(async () => {
+    if (typeof navigator === "undefined") return;
+    const mediaDevices = navigator.mediaDevices as MediaDevicesWithOutputSelection | undefined;
+    if (!mediaDevices) return;
+
+    setIsRequestingOutputAccess(true);
+    try {
+      if (mediaDevices.selectAudioOutput) {
+        const selectedDevice = await mediaDevices.selectAudioOutput();
+        if (selectedDevice.deviceId) {
+          setSinkId(selectedDevice.deviceId);
+        }
+      }
+
+      // Chrome may expose only default output until media permission is granted.
+      if (mediaDevices.getUserMedia) {
+        const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+
+      await refreshOutputDevices();
+    } catch {
+      // User may deny permission or browser may block; ignore and keep current list.
+    } finally {
+      setIsRequestingOutputAccess(false);
+    }
+  }, [refreshOutputDevices, setSinkId]);
 
   useEffect(() => {
     if (!isOscillatorActive) return;
@@ -59,28 +140,47 @@ export const SonificationPanel = ({ className, style }: SonificationPanelProps) 
     if (typeof navigator === "undefined") return;
     if (!navigator.mediaDevices?.enumerateDevices) return;
 
-    const refreshDevices = async () => {
-      try {
-        const allDevices = await navigator.mediaDevices.enumerateDevices();
-        const outputs = allDevices
-          .filter((device) => device.kind === "audiooutput" && device.deviceId.trim().length > 0)
-          .map((device, index) => ({
-            deviceId: device.deviceId,
-            label: device.label || `Audio output ${index + 1}`,
-          }));
-        setOutputDevices(outputs);
-      } catch {
-        setOutputDevices([]);
-      }
-    };
-
-    void refreshDevices();
-    navigator.mediaDevices.addEventListener?.("devicechange", refreshDevices);
+    void refreshOutputDevices();
+    navigator.mediaDevices.addEventListener?.("devicechange", refreshOutputDevices);
 
     return () => {
-      navigator.mediaDevices.removeEventListener?.("devicechange", refreshDevices);
+      navigator.mediaDevices.removeEventListener?.("devicechange", refreshOutputDevices);
     };
-  }, [canSelectOutput, isOscillatorActive, setOutputDevices]);
+  }, [canSelectOutput, isOscillatorActive, refreshOutputDevices]);
+
+  useEffect(() => {
+    if (!outputPopoverOpen) return;
+    void refreshOutputDevices();
+  }, [outputPopoverOpen, refreshOutputDevices]);
+
+  useEffect(() => {
+    if (!outputPopoverOpen) return;
+    if (!canSelectOutput) return;
+    if (isRequestingOutputAccess) return;
+    if (hasAutoRequestedOutputAccess) return;
+    if (outputDevices.length > 1) return;
+
+    setHasAutoRequestedOutputAccess(true);
+    void requestOutputAccess();
+  }, [
+    canSelectOutput,
+    hasAutoRequestedOutputAccess,
+    isRequestingOutputAccess,
+    outputDevices.length,
+    outputPopoverOpen,
+    requestOutputAccess,
+  ]);
+
+  useEffect(() => {
+    if (!isOscillatorActive) return;
+    if (outputDevices.length === 0) return;
+    if (sinkId && outputDevices.some((device) => device.deviceId === sinkId)) return;
+
+    const nextDeviceId = inferredDefaultDeviceId || outputDevices[0]?.deviceId;
+    if (nextDeviceId) {
+      setSinkId(nextDeviceId);
+    }
+  }, [inferredDefaultDeviceId, isOscillatorActive, outputDevices, setSinkId, sinkId]);
 
   if (!isOscillatorActive) return null;
 
@@ -115,15 +215,11 @@ export const SonificationPanel = ({ className, style }: SonificationPanelProps) 
           >
             <div className="space-y-2">
               <Label>Audio output</Label>
-              <Select
-                value={sinkId || DEFAULT_OUTPUT_VALUE}
-                onValueChange={(value) => setSinkId(value === DEFAULT_OUTPUT_VALUE ? "" : value)}
-              >
+              <Select value={sinkId} onValueChange={(value) => setSinkId(value)}>
                 <SelectTrigger aria-label="Audio output device">
                   <SelectValue placeholder="Select output device" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={DEFAULT_OUTPUT_VALUE}>System default</SelectItem>
                   {outputDevices.map((device) => (
                     <SelectItem key={device.deviceId} value={device.deviceId}>
                       {device.label}
