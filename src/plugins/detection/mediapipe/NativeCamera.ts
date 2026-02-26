@@ -58,9 +58,9 @@ export interface DeviceInfo {
 export interface NativeCameraOptions {
   /** Specific device to use. Empty string = browser default. */
   deviceId?: string;
-  /** Desired width (default: 640) */
+  /** Desired width (optional, used as ideal constraint) */
   width?: number;
-  /** Desired height (default: 480) */
+  /** Desired height (optional, used as ideal constraint) */
   height?: number;
   /** Called on every video frame */
   onFrame: () => Promise<void> | void;
@@ -93,17 +93,19 @@ export class NativeCamera {
 
     this.stopped = false;
 
+    const videoConstraints: MediaTrackConstraints = {};
+    if (this.options.deviceId) {
+      videoConstraints.deviceId = { exact: this.options.deviceId };
+    }
+    if (this.options.width != null) {
+      videoConstraints.width = { ideal: this.options.width };
+    }
+    if (this.options.height != null) {
+      videoConstraints.height = { ideal: this.options.height };
+    }
+
     const constraints: MediaStreamConstraints = {
-      video: this.options.deviceId
-        ? {
-            deviceId: { exact: this.options.deviceId },
-            width: { ideal: this.options.width ?? 640 },
-            height: { ideal: this.options.height ?? 480 },
-          }
-        : {
-            width: { ideal: this.options.width ?? 640 },
-            height: { ideal: this.options.height ?? 480 },
-          },
+      video: Object.keys(videoConstraints).length > 0 ? videoConstraints : true,
     };
 
     try {

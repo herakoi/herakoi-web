@@ -13,6 +13,7 @@ const baseProps = {
   isRunning: false,
   mirror: false,
   videoReady: true,
+  aspectRatio: 16 / 9,
 };
 
 const baseActionsProps = {

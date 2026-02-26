@@ -13,6 +13,7 @@ import { useSonificationEngine } from "./useSonificationEngine";
 
 type HarnessApi = {
   start: () => Promise<SonificationEngineStartResult>;
+  stop: () => void;
   switchDetectionAndStart: (id: string) => Promise<SonificationEngineStartResult>;
 };
 
@@ -24,7 +25,7 @@ type HarnessProps = {
 const HookHarness = ({ config, onReady }: HarnessProps) => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
-  const { start } = useSonificationEngine(config, { imageCanvasRef, imageOverlayRef });
+  const { start, stop } = useSonificationEngine(config, { imageCanvasRef, imageOverlayRef });
   const [, setActiveDetectionId] = useActivePlugin("detection");
 
   const switchDetectionAndStart = useCallback(
@@ -36,8 +37,8 @@ const HookHarness = ({ config, onReady }: HarnessProps) => {
   );
 
   useLayoutEffect(() => {
-    onReady({ start, switchDetectionAndStart });
-  }, [onReady, start, switchDetectionAndStart]);
+    onReady({ start, stop, switchDetectionAndStart });
+  }, [onReady, start, stop, switchDetectionAndStart]);
 
   return (
     <>
@@ -338,5 +339,136 @@ describe("useSonificationEngine runtime errors", () => {
     expect(detectorDispose).toHaveBeenCalledTimes(1);
     expect(samplerDispose).toHaveBeenCalledTimes(1);
     expect(sonifierDispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("disposes previous handles before starting a new session", async () => {
+    const detectorDisposeA = vi.fn();
+    const samplerDisposeA = vi.fn();
+    const sonifierDisposeA = vi.fn();
+    const detectorDisposeB = vi.fn();
+    const samplerDisposeB = vi.fn();
+    const sonifierDisposeB = vi.fn();
+    let startCount = 0;
+
+    const config = {
+      detection: [
+        {
+          kind: "detection",
+          id: "detection/a",
+          displayName: "Detection A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createDetector: vi.fn(() => {
+            startCount += 1;
+            const dispose = startCount === 1 ? detectorDisposeA : detectorDisposeB;
+            return {
+              [Symbol.dispose]: dispose,
+              detector: {
+                initialize: vi.fn().mockResolvedValue(undefined),
+                start: vi.fn().mockResolvedValue(undefined),
+                stop: vi.fn(),
+                onPointsDetected: vi.fn(),
+              },
+              getSourceSize: vi.fn(() => ({ width: 100, height: 100 })),
+            };
+          }),
+        },
+      ],
+      sampling: [
+        {
+          kind: "sampling",
+          id: "sampling/a",
+          displayName: "Sampling A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createSampler: vi.fn(() => {
+            const dispose = startCount === 1 ? samplerDisposeA : samplerDisposeB;
+            return {
+              [Symbol.dispose]: dispose,
+              sampler: {
+                loadImage: vi.fn().mockResolvedValue(undefined),
+                sampleAt: vi.fn(() => new Map()),
+              },
+              getVisibleRect: vi.fn(() => null),
+            };
+          }),
+        },
+      ],
+      sonification: [
+        {
+          kind: "sonification",
+          id: "sonification/a",
+          displayName: "Sonification A",
+          settingsTab: null,
+          ui: {},
+          config: { defaultConfig: {} },
+          createSonifier: vi.fn(() => {
+            const dispose = startCount === 1 ? sonifierDisposeA : sonifierDisposeB;
+            return {
+              [Symbol.dispose]: dispose,
+              sonifier: {
+                initialize: vi.fn().mockResolvedValue(undefined),
+                processSamples: vi.fn().mockResolvedValue(undefined),
+                stop: vi.fn(),
+                configure: vi.fn(),
+              },
+            };
+          }),
+        },
+      ],
+      visualization: [],
+    } satisfies EngineConfig;
+
+    const { setActivePlugin } = useAppConfigStore.getState();
+    setActivePlugin("detection", "detection/a" as never);
+    setActivePlugin("sampling", "sampling/a" as never);
+    setActivePlugin("sonification", "sonification/a" as never);
+
+    let api: HarnessApi | undefined;
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <HookHarness
+          config={config}
+          onReady={(harnessApi) => {
+            api = harnessApi;
+          }}
+        />,
+      );
+    });
+
+    const harnessApi = api;
+    if (!harnessApi) {
+      throw new Error("Harness API not initialized");
+    }
+
+    await act(async () => {
+      await harnessApi.start();
+    });
+
+    expect(detectorDisposeA).not.toHaveBeenCalled();
+    expect(samplerDisposeA).not.toHaveBeenCalled();
+    expect(sonifierDisposeA).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await harnessApi.start();
+    });
+
+    expect(detectorDisposeA).toHaveBeenCalledTimes(1);
+    expect(samplerDisposeA).toHaveBeenCalledTimes(1);
+    expect(sonifierDisposeA).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      harnessApi.stop();
+    });
+
+    expect(detectorDisposeB).toHaveBeenCalledTimes(1);
+    expect(samplerDisposeB).toHaveBeenCalledTimes(1);
+    expect(sonifierDisposeB).toHaveBeenCalledTimes(1);
   });
 });

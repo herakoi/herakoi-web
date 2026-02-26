@@ -111,7 +111,10 @@ const App = () => {
           <Controls
             isActive={isActive}
             isInitializing={isInitializing}
-            onRestart={() => void start()}
+            onRestart={() => {
+              stop();
+              void start();
+            }}
             onStart={() => void start()}
             onStop={() => stop()}
             transportButtonRef={transportButtonRef}
