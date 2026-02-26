@@ -159,6 +159,23 @@ export const useEngineHandles = (params: {
 
   disposeEngineRef.current = disposeEngine;
 
+  const restartEngine = useCallback(() => {
+    initAbortRef.current?.abort();
+    disposeEngineRef.current?.();
+
+    const { activePlugins } = useAppConfigStore.getState();
+    pendingSelectionRef.current = {
+      detection: activePlugins.detection,
+      sampling: activePlugins.sampling,
+      sonification: activePlugins.sonification,
+    };
+    setStatus("initializing");
+
+    if (!inFlightRef.current) {
+      void drainInitQueue();
+    }
+  }, [drainInitQueue]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -172,5 +189,6 @@ export const useEngineHandles = (params: {
   return {
     handles,
     status,
+    restartEngine,
   };
 };

@@ -26,7 +26,11 @@ export const useSonificationEngine = (
     analyser: null,
   });
 
-  const { handles, status: engineStatus } = useEngineHandles({
+  const {
+    handles,
+    status: engineStatus,
+    restartEngine: restartEngineHandles,
+  } = useEngineHandles({
     config,
     refs: { imageCanvasRef, imageOverlayRef },
     analyserRef,
@@ -58,6 +62,14 @@ export const useSonificationEngine = (
     });
   }, [handles?.sonifierHandle, stopTransportLoop]);
 
+  const restartEngine = useCallback(() => {
+    stopTransportLoop({
+      flush: true,
+      sonifierHandle: handles?.sonifierHandle ?? null,
+    });
+    restartEngineHandles();
+  }, [handles?.sonifierHandle, restartEngineHandles, stopTransportLoop]);
+
   useEffect(() => {
     const handleResize = () => resizeCanvasRefToContainer(imageOverlayRef);
     window.addEventListener("resize", handleResize);
@@ -69,6 +81,7 @@ export const useSonificationEngine = (
   return {
     startTransport,
     stopTransport,
+    restartEngine,
     engineStatus,
     transportStatus,
     analyser: analyserRef,
