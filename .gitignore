@@ -16,6 +16,10 @@ dist/
 .env.*
 !.env.example
 
+# Test artifacts
+test-results/
+src/**/__screenshots__/
+
 # Logs
 *.log
 npm-debug.log*

@@ -6,6 +6,7 @@ import { useDeviceStore } from "../deviceStore";
 import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
 import { DockPanelControls } from "./DockPanelControls";
 import { DockPanelPiPActions } from "./DockPanelPiPActions";
+import { DockPanelPiPSurface } from "./DockPanelPiPSurface";
 import { DockPanelPiPTransport } from "./DockPanelPiPTransport";
 
 export const MediaPipeDockPanel = ({
@@ -35,7 +36,6 @@ export const MediaPipeDockPanel = ({
     }),
     [],
   );
-
   const isActive = isRunning || isInitializing;
 
   return (
@@ -60,43 +60,45 @@ export const MediaPipeDockPanel = ({
         forbiddenRefs={[controlsRef]}
         moveHandleAriaLabel="Move picture-in-picture window"
       >
-        {({ isResizing, onResizePointerDown, onResizeKeyDown }) => (
-          <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur">
-            <div className="group relative aspect-video select-none">
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                aria-label="Camera feed"
-                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
-                style={mirror && videoReady && isRunning ? { transform: "scaleX(-1)" } : undefined}
-              />
-              {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
-              <canvas
-                ref={overlayRef}
-                className="pointer-events-none absolute inset-0 h-full w-full"
-                aria-hidden="true"
-              />
-              <DockPanelPiPTransport
-                isRunning={isRunning}
-                isInitializing={isInitializing}
-                isActive={isActive}
-                onStart={onStart}
-                onStop={onStop}
-              />
-              <DockPanelPiPActions
-                mirror={mirror}
-                maxHands={maxHands}
-                isResizing={isResizing}
-                onHide={() => setPipOpen(false)}
-                onToggleMirror={() => setMirror(!mirror)}
-                onCycleMaxHands={() => setConfig({ maxHands: maxHands >= 4 ? 1 : maxHands + 1 })}
-                onResizePointerDown={onResizePointerDown}
-                onResizeKeyDown={onResizeKeyDown}
-              />
-            </div>
-          </div>
+        {({
+          isResizing,
+          onMovePointerDown,
+          onMoveKeyDown,
+          onResizePointerDown,
+          onResizeKeyDown,
+        }) => (
+          <DockPanelPiPSurface
+            videoRef={videoRef}
+            overlayRef={overlayRef}
+            isRunning={isRunning}
+            mirror={mirror}
+            videoReady={videoReady}
+          >
+            <button
+              type="button"
+              aria-label="Move picture-in-picture window"
+              className="absolute inset-0 z-10 cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              onPointerDown={onMovePointerDown}
+              onKeyDown={onMoveKeyDown}
+            />
+            <DockPanelPiPTransport
+              isRunning={isRunning}
+              isInitializing={isInitializing}
+              isActive={isActive}
+              onStart={onStart}
+              onStop={onStop}
+            />
+            <DockPanelPiPActions
+              mirror={mirror}
+              maxHands={maxHands}
+              isResizing={isResizing}
+              onHide={() => setPipOpen(false)}
+              onToggleMirror={() => setMirror(!mirror)}
+              onCycleMaxHands={() => setConfig({ maxHands: maxHands >= 4 ? 1 : maxHands + 1 })}
+              onResizePointerDown={onResizePointerDown}
+              onResizeKeyDown={onResizeKeyDown}
+            />
+          </DockPanelPiPSurface>
         )}
       </Floating>
     </div>

@@ -44,8 +44,8 @@ export const DockPanelPiPActions = ({
           "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "z-20",
           mirror
-            ? "bg-black/55 text-white/80 hover:bg-black/70"
-            : "bg-white/85 text-black shadow-sm ring-1 ring-black/20 hover:bg-white/95",
+            ? "bg-white/85 text-black shadow-sm ring-1 ring-black/20 hover:bg-white/95"
+            : "bg-black/55 text-white/80 hover:bg-black/70",
         )}
         onClick={(event) => {
           event.stopPropagation();
