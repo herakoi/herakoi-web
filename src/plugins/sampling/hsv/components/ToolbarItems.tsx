@@ -1,4 +1,4 @@
-import { ChevronDown, Crop, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { ChevronDown, Crop, Hand, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import {
@@ -58,6 +58,7 @@ export const HSVToolbarItems = ({
   const baseButtonClass =
     "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground";
   const isCoverMode = config.viewportMode.kind === "cover";
+  const isPanEnabled = config.panInteractionEnabled;
   const coverMode = config.viewportMode.kind === "cover" ? config.viewportMode : null;
 
   return (
@@ -107,11 +108,27 @@ export const HSVToolbarItems = ({
               setConfig({
                 viewportMode: isCoverMode
                   ? { kind: "contain" }
-                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 },
+                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
+                ...(isCoverMode ? { panInteractionEnabled: false } : {}),
               })
             }
           >
             <Crop className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              baseButtonClass,
+              isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
+              !isCoverMode && "opacity-50",
+            )}
+            aria-label="Toggle pan gesture mode"
+            aria-pressed={isPanEnabled}
+            disabled={!isCoverMode}
+            onClick={() => setConfig({ panInteractionEnabled: !isPanEnabled })}
+          >
+            <Hand className="h-4 w-4" />
           </button>
           {coverMode && (
             <Popover>
@@ -158,6 +175,29 @@ export const HSVToolbarItems = ({
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>0.2x</span>
                     <span>10x</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Rotation</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {Math.round(coverMode.rotation ?? 0)}°
+                    </span>
+                  </div>
+                  <Slider
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={[coverMode.rotation ?? 0]}
+                    aria-label="Rotation angle"
+                    onValueChange={([rotation]) => {
+                      if (rotation === undefined) return;
+                      setConfig({
+                        viewportMode: { ...coverMode, rotation },
+                      });
+                    }}
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>-180°</span>
+                    <span>180°</span>
                   </div>
                 </div>
               </PopoverContent>

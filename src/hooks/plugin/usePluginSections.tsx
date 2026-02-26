@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Eye, Image, Pointer, Volume2 } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 import type { EngineConfig } from "#src/core/plugin";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
@@ -88,6 +88,11 @@ export const usePluginSections = ({
   const sonificationSection = useMemo(
     () =>
       buildPluginSection({
+        tab: {
+          key: "audio",
+          label: "Audio",
+          icon: <Volume2 className="h-3.5 w-3.5" />,
+        },
         label: "Sonification",
         pluginArray: config.sonification,
         activeId: activeSonificationId,
@@ -101,6 +106,11 @@ export const usePluginSections = ({
   const samplingSection = useMemo(
     () =>
       buildPluginSection({
+        tab: {
+          key: "sample",
+          label: "Sample",
+          icon: <Image className="h-3.5 w-3.5" />,
+        },
         label: "Sampling",
         pluginArray: config.sampling,
         activeId: activeSamplingId,
@@ -114,6 +124,11 @@ export const usePluginSections = ({
   const detectionSection = useMemo(
     () =>
       buildPluginSection({
+        tab: {
+          key: "input",
+          label: "Input",
+          icon: <Pointer className="h-3.5 w-3.5" />,
+        },
         label: "Detection",
         pluginArray: config.detection,
         activeId: activeDetectionId,
@@ -140,9 +155,9 @@ export const usePluginSections = ({
   const sections = useMemo(() => {
     const result: SettingsPanelSection[] = [];
 
-    if (sonificationSection) result.push(sonificationSection);
-    if (samplingSection) result.push(samplingSection);
     if (detectionSection) result.push(detectionSection);
+    if (samplingSection) result.push(samplingSection);
+    if (sonificationSection) result.push(sonificationSection);
     if (visualizerSection) result.push(visualizerSection);
 
     return result;
