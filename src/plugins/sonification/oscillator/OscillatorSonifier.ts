@@ -261,11 +261,34 @@ export class OscillatorSonifier implements Sonifier {
       return false;
     }
 
+    const now = ctx.currentTime;
+    if (this.masterGain) {
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setTargetAtTime(0.0001, now, 0.015);
+    }
+
     try {
       await ctx.setSinkId(sinkId);
+      this.applyMasterGain();
       return true;
     } catch {
-      return false;
+      if (!sinkId) return false;
+      try {
+        await ctx.setSinkId("");
+        this.sinkId = "";
+        this.applyMasterGain();
+        return true;
+      } catch {
+        if (ctx.state === "closed") {
+          this.ctx = null;
+          this.nodes.clear();
+          this.masterGain = null;
+          this.output = null;
+          this.analyser = null;
+        }
+        this.applyMasterGain();
+        return false;
+      }
     }
   }
 

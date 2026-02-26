@@ -123,6 +123,10 @@ export class PianoSamplerSonifier implements Sonifier {
   processSamples(samples: Map<string, ImageSample>): ErrorOr<undefined> {
     if (!this.sampler || !this.samplerReady) return;
     if (this.stopped) return;
+    const rawContext = this.getRawAudioContext();
+    if (rawContext.state !== "running") {
+      void start().catch(() => {});
+    }
 
     const seen = new Set<string>();
 
@@ -209,11 +213,31 @@ export class PianoSamplerSonifier implements Sonifier {
       return false;
     }
 
+    if (this.sampler) {
+      this.sampler.volume.value = -60;
+    }
+
     try {
       await rawContext.setSinkId(sinkId);
+      this.applyOutputMixState();
       return true;
     } catch {
-      return false;
+      if (!sinkId) {
+        this.applyOutputMixState();
+        return false;
+      }
+      try {
+        await rawContext.setSinkId("");
+        this.sinkId = "";
+        this.applyOutputMixState();
+        return true;
+      } catch {
+        if (rawContext.state === "closed") {
+          this.ensureSinkCapableToneContext();
+        }
+        this.applyOutputMixState();
+        return false;
+      }
     }
   }
 

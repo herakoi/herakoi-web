@@ -1,5 +1,5 @@
 import { Volume2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "#src/shared/components/ui/button";
 import { Label } from "#src/shared/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
@@ -41,6 +41,8 @@ export const AudioOutputSelector = ({
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [hasAutoRequestedOutputAccess, setHasAutoRequestedOutputAccess] = useState(false);
+  const followSystemDefaultRef = useRef(true);
+  const previousInferredDefaultRef = useRef("");
 
   const open = mode === "inline" ? true : popoverOpen;
 
@@ -70,15 +72,36 @@ export const AudioOutputSelector = ({
 
   useEffect(() => {
     if (devices.length === 0) return;
-    if (value && devices.some((device) => device.deviceId === value)) return;
 
-    const fallbackDeviceId = inferredDefaultDeviceId || devices[0]?.deviceId;
-    if (fallbackDeviceId) {
+    const inferredDefaultChanged =
+      Boolean(previousInferredDefaultRef.current) &&
+      Boolean(inferredDefaultDeviceId) &&
+      previousInferredDefaultRef.current !== inferredDefaultDeviceId;
+    previousInferredDefaultRef.current = inferredDefaultDeviceId;
+
+    const hasCurrent = value && devices.some((device) => device.deviceId === value);
+    if (hasCurrent) {
+      if (
+        followSystemDefaultRef.current &&
+        inferredDefaultChanged &&
+        value !== inferredDefaultDeviceId
+      ) {
+        onValueChange(inferredDefaultDeviceId);
+      }
+      return;
+    }
+
+    // On startup (empty value) or after device removal, pick the effective default.
+    const fallbackDeviceId = inferredDefaultDeviceId || devices[0]?.deviceId || "";
+    if (!fallbackDeviceId) return;
+    if (value !== fallbackDeviceId) {
+      followSystemDefaultRef.current = true;
       onValueChange(fallbackDeviceId);
     }
   }, [devices, inferredDefaultDeviceId, onValueChange, value]);
 
   const handleDeviceChange = (deviceId: string) => {
+    followSystemDefaultRef.current = false;
     onValueChange(deviceId);
     void requestOutputAccess({
       desiredDeviceId: deviceId,
