@@ -7,9 +7,11 @@ export type HSVViewportMode =
 export interface HSVSamplingConfig {
   viewportMode: HSVViewportMode;
   currentImageId: string | null;
+  panInteractionEnabled: boolean;
 }
 
 export const defaultHSVSamplingConfig: HSVSamplingConfig = {
   viewportMode: { kind: "contain" },
   currentImageId: null,
+  panInteractionEnabled: false,
 };

@@ -42,6 +42,7 @@ export const HSVSettingsPanel = ({
     await handleImageFile(file);
   };
   const isCoverMode = config.viewportMode.kind === "cover";
+  const isPanEnabled = config.panInteractionEnabled;
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -71,15 +72,30 @@ export const HSVSettingsPanel = ({
         <Switch
           id="cover-toggle"
           checked={isCoverMode}
-          onCheckedChange={(checked) =>
-            setConfig({
+          onCheckedChange={(checked) => {
+            const updates: Partial<HSVSamplingConfig> = {
               viewportMode: checked
                 ? isCoverMode
                   ? config.viewportMode
                   : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 }
                 : { kind: "contain" },
-            })
-          }
+            };
+            if (!checked) {
+              updates.panInteractionEnabled = false;
+            }
+            setConfig(updates);
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-sm font-medium" htmlFor="pan-toggle">
+          Enable pan gesture
+        </Label>
+        <Switch
+          id="pan-toggle"
+          checked={isPanEnabled}
+          disabled={!isCoverMode}
+          onCheckedChange={(checked) => setConfig({ panInteractionEnabled: checked })}
         />
       </div>
       <button

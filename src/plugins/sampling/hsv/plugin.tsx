@@ -193,14 +193,14 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             const canvas = getCanvas();
             if (!canvas) return null;
 
-            const { viewportMode } = getConfig();
-            const coverModeEnabled = viewportMode.kind === "cover";
+            const { viewportMode, panInteractionEnabled } = getConfig();
+            const panModeEnabled = viewportMode.kind === "cover" && panInteractionEnabled;
 
             // Update cursor styles
-            canvas.style.cursor = coverModeEnabled ? "grab" : "default";
-            canvas.style.touchAction = coverModeEnabled ? "none" : "auto";
+            canvas.style.cursor = panModeEnabled ? "grab" : "default";
+            canvas.style.touchAction = panModeEnabled ? "none" : "auto";
 
-            if (!coverModeEnabled) return null;
+            if (!panModeEnabled) return null;
 
             // Pan/drag state
             let dragging = false;
@@ -285,12 +285,15 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           // Initial setup
           panZoomCleanup = setupPanZoom();
 
-          // Re-setup when viewport mode kind changes
+          // Re-setup when viewport mode kind or pan interaction mode changes
           let previousKind = getConfig().viewportMode.kind;
+          let previousPanEnabled = getConfig().panInteractionEnabled;
           const panZoomUnsub = runtime.subscribeConfig((currentConfig) => {
             const currentKind = currentConfig.viewportMode.kind;
-            if (currentKind !== previousKind) {
+            const currentPanEnabled = currentConfig.panInteractionEnabled;
+            if (currentKind !== previousKind || currentPanEnabled !== previousPanEnabled) {
               previousKind = currentKind;
+              previousPanEnabled = currentPanEnabled;
               panZoomCleanup?.();
               panZoomCleanup = setupPanZoom();
             }
