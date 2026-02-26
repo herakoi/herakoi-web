@@ -1,5 +1,6 @@
 import { Frequency } from "tone";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
@@ -10,6 +11,7 @@ import {
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
 import type { PianoSamplerConfig } from "../config";
+import { usePianoSamplerAudioStore } from "../store";
 
 const NOTE_DURATIONS = ["32n", "16n", "8n", "4n", "2n", "1n", "0.5"] as const;
 
@@ -22,9 +24,12 @@ export const PianoSamplerSettingsPanel = ({
   setConfig,
 }: PluginSettingsPanelProps<PianoSamplerConfig>) => {
   const { noteMin, noteMax, velocityMin, velocityMax, noteDuration } = config;
+  const sinkId = usePianoSamplerAudioStore((state) => state.sinkId);
+  const setSinkId = usePianoSamplerAudioStore((state) => state.setSinkId);
 
   return (
     <div className="space-y-4">
+      <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
       <div className="space-y-2">
         <Label>
           MIDI note range ({midiToNoteName(noteMin)} – {midiToNoteName(noteMax)})

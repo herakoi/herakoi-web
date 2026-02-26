@@ -1,4 +1,4 @@
-import { Frequency, now, Sampler, start } from "tone";
+import { Frequency, getContext, now, Sampler, setContext, start } from "tone";
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
 
 const SALAMANDER_BASE_URL = "https://tonejs.github.io/audio/salamander/";
@@ -42,7 +42,14 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   velocityMin?: number;
   velocityMax?: number;
   noteDuration?: string;
+  masterVolume?: number;
+  muted?: boolean;
+  sinkId?: string;
 }
+
+type SinkableAudioContext = AudioContext & {
+  setSinkId?: (sinkId: string) => Promise<void>;
+};
 
 export class PianoSamplerSonifier implements Sonifier {
   private sampler: Sampler | null = null;
@@ -52,12 +59,16 @@ export class PianoSamplerSonifier implements Sonifier {
   private lastNotes = new Map<string, number>();
   /** Stored so stop() can abort a pending initialize() load. */
   private loadResolver: ((aborted: boolean) => void) | null = null;
+  private ownsToneContext = false;
 
   private noteMin = 36;
   private noteMax = 83;
   private velocityMin = 40;
   private velocityMax = 127;
   private noteDuration = "8n";
+  private masterVolume = 1;
+  private muted = false;
+  private sinkId = "";
 
   constructor(options: PianoSamplerSonifierOptions = {}) {
     this.configure(options);
@@ -66,6 +77,8 @@ export class PianoSamplerSonifier implements Sonifier {
   async initialize(): Promise<ErrorOr<undefined>> {
     if (this.initialized) return;
     if (this.stopped) return new Error("PianoSamplerSonifier was stopped before initialization");
+
+    this.ensureSinkCapableToneContext();
 
     const aborted = await new Promise<boolean>((resolve) => {
       this.loadResolver = resolve;
@@ -99,6 +112,11 @@ export class PianoSamplerSonifier implements Sonifier {
     document.addEventListener("click", resumeOnInteraction, { once: true, capture: true });
     document.addEventListener("keydown", resumeOnInteraction, { once: true, capture: true });
     document.addEventListener("touchstart", resumeOnInteraction, { once: true, capture: true });
+
+    this.applyOutputMixState();
+    if (this.sinkId) {
+      await this.setOutputSinkId(this.sinkId);
+    }
 
     this.initialized = true;
   }
@@ -162,6 +180,11 @@ export class PianoSamplerSonifier implements Sonifier {
       this.sampler.dispose();
       this.sampler = null;
     }
+    if (this.ownsToneContext) {
+      const rawContext = this.getRawAudioContext();
+      void rawContext?.close().catch(() => {});
+      this.ownsToneContext = false;
+    }
     this.lastNotes.clear();
   }
 
@@ -171,6 +194,61 @@ export class PianoSamplerSonifier implements Sonifier {
     if (options.velocityMin !== undefined) this.velocityMin = options.velocityMin;
     if (options.velocityMax !== undefined) this.velocityMax = options.velocityMax;
     if (options.noteDuration !== undefined) this.noteDuration = options.noteDuration;
+    if (options.masterVolume !== undefined) {
+      this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
+    }
+    if (options.muted !== undefined) this.muted = options.muted;
+    if (options.sinkId !== undefined) {
+      this.sinkId = options.sinkId;
+      void this.setOutputSinkId(options.sinkId);
+    }
+    this.applyOutputMixState();
+  }
+
+  async setOutputSinkId(sinkId: string): Promise<boolean> {
+    this.sinkId = sinkId;
+
+    const rawContext = this.getRawAudioContext();
+    if (typeof rawContext.setSinkId !== "function") {
+      return false;
+    }
+
+    try {
+      await rawContext.setSinkId(sinkId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private ensureSinkCapableToneContext(): void {
+    const rawContext = this.getRawAudioContext();
+    if (typeof rawContext.setSinkId === "function") return;
+    if (typeof window === "undefined") return;
+    if (!window.AudioContext) return;
+
+    try {
+      const nativeContext = new window.AudioContext();
+      setContext(nativeContext);
+      this.ownsToneContext = true;
+    } catch {
+      this.ownsToneContext = false;
+    }
+  }
+
+  private getRawAudioContext(): SinkableAudioContext {
+    return getContext().rawContext as SinkableAudioContext;
+  }
+
+  private applyOutputMixState(): void {
+    if (!this.sampler) return;
+    const effectiveVolume = this.muted ? 0 : this.masterVolume;
+    this.sampler.volume.value = this.linearGainToDb(effectiveVolume);
+  }
+
+  private linearGainToDb(gain: number): number {
+    if (gain <= 0) return -60;
+    return 20 * Math.log10(gain);
   }
 
   private pickNumber(source: Record<string, number>, keys: string[]): number | null {

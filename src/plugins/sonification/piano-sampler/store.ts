@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-const OSCILLATOR_AUDIO_STATE_KEY = "herakoi.oscillator-audio.v1";
+const PIANO_SAMPLER_AUDIO_STATE_KEY = "herakoi.piano-sampler-audio.v1";
 
-type OscillatorAudioState = {
+type PianoSamplerAudioState = {
   sinkId: string;
   volume: number;
   muted: boolean;
@@ -16,7 +16,7 @@ const storage = typeof window === "undefined" ? undefined : createJSONStorage(()
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
-export const useOscillatorAudioStore = create<OscillatorAudioState>()(
+export const usePianoSamplerAudioStore = create<PianoSamplerAudioState>()(
   persist(
     (set) => ({
       sinkId: "",
@@ -27,7 +27,7 @@ export const useOscillatorAudioStore = create<OscillatorAudioState>()(
       setMuted: (muted) => set({ muted }),
     }),
     {
-      name: OSCILLATOR_AUDIO_STATE_KEY,
+      name: PIANO_SAMPLER_AUDIO_STATE_KEY,
       storage,
       partialize: (state) => ({
         sinkId: state.sinkId,

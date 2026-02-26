@@ -3,7 +3,6 @@ import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
 import { NotificationArea } from "./components/NotificationArea";
-import { SonificationPanel } from "./components/panels/SonificationPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
@@ -34,12 +33,18 @@ const App = () => {
   // Idle dimming: dim UI after idle when points are detected
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
 
-  const { sections, SamplingToolbar, DockPanel, VisualizerDisplays, PluginNotificationComponents } =
-    usePluginUi({
-      config: engineConfig,
-      startTransport,
-      stopTransport,
-    });
+  const {
+    sections,
+    SamplingToolbar,
+    SonificationPanel,
+    DockPanel,
+    VisualizerDisplays,
+    PluginNotificationComponents,
+  } = usePluginUi({
+    config: engineConfig,
+    startTransport,
+    stopTransport,
+  });
 
   const isRunning = transportStatus.status === "running";
   const isInitializing = engineStatus === "initializing";
@@ -138,7 +143,11 @@ const App = () => {
       </header>
 
       <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
-      <SonificationPanel className="transition-opacity" style={uiFadeStyle} />
+      {SonificationPanel ? (
+        <div className="transition-opacity" style={uiFadeStyle}>
+          <SonificationPanel />
+        </div>
+      ) : null}
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (

@@ -6,6 +6,7 @@ import type {
 } from "#src/core/plugin";
 import { defineSonificationPlugin } from "#src/core/plugin";
 import { OscillatorSettingsPanel } from "./components/SettingsPanel";
+import { OscillatorSonificationPanel } from "./components/SonificationPanel";
 import {
   defaultOscillatorConfig,
   type OscillatorConfig,
@@ -16,6 +17,7 @@ import { useOscillatorAudioStore } from "./store";
 
 const ui: PluginUISlots<OscillatorConfig> = {
   SettingsPanel: OscillatorSettingsPanel,
+  SonificationPanel: OscillatorSonificationPanel,
 };
 
 export const plugin: SonificationPluginDefinition<
