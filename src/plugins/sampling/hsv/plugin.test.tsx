@@ -27,6 +27,8 @@ const mocks = vi.hoisted(() => ({
     return null;
   }),
   setImageReady: vi.fn(),
+  setCoverModeActive: vi.fn(),
+  notifyCoverModeActivated: vi.fn(),
 }));
 
 class InstantImage {
@@ -70,6 +72,8 @@ vi.mock("./runtimeStore", () => ({
   useHSVRuntimeStore: {
     getState: () => ({
       setImageReady: mocks.setImageReady,
+      setCoverModeActive: mocks.setCoverModeActive,
+      notifyCoverModeActivated: mocks.notifyCoverModeActivated,
     }),
   },
 }));
