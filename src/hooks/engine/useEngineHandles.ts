@@ -1,4 +1,4 @@
-import { isError, tryAsync } from "errore";
+import { isError } from "errore";
 import {
   type MutableRefObject,
   type RefObject,
@@ -117,21 +117,15 @@ export const useEngineHandles = (params: {
         const abortController = new AbortController();
         initAbortRef.current = abortController;
 
-        const result = await tryAsync({
-          try: async () => {
-            const { pluginConfigs } = useAppConfigStore.getState();
-            return runEngineInitTransaction({
-              selection: nextSelection,
-              signal: abortController.signal,
-              config,
-              snapshot: snapshotRef.current,
-              pluginConfigs,
-              imageCanvasRef,
-              imageOverlayRef,
-            });
-          },
-          catch: (error) =>
-            error instanceof Error ? error : new Error("Engine initialization failed."),
+        const { pluginConfigs } = useAppConfigStore.getState();
+        const result = await runEngineInitTransaction({
+          selection: nextSelection,
+          signal: abortController.signal,
+          config,
+          snapshot: snapshotRef.current,
+          pluginConfigs,
+          imageCanvasRef,
+          imageOverlayRef,
         });
         if (initAbortRef.current === abortController) {
           initAbortRef.current = null;
@@ -143,7 +137,6 @@ export const useEngineHandles = (params: {
           setStatus(result);
           continue;
         }
-        if (!mountedRef.current) return;
         commitEngineSnapshotRef.current?.(result);
       }
     } finally {

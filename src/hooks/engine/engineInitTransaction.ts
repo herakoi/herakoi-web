@@ -26,10 +26,7 @@ export const runEngineInitTransaction = async (params: {
 }): Promise<Error | { ids: ActiveEnginePluginIds; handles: EngineHandles }> => {
   const { selection, signal, config, snapshot, pluginConfigs, imageCanvasRef, imageOverlayRef } =
     params;
-  const abortIfNeeded = () => {
-    if (!signal.aborted) return;
-    throw new Error("Engine initialization aborted.");
-  };
+  const getAbortError = () => (signal.aborted ? new Error("Engine initialization aborted.") : null);
 
   const resolvedActivePlugins = resolveActiveEnginePlugins({
     config,
@@ -38,7 +35,8 @@ export const runEngineInitTransaction = async (params: {
     createRuntimeContext: createAppConfigPluginRuntimeContext,
   });
   if (isError(resolvedActivePlugins)) return resolvedActivePlugins;
-  abortIfNeeded();
+  const abortedAfterResolve = getAbortError();
+  if (abortedAfterResolve) return abortedAfterResolve;
 
   const ids: ActiveEnginePluginIds = {
     detectionPluginId: resolvedActivePlugins.detection.id,
@@ -55,7 +53,8 @@ export const runEngineInitTransaction = async (params: {
 
   await using initCleanup = new AsyncDisposableStack();
   const handlesResult = await createEngineHandles(resolvedActivePlugins);
-  abortIfNeeded();
+  const abortedAfterCreate = getAbortError();
+  if (abortedAfterCreate) return abortedAfterCreate;
   if (isError(handlesResult)) return handlesResult;
 
   const nextHandles: EngineHandles = {
@@ -74,11 +73,13 @@ export const runEngineInitTransaction = async (params: {
     imageOverlayRef,
     imageCanvasRef,
   });
-  abortIfNeeded();
+  const abortedAfterInitialize = getAbortError();
+  if (abortedAfterInitialize) return abortedAfterInitialize;
   if (isError(initializeResult)) return initializeResult;
 
   const startResult = await startEngineDetection(nextHandles.detectorHandle);
-  abortIfNeeded();
+  const abortedAfterStart = getAbortError();
+  if (abortedAfterStart) return abortedAfterStart;
   if (isError(startResult)) return startResult;
 
   initCleanup.move();
