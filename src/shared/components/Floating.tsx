@@ -68,7 +68,6 @@ export const Floating = ({
   keyboardStep = 10,
   keyboardStepShift = 40,
   forbiddenRefs,
-  moveHandleAriaLabel = "Move floating panel",
   onChange,
   children,
 }: FloatingProps) => {
