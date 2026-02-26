@@ -56,6 +56,7 @@ export const useSonificationEngine = (
   const samplerHandleRef = useRef<SamplerHandle | null>(null);
   const sonifierHandleRef = useRef<SonifierHandle | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const startSessionIdRef = useRef(0);
 
   const visualizerFrameDataRef = useRef<VisualizerFrameData>({
     detection: { points: [], handDetected: false },
@@ -79,13 +80,23 @@ export const useSonificationEngine = (
   }, []);
 
   const start = useCallback(async (): Promise<SonificationEngineStartResult> => {
+    const sessionId = ++startSessionIdRef.current;
+    const isCurrentSession = () => startSessionIdRef.current === sessionId;
+    const setStatusIfCurrent = (nextStatus: Parameters<typeof setStatus>[0]) => {
+      if (!isCurrentSession()) return;
+      setStatus(nextStatus);
+    };
+
+    // Ensure at most one active engine session (covers restart/start spam).
+    disposeActiveHandles();
+
     if (!imageCanvasRef.current) {
       const error = new EngineCanvasNotReadyError();
-      setStatus({ status: "error", error });
+      setStatusIfCurrent({ status: "error", error });
       console.error("Engine start failed:", error);
       return error;
     }
-    setStatus({ status: "initializing" });
+    setStatusIfCurrent({ status: "initializing" });
 
     // 1) Resolve active plugins.
     const { activePlugins, pluginConfigs } = useAppConfigStore.getState();
@@ -96,7 +107,7 @@ export const useSonificationEngine = (
       createRuntimeContext: createAppConfigPluginRuntimeContext,
     });
     if (isError(resolvedActivePlugins)) {
-      setStatus({ status: "error", error: resolvedActivePlugins });
+      setStatusIfCurrent({ status: "error", error: resolvedActivePlugins });
       console.error("Engine start failed:", resolvedActivePlugins);
       return resolvedActivePlugins;
     }
@@ -104,8 +115,11 @@ export const useSonificationEngine = (
     // 2) Create plugin handles.
     await using startupCleanup = new AsyncDisposableStack();
     const handlesResult = await createEngineHandles(resolvedActivePlugins);
+    if (!isCurrentSession()) {
+      return new Error("Engine start superseded by a newer session.");
+    }
     if (isError(handlesResult)) {
-      setStatus({ status: "error", error: handlesResult });
+      setStatusIfCurrent({ status: "error", error: handlesResult });
       console.error("Plugin creation failed:", handlesResult);
       return handlesResult;
     }
@@ -133,8 +147,11 @@ export const useSonificationEngine = (
       imageOverlayRef,
       imageCanvasRef,
     });
+    if (!isCurrentSession()) {
+      return new Error("Engine start superseded by a newer session.");
+    }
     if (isError(initializeResult)) {
-      setStatus({ status: "error", error: initializeResult });
+      setStatusIfCurrent({ status: "error", error: initializeResult });
       console.error("Engine initialization failed:", initializeResult);
       return initializeResult;
     }
@@ -190,8 +207,11 @@ export const useSonificationEngine = (
     // 5) Start detection and post-start setup.
     resizeCanvasRefToContainer(imageOverlayRef);
     const startResult = await startEngineDetection(dh);
+    if (!isCurrentSession()) {
+      return new Error("Engine start superseded by a newer session.");
+    }
     if (isError(startResult)) {
-      setStatus({ status: "error", error: startResult });
+      setStatusIfCurrent({ status: "error", error: startResult });
       console.error("Engine start failed:", startResult);
       return startResult;
     }
@@ -206,7 +226,7 @@ export const useSonificationEngine = (
       },
     });
 
-    setStatus({ status: "running" });
+    setStatusIfCurrent({ status: "running" });
     startupCleanup.move();
     return {
       status: "running",
@@ -219,6 +239,8 @@ export const useSonificationEngine = (
   }, [config, disposeActiveHandles, imageCanvasRef, imageOverlayRef, setStatus]);
 
   const stop = useCallback(() => {
+    // Invalidate any in-flight start() chain before disposing resources.
+    startSessionIdRef.current += 1;
     disposeActiveHandles();
     setStatus({ status: "idle" });
   }, [disposeActiveHandles, setStatus]);
