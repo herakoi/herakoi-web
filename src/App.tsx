@@ -1,4 +1,4 @@
-import { Maximize, Minimize } from "lucide-react";
+import { Maximize, Minimize, SlidersHorizontal } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
@@ -62,6 +62,7 @@ const App = () => {
     icon: typeof Maximize | typeof Minimize;
   } | null>(null);
   const [showFullscreenHint, setShowFullscreenHint] = useState(fullscreenAvailable);
+  const [showPluginSwitchHint, setShowPluginSwitchHint] = useState(true);
   const fullscreenNoticeTimeoutRef = useRef<number | null>(null);
   const fullscreenSyncReadyRef = useRef(false);
   const previousFullscreenRef = useRef(false);
@@ -192,6 +193,13 @@ const App = () => {
             message="Tip: double-click the canvas or use the fullscreen button in controls."
             icon={Maximize}
             onDismiss={() => setShowFullscreenHint(false)}
+          />
+        ) : null}
+        {showPluginSwitchHint ? (
+          <PluginNotification
+            message="Tip: open Settings, then use the Plugin selector at the top of each tab to switch plugin."
+            icon={SlidersHorizontal}
+            onDismiss={() => setShowPluginSwitchHint(false)}
           />
         ) : null}
         {fullscreenNotice ? (
