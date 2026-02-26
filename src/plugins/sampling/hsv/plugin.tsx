@@ -231,6 +231,16 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             let rafId = 0;
             let pendingX = 0;
             let pendingY = 0;
+            let webkitGestureStart: {
+              x: number;
+              y: number;
+              viewport: {
+                kind: "cover";
+                pan: { x: number; y: number };
+                zoom: number;
+                rotation: number;
+              };
+            } | null = null;
 
             const applyPan = () => {
               if (!pendingX && !pendingY) return;
@@ -264,6 +274,27 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
                   zoom: nextZoom,
                 },
               });
+            };
+
+            const applyWheelRotate = (delta: number) => {
+              const currentViewportMode = getConfig().viewportMode;
+              if (currentViewportMode.kind !== "cover") return;
+              const nextRotation = normalizeRotation(
+                (currentViewportMode.rotation ?? 0) - delta * 0.15,
+              );
+              if (Math.abs(nextRotation - (currentViewportMode.rotation ?? 0)) < 0.01) return;
+              runtime.setConfig({
+                viewportMode: {
+                  ...currentViewportMode,
+                  rotation: nextRotation,
+                },
+              });
+            };
+
+            const isLikelyTrackpadWheel = (event: WheelEvent) => {
+              if (event.deltaMode !== 0) return false;
+              if (event.ctrlKey) return true;
+              return Math.abs(event.deltaX) > 0 || Math.abs(event.deltaY) < 40;
             };
 
             const schedulePan = () => {
@@ -361,7 +392,95 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
             const onWheel = (event: WheelEvent) => {
               event.preventDefault();
-              applyWheelZoom(event);
+              if (pointers.size > 0) return;
+
+              const trackpadWheel = isLikelyTrackpadWheel(event);
+              if (!trackpadWheel) {
+                if (event.shiftKey) {
+                  applyWheelRotate(event.deltaY);
+                  return;
+                }
+                applyWheelZoom(event);
+                return;
+              }
+
+              // Trackpad gestures:
+              // - pinch (ctrlKey) -> zoom
+              // - shift + two-finger -> rotate
+              // - two-finger scroll -> pan
+              if (event.ctrlKey) {
+                applyWheelZoom(event);
+                return;
+              }
+              if (event.shiftKey) {
+                applyWheelRotate(event.deltaY);
+                return;
+              }
+
+              pendingX += -event.deltaX;
+              pendingY += -event.deltaY;
+              schedulePan();
+            };
+
+            const onGestureStart = (event: Event) => {
+              event.preventDefault();
+              const currentViewportMode = getConfig().viewportMode;
+              if (currentViewportMode.kind !== "cover") return;
+              const gestureEvent = event as Event & { clientX?: number; clientY?: number };
+              webkitGestureStart = {
+                x: gestureEvent.clientX ?? 0,
+                y: gestureEvent.clientY ?? 0,
+                viewport: {
+                  ...currentViewportMode,
+                  rotation: currentViewportMode.rotation ?? 0,
+                },
+              };
+            };
+
+            const onGestureChange = (event: Event) => {
+              event.preventDefault();
+              if (!webkitGestureStart) return;
+              const gestureEvent = event as Event & {
+                scale?: number;
+                rotation?: number;
+                clientX?: number;
+                clientY?: number;
+              };
+              const scale = Number.isFinite(gestureEvent.scale)
+                ? (gestureEvent.scale as number)
+                : 1;
+              const rotation = Number.isFinite(gestureEvent.rotation)
+                ? (gestureEvent.rotation as number)
+                : 0;
+              const nextZoom = Math.max(
+                0.2,
+                Math.min(10, webkitGestureStart.viewport.zoom * scale),
+              );
+              const nextRotation = normalizeRotation(
+                webkitGestureStart.viewport.rotation + rotation,
+              );
+              const nextPanX =
+                webkitGestureStart.viewport.pan.x +
+                (gestureEvent.clientX ?? webkitGestureStart.x) -
+                webkitGestureStart.x;
+              const nextPanY =
+                webkitGestureStart.viewport.pan.y +
+                (gestureEvent.clientY ?? webkitGestureStart.y) -
+                webkitGestureStart.y;
+
+              runtime.setConfig({
+                viewportMode: {
+                  ...webkitGestureStart.viewport,
+                  zoom: nextZoom,
+                  rotation: nextRotation,
+                  pan: { x: nextPanX, y: nextPanY },
+                },
+              });
+            };
+
+            const onGestureEnd = (event: Event) => {
+              event.preventDefault();
+              webkitGestureStart = null;
             };
 
             const endPointer = (event: PointerEvent) => {
@@ -398,6 +517,15 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             canvas.addEventListener("pointerup", endPointer);
             canvas.addEventListener("pointercancel", endPointer);
             canvas.addEventListener("wheel", onWheel, { passive: false });
+            canvas.addEventListener("gesturestart", onGestureStart as EventListener, {
+              passive: false,
+            });
+            canvas.addEventListener("gesturechange", onGestureChange as EventListener, {
+              passive: false,
+            });
+            canvas.addEventListener("gestureend", onGestureEnd as EventListener, {
+              passive: false,
+            });
 
             return () => {
               canvas.removeEventListener("pointerdown", onPointerDown);
@@ -405,6 +533,9 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               canvas.removeEventListener("pointerup", endPointer);
               canvas.removeEventListener("pointercancel", endPointer);
               canvas.removeEventListener("wheel", onWheel);
+              canvas.removeEventListener("gesturestart", onGestureStart as EventListener);
+              canvas.removeEventListener("gesturechange", onGestureChange as EventListener);
+              canvas.removeEventListener("gestureend", onGestureEnd as EventListener);
               canvas.style.cursor = "default";
               canvas.style.touchAction = "auto";
               if (rafId) cancelAnimationFrame(rafId);

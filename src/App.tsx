@@ -55,7 +55,7 @@ const App = () => {
   }, [autoStartEnabled, engineStatus, startTransport, transportStatus.status]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <main className="relative min-h-screen touch-none overscroll-none overflow-hidden bg-background text-foreground">
       <a
         href="#herakoi-main-canvas"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring"
@@ -67,7 +67,7 @@ const App = () => {
           ref={imageCanvasRef}
           id="herakoi-main-canvas"
           tabIndex={-1}
-          className="h-full w-full"
+          className="h-full w-full touch-none"
           role="img"
           aria-label="Herakoi audio-visualizer output"
         />
