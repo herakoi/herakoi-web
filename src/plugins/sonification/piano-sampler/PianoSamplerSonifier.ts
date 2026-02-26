@@ -59,7 +59,6 @@ export class PianoSamplerSonifier implements Sonifier {
   private lastNotes = new Map<string, number>();
   /** Stored so stop() can abort a pending initialize() load. */
   private loadResolver: ((aborted: boolean) => void) | null = null;
-  private ownsToneContext = false;
 
   private noteMin = 36;
   private noteMax = 83;
@@ -180,11 +179,8 @@ export class PianoSamplerSonifier implements Sonifier {
       this.sampler.dispose();
       this.sampler = null;
     }
-    if (this.ownsToneContext) {
-      const rawContext = this.getRawAudioContext();
-      void rawContext?.close().catch(() => {});
-      this.ownsToneContext = false;
-    }
+    // Tone uses a shared global context. Closing it during plugin switches can leave
+    // future plugin instances bound to a closed context and block audio recovery.
     this.lastNotes.clear();
   }
 
@@ -223,17 +219,14 @@ export class PianoSamplerSonifier implements Sonifier {
 
   private ensureSinkCapableToneContext(): void {
     const rawContext = this.getRawAudioContext();
-    if (typeof rawContext.setSinkId === "function") return;
+    if (rawContext.state !== "closed" && typeof rawContext.setSinkId === "function") return;
     if (typeof window === "undefined") return;
     if (!window.AudioContext) return;
 
     try {
       const nativeContext = new window.AudioContext();
       setContext(nativeContext);
-      this.ownsToneContext = true;
-    } catch {
-      this.ownsToneContext = false;
-    }
+    } catch {}
   }
 
   private getRawAudioContext(): SinkableAudioContext {
