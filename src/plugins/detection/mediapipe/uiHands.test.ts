@@ -38,17 +38,34 @@ describe("bindHandsUi", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const onHandsDrawnCallbacks: Array<(lms: unknown[]) => void> = [];
-    const onPointsDetectedCallbacks: Array<
-      (pts: Array<{ id: string; x: number; y: number }>) => void
-    > = [];
+    const queuedPoints: Array<Array<{ id: string; x: number; y: number }>> = [];
+    let pointWaiter: (() => void) | null = null;
+
+    const emitPoints = (pts: Array<{ id: string; x: number; y: number }>) => {
+      queuedPoints.push(pts);
+      pointWaiter?.();
+      pointWaiter = null;
+    };
+
+    const points = async function* (signal?: AbortSignal) {
+      while (!signal?.aborted) {
+        if (queuedPoints.length === 0) {
+          await new Promise<void>((resolve) => {
+            pointWaiter = resolve;
+          });
+          continue;
+        }
+        const nextPoints = queuedPoints.shift();
+        if (!nextPoints) continue;
+        yield nextPoints;
+      }
+    };
 
     detector = {
       onHandsDrawn: (cb: (lms: unknown[]) => void) => {
         onHandsDrawnCallbacks.push(cb);
       },
-      onPointsDetected: (cb: (pts: Array<{ id: string; x: number; y: number }>) => void) => {
-        onPointsDetectedCallbacks.push(cb);
-      },
+      points,
     } as unknown as MediaPipePointDetector;
 
     (detector as unknown as { __emitHands: (lms: unknown[]) => void }).__emitHands = (lms) => {
@@ -60,14 +77,10 @@ describe("bindHandsUi", () => {
       detector as unknown as {
         __emitPoints: (pts: Array<{ id: string; x: number; y: number }>) => void;
       }
-    ).__emitPoints = (pts) => {
-      for (const cb of onPointsDetectedCallbacks) {
-        cb(pts);
-      }
-    };
+    ).__emitPoints = emitPoints;
   });
 
-  it("draws on every overlay and clears each frame", () => {
+  it("draws on every overlay and clears each frame", async () => {
     const a = makeCanvas();
     const b = makeCanvas();
 
@@ -87,10 +100,12 @@ describe("bindHandsUi", () => {
         __emitPoints: (pts: Array<{ id: string; x: number; y: number }>) => void;
       }
     ).__emitPoints([{ id: "p1", x: 0.5, y: 0.5 }]);
-    expect(drawFingerFocus).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => {
+      expect(drawFingerFocus).toHaveBeenCalledTimes(2);
+    });
   });
 
-  it("projects points with cover fit to avoid landmark stretching", () => {
+  it("projects points with cover fit to avoid landmark stretching", async () => {
     const { canvas } = makeCanvas();
     canvas.width = 160;
     canvas.height = 90;
@@ -109,11 +124,12 @@ describe("bindHandsUi", () => {
       }
     ).__emitPoints([{ id: "p1", x: 0.5, y: 0 }]);
 
+    await vi.waitFor(() => {
+      expect(drawFingerFocus).toHaveBeenCalled();
+    });
     const firstCall = (drawFingerFocus as unknown as { mock: { calls: unknown[][] } }).mock
       .calls[0];
-    if (!firstCall) {
-      throw new Error("Expected drawFingerFocus to be called");
-    }
+    if (!firstCall) throw new Error("Expected drawFingerFocus to be called");
 
     const focus = firstCall[1] as { x: number; y: number };
     expect(focus.x).toBe(80);
