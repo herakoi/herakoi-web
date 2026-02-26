@@ -1,4 +1,12 @@
-import { ChevronDown, Crop, Hand, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  Crop,
+  Image as ImageIcon,
+  Lock,
+  LockOpen,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import {
@@ -123,12 +131,12 @@ export const HSVToolbarItems = ({
               isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
               !isCoverMode && "opacity-50",
             )}
-            aria-label="Toggle pan gesture mode"
+            aria-label={isPanEnabled ? "Lock image editing" : "Unlock image editing"}
             aria-pressed={isPanEnabled}
             disabled={!isCoverMode}
             onClick={() => setConfig({ panInteractionEnabled: !isPanEnabled })}
           >
-            <Hand className="h-4 w-4" />
+            {isPanEnabled ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
           </button>
           {coverMode && (
             <Popover>

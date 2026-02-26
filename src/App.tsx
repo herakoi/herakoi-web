@@ -1,4 +1,4 @@
-import { Crop, Maximize, Minimize } from "lucide-react";
+import { LockOpen, Maximize, Minimize } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
@@ -212,8 +212,8 @@ const App = () => {
         ) : null}
         {showCoverModeHint && isHSVSamplingActive && !isHSVCoverMode ? (
           <PluginNotification
-            message="Tip: enable Cover image in HSV settings to pan, zoom, and rotate the image."
-            icon={Crop}
+            message="Tip: enable Cover image, then unlock to pan, zoom, and rotate the image."
+            icon={LockOpen}
             onDismiss={() => setShowCoverModeHint(false)}
           />
         ) : null}
