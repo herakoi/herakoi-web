@@ -1,5 +1,12 @@
 import { isError, tryAsync } from "errore";
-import { type MutableRefObject, type RefObject, useEffect, useRef, useState } from "react";
+import {
+  type MutableRefObject,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { EngineConfig, VisualizerFrameData } from "#src/core/plugin";
 import { initializeAnalyserForVisualizer } from "#src/lib/engine/visualizerFrame";
 import { useAppConfigStore } from "#src/state/appConfigStore";
@@ -99,6 +106,51 @@ export const useEngineHandles = (params: {
   };
   commitEngineSnapshotRef.current = commitEngineSnapshot;
 
+  const drainInitQueue = useCallback(async () => {
+    inFlightRef.current = true;
+    try {
+      while (pendingSelectionRef.current) {
+        const nextSelection = pendingSelectionRef.current;
+        pendingSelectionRef.current = null;
+        setStatus("initializing");
+
+        const abortController = new AbortController();
+        initAbortRef.current = abortController;
+
+        const result = await tryAsync({
+          try: async () => {
+            const { pluginConfigs } = useAppConfigStore.getState();
+            return runEngineInitTransaction({
+              selection: nextSelection,
+              signal: abortController.signal,
+              config,
+              snapshot: snapshotRef.current,
+              pluginConfigs,
+              imageCanvasRef,
+              imageOverlayRef,
+            });
+          },
+          catch: (error) =>
+            error instanceof Error ? error : new Error("Engine initialization failed."),
+        });
+        if (initAbortRef.current === abortController) {
+          initAbortRef.current = null;
+        }
+
+        if (!mountedRef.current) return;
+        if (abortController.signal.aborted) continue;
+        if (isError(result)) {
+          setStatus(result);
+          continue;
+        }
+        if (!mountedRef.current) return;
+        commitEngineSnapshotRef.current?.(result);
+      }
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [config, imageCanvasRef, imageOverlayRef]);
+
   useEffect(() => {
     pendingSelectionRef.current = {
       detection: activeDetectionPluginId,
@@ -109,58 +161,8 @@ export const useEngineHandles = (params: {
       initAbortRef.current?.abort();
       return;
     }
-    void (async () => {
-      inFlightRef.current = true;
-      try {
-        while (pendingSelectionRef.current) {
-          const nextSelection = pendingSelectionRef.current;
-          pendingSelectionRef.current = null;
-          setStatus("initializing");
-
-          const abortController = new AbortController();
-          initAbortRef.current = abortController;
-
-          const result = await tryAsync({
-            try: async () => {
-              const { pluginConfigs } = useAppConfigStore.getState();
-              return runEngineInitTransaction({
-                selection: nextSelection,
-                signal: abortController.signal,
-                config,
-                snapshot: snapshotRef.current,
-                pluginConfigs,
-                imageCanvasRef,
-                imageOverlayRef,
-              });
-            },
-            catch: (error) =>
-              error instanceof Error ? error : new Error("Engine initialization failed."),
-          });
-          if (initAbortRef.current === abortController) {
-            initAbortRef.current = null;
-          }
-
-          if (!mountedRef.current) return;
-          if (abortController.signal.aborted) continue;
-          if (isError(result)) {
-            setStatus(result);
-            continue;
-          }
-          if (!mountedRef.current) return;
-          commitEngineSnapshotRef.current?.(result);
-        }
-      } finally {
-        inFlightRef.current = false;
-      }
-    })();
-  }, [
-    activeDetectionPluginId,
-    activeSamplingPluginId,
-    activeSonificationPluginId,
-    config,
-    imageCanvasRef,
-    imageOverlayRef,
-  ]);
+    void drainInitQueue();
+  }, [activeDetectionPluginId, activeSamplingPluginId, activeSonificationPluginId, drainInitQueue]);
 
   disposeEngineRef.current = disposeEngine;
 
