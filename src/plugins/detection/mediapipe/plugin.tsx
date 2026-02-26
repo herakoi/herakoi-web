@@ -1,9 +1,7 @@
-import { Hand } from "lucide-react";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPluginDefinition,
   PluginRuntimeContext,
-  PluginTabMeta,
   PluginUISlots,
 } from "#src/core/plugin";
 import { defineDetectionPlugin } from "#src/core/plugin";
@@ -19,12 +17,6 @@ import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";
 import { bindHandsUi } from "./uiHands";
 
-const settingsTab: PluginTabMeta = {
-  key: "input",
-  label: "Input",
-  icon: <Hand className="h-3.5 w-3.5" />,
-};
-
 const ui: PluginUISlots<MediaPipeConfig> = {
   SettingsPanel: MediaPipeSettingsPanel,
   DockPanel: MediaPipeDockPanel,
@@ -35,7 +27,6 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
   defineDetectionPlugin({
     id: mediaPipeDetectionPluginId,
     displayName: "MediaPipe Hands",
-    settingsTab,
     ui,
     config: {
       defaultConfig: defaultMediaPipeConfig,

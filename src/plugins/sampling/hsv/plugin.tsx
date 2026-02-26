@@ -1,7 +1,5 @@
-import { Image as ImageIcon } from "lucide-react";
 import type {
   PluginRuntimeContext,
-  PluginTabMeta,
   PluginUISlots,
   SamplerHandle,
   SamplingPluginDefinition,
@@ -15,12 +13,6 @@ import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
 import { getDefaultImageId, resolveImageSourceById } from "./lib/imageSourceResolver";
 import { hsvSamplingRefs } from "./refs";
 import { useHSVRuntimeStore } from "./runtimeStore";
-
-const settingsTab: PluginTabMeta = {
-  key: "image",
-  label: "Image",
-  icon: <ImageIcon className="h-3.5 w-3.5" />,
-};
 
 const ui: PluginUISlots<HSVSamplingConfig> = {
   SettingsPanel: HSVSettingsPanel,
@@ -52,7 +44,6 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
   defineSamplingPlugin({
     id: hsvSamplingPluginId,
     displayName: "HSV Color",
-    settingsTab,
     ui,
     config: {
       defaultConfig: defaultHSVSamplingConfig,

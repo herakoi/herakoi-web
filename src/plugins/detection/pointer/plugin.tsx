@@ -1,8 +1,6 @@
-import { Pointer } from "lucide-react";
 import type {
   DetectionPluginDefinition,
   PluginRuntimeContext,
-  PluginTabMeta,
   PluginUISlots,
 } from "#src/core/plugin";
 import { defineDetectionPlugin } from "#src/core/plugin";
@@ -17,12 +15,6 @@ import { PointerPointDetector } from "./PointerPointDetector";
 import { pointerDetectionRefs } from "./refs";
 import { bindPointerUi } from "./uiPointer";
 
-const settingsTab: PluginTabMeta = {
-  key: "pointer",
-  label: "Pointer",
-  icon: <Pointer className="h-3.5 w-3.5" />,
-};
-
 const ui: PluginUISlots<PointerDetectionConfig> = {
   SettingsPanel: PointerSettingsPanel,
 };
@@ -33,7 +25,6 @@ export const plugin: DetectionPluginDefinition<
 > = defineDetectionPlugin({
   id: pointerDetectionPluginId,
   displayName: "Mouse / Touch",
-  settingsTab,
   ui,
   config: {
     defaultConfig: defaultPointerDetectionConfig,

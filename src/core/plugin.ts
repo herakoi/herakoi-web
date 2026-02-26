@@ -12,7 +12,7 @@
  * runtime switching via a PluginSelector dropdown.
  */
 
-import type { ComponentType, ReactNode, RefObject } from "react";
+import type { ComponentType, RefObject } from "react";
 import type { ErrorOr, ImageSampler, PointDetector, Sonifier } from "#src/core/interfaces";
 
 // ──────────────────────────────────────────────────
@@ -66,16 +66,6 @@ export type PluginUISlots<TConfig> = {
   Notifications?: ComponentType;
 };
 
-/** Metadata for a settings panel tab. */
-export type PluginTabMeta = {
-  /** Unique key for the tab */
-  key: string;
-  /** Display label */
-  label: string;
-  /** Icon element (e.g., lucide-react icon) */
-  icon: ReactNode;
-};
-
 export type PluginConfigSpec<TConfig extends object> = {
   /** Default configuration used for reset and first run. */
   defaultConfig: TConfig;
@@ -126,8 +116,6 @@ export interface DetectionPlugin<
   readonly kind: "detection";
   readonly id: TPluginId;
   readonly displayName: string;
-  /** Tab metadata for the settings panel (null = no settings tab) */
-  readonly settingsTab: PluginTabMeta | null;
   /** UI components this plugin contributes */
   readonly ui: PluginUISlots<TConfig>;
   /** Default config and configuration metadata for this plugin. */
@@ -174,7 +162,6 @@ export interface SamplingPlugin<
   readonly kind: "sampling";
   readonly id: TPluginId;
   readonly displayName: string;
-  readonly settingsTab: PluginTabMeta | null;
   readonly ui: PluginUISlots<TConfig>;
   /** Default config and configuration metadata for this plugin. */
   readonly config: PluginConfigSpec<TConfig>;
@@ -205,7 +192,6 @@ export interface SonificationPlugin<
   readonly kind: "sonification";
   readonly id: TPluginId;
   readonly displayName: string;
-  readonly settingsTab: PluginTabMeta | null;
   readonly ui: PluginUISlots<TConfig>;
   /** Default config and configuration metadata for this plugin. */
   readonly config: PluginConfigSpec<TConfig>;
@@ -257,8 +243,6 @@ export interface VisualizationPlugin {
   readonly kind: "visualization";
   readonly id: string;
   readonly displayName: string;
-  /** Tab metadata for the settings panel (null = no settings tab) */
-  readonly settingsTab: PluginTabMeta | null;
   /** UI components this plugin contributes */
   readonly ui: {
     /** Main visualizer display component */

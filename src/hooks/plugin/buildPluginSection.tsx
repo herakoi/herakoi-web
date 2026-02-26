@@ -1,5 +1,4 @@
 import type { ComponentType, MutableRefObject } from "react";
-import type { PluginTabMeta } from "#src/core/plugin";
 import { PluginSelector } from "../../components/PluginSelector";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 
@@ -9,6 +8,7 @@ import type { SettingsPanelSection } from "../../components/SettingsPanel";
  * This prevents unnecessary section rebuilds when config changes.
  */
 type BuildPluginSectionParams<TPlugin> = {
+  tab: Pick<SettingsPanelSection, "key" | "label" | "icon">;
   label: string;
   pluginArray: readonly TPlugin[];
   activeId: string;
@@ -20,24 +20,23 @@ export function buildPluginSection<
   TPlugin extends {
     id: string;
     displayName: string;
-    settingsTab: PluginTabMeta | null;
     // biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires any to accept all plugin SettingsPanel types
     ui: { SettingsPanel?: ComponentType<any> };
   },
 >(params: BuildPluginSectionParams<TPlugin>): SettingsPanelSection | null {
-  const { label, pluginArray, activeId, configRef, onSwitchPlugin } = params;
+  const { tab, label, pluginArray, activeId, configRef, onSwitchPlugin } = params;
 
   const activePlugin = pluginArray.find((p) => p.id === activeId);
-  if (!activePlugin?.settingsTab || !activePlugin.ui.SettingsPanel) {
+  if (!activePlugin) {
     return null;
   }
 
   const Panel = activePlugin.ui.SettingsPanel;
 
   return {
-    key: activePlugin.settingsTab.key,
-    label: activePlugin.settingsTab.label,
-    icon: activePlugin.settingsTab.icon,
+    key: tab.key,
+    label: tab.label,
+    icon: tab.icon,
     render: () => {
       // Read from ref so values stay fresh while section object remains stable
       // Type assertion is safe: activePluginId guarantees config type matches Panel's expectations
@@ -54,7 +53,7 @@ export function buildPluginSection<
             activeId={activeId}
             onSelect={onSwitchPlugin}
           />
-          <Panel config={config as never} setConfig={setConfig} />
+          {Panel ? <Panel config={config as never} setConfig={setConfig} /> : null}
         </>
       );
     },

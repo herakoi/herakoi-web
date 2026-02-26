@@ -1,7 +1,5 @@
-import { Waves } from "lucide-react";
 import type {
   PluginRuntimeContext,
-  PluginTabMeta,
   PluginUISlots,
   SonificationPluginDefinition,
   SonifierHandle,
@@ -15,12 +13,6 @@ import {
 } from "./config";
 import { OscillatorSonifier } from "./OscillatorSonifier";
 
-const settingsTab: PluginTabMeta = {
-  key: "audio",
-  label: "Audio",
-  icon: <Waves className="h-3.5 w-3.5" />,
-};
-
 const ui: PluginUISlots<OscillatorConfig> = {
   SettingsPanel: OscillatorSettingsPanel,
 };
@@ -31,7 +23,6 @@ export const plugin: SonificationPluginDefinition<
 > = defineSonificationPlugin({
   id: oscillatorSonificationPluginId,
   displayName: "Web Audio Oscillator",
-  settingsTab,
   ui,
   config: {
     defaultConfig: defaultOscillatorConfig,

@@ -102,7 +102,6 @@ describe("useSonificationEngine plugin switching", () => {
           kind: "detection",
           id: "detection/a",
           displayName: "Detection A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createDetector: createDetectorA,
@@ -111,7 +110,6 @@ describe("useSonificationEngine plugin switching", () => {
           kind: "detection",
           id: "detection/b",
           displayName: "Detection B",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createDetector: createDetectorB,
@@ -122,7 +120,6 @@ describe("useSonificationEngine plugin switching", () => {
           kind: "sampling",
           id: "sampling/a",
           displayName: "Sampling A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSampler: vi.fn(() => ({
@@ -141,7 +138,6 @@ describe("useSonificationEngine plugin switching", () => {
           kind: "sonification",
           id: "sonification/a",
           displayName: "Sonification A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSonifier: vi.fn(() => ({
@@ -241,7 +237,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "detection",
           id: "detection/a",
           displayName: "Detection A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createDetector: vi.fn(() => ({
@@ -263,7 +258,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "sampling",
           id: "sampling/a",
           displayName: "Sampling A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSampler: vi.fn(() => ({
@@ -281,7 +275,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "sonification",
           id: "sonification/a",
           displayName: "Sonification A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSonifier: vi.fn(() => ({
@@ -356,7 +349,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "detection",
           id: "detection/a",
           displayName: "Detection A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createDetector: vi.fn(() => {
@@ -380,7 +372,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "sampling",
           id: "sampling/a",
           displayName: "Sampling A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSampler: vi.fn(() => {
@@ -401,7 +392,6 @@ describe("useSonificationEngine runtime errors", () => {
           kind: "sonification",
           id: "sonification/a",
           displayName: "Sonification A",
-          settingsTab: null,
           ui: {},
           config: { defaultConfig: {} },
           createSonifier: vi.fn(() => {
