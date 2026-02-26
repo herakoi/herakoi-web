@@ -19,11 +19,18 @@ export type OscillatorSonifierOptions = SonifierOptions & {
   minVol?: number;
   maxVol?: number;
   fadeMs?: number;
+  masterVolume?: number;
+  muted?: boolean;
+  sinkId?: string;
 };
 
 type ToneNodes = {
   osc: OscillatorNode;
   gain: GainNode;
+};
+
+type SinkableAudioContext = AudioContext & {
+  setSinkId?: (sinkId: string) => Promise<void>;
 };
 
 export type OscillatorSonifierAnalyserOptions = {
@@ -43,12 +50,16 @@ export class OscillatorSonifier implements Sonifier {
   private ctx: AudioContext | null;
   private nodes = new Map<string, ToneNodes>();
   private output: AudioNode | null = null;
+  private masterGain: GainNode | null = null;
   private analyser: AnalyserNode | null = null;
   private oscillatorType: OscillatorType = "sine";
   private minFreq = 200;
   private maxFreq = 700;
   private minVol = 0;
   private maxVol = 0.2;
+  private masterVolume = 1;
+  private muted = false;
+  private sinkId = "";
   private fadeMs = 100;
   private initialized = false;
   private stopped = false;
@@ -100,6 +111,10 @@ export class OscillatorSonifier implements Sonifier {
       });
     }
 
+    if (this.sinkId) {
+      await this.setOutputSinkId(this.sinkId);
+    }
+
     this.initialized = true;
   }
 
@@ -117,10 +132,20 @@ export class OscillatorSonifier implements Sonifier {
     if (options.minVol !== undefined) this.minVol = options.minVol;
     if (options.maxVol !== undefined) this.maxVol = options.maxVol;
     if (options.fadeMs !== undefined) this.fadeMs = options.fadeMs;
+    if (options.masterVolume !== undefined) {
+      this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
+    }
+    if (options.muted !== undefined) this.muted = options.muted;
+    if (options.sinkId !== undefined) {
+      this.sinkId = options.sinkId;
+      void this.setOutputSinkId(options.sinkId);
+    }
     if (options.volume !== undefined) {
       // Keep backward compatibility with SonifierOptions.volume as master gain.
       this.maxVol = options.volume;
     }
+
+    this.applyMasterGain();
   }
 
   processSamples(samples: Map<string, ImageSample>): ErrorOr<undefined> {
@@ -214,17 +239,34 @@ export class OscillatorSonifier implements Sonifier {
 
     if (this.output !== this.analyser) {
       this.output = this.analyser;
-      for (const { gain } of this.nodes.values()) {
+      if (this.masterGain) {
         try {
-          gain.disconnect();
+          this.masterGain.disconnect();
         } catch {
           // ignore - node may already be disconnected
         }
-        gain.connect(this.output);
+        this.masterGain.connect(this.output);
       }
     }
 
     return this.analyser;
+  }
+
+  async setOutputSinkId(sinkId: string): Promise<boolean> {
+    this.sinkId = sinkId;
+    if (!this.ctx) return false;
+
+    const ctx = this.ctx as SinkableAudioContext;
+    if (typeof ctx.setSinkId !== "function") {
+      return false;
+    }
+
+    try {
+      await ctx.setSinkId(sinkId);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private scale(byte: number, min: number, max: number): number {
@@ -247,7 +289,7 @@ export class OscillatorSonifier implements Sonifier {
 
     osc.type = this.oscillatorType;
     osc.connect(gain);
-    gain.connect(this.output ?? ctx.destination);
+    gain.connect(this.ensureMasterGain());
     osc.start();
 
     const toneNodes: ToneNodes = { osc, gain };
@@ -287,7 +329,32 @@ export class OscillatorSonifier implements Sonifier {
       throw new Error("OscillatorSonifier must be initialized before processing samples.");
     }
     this.output ??= this.ctx.destination;
+    this.ensureMasterGain();
     return this.ctx;
+  }
+
+  private ensureMasterGain(): GainNode {
+    const ctx = this.ensureContextWithoutMasterGain();
+    if (!this.masterGain) {
+      this.masterGain = ctx.createGain();
+      this.masterGain.connect(this.output ?? ctx.destination);
+      this.applyMasterGain();
+    }
+    return this.masterGain;
+  }
+
+  private ensureContextWithoutMasterGain(): AudioContext {
+    if (!this.ctx) {
+      throw new Error("OscillatorSonifier must be initialized before processing samples.");
+    }
+    this.output ??= this.ctx.destination;
+    return this.ctx;
+  }
+
+  private applyMasterGain(): void {
+    if (!this.masterGain || !this.ctx) return;
+    const nextGain = this.muted ? 0 : this.masterVolume;
+    this.masterGain.gain.setValueAtTime(nextGain, this.ctx.currentTime);
   }
 
   private pickNumber(source: Record<string, number>, keys: string[]): number | null {

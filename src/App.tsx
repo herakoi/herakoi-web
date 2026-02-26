@@ -3,6 +3,7 @@ import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
 import { NotificationArea } from "./components/NotificationArea";
+import { SonificationPanel } from "./components/panels/SonificationPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
@@ -137,6 +138,7 @@ const App = () => {
       </header>
 
       <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
+      <SonificationPanel className="transition-opacity" style={uiFadeStyle} />
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (
