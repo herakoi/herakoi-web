@@ -57,7 +57,7 @@ jobs:
 
       - name: Install Playwright browser runtime
         # Browser-project specs require a real Chromium binary + OS deps on the CI runner.
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm dlx playwright@1.58.2 install --with-deps chromium
 
       - name: Run Biome lint
         # We stick to lint-only mode in CI; automated fixes stay a developer responsibility.
