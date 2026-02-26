@@ -143,4 +143,25 @@ describe("PointerPointDetector", () => {
 
     expect(onDetected).toHaveBeenLastCalledWith([{ id: "pointer-touch-2", x: 0.8, y: 0.8 }]);
   });
+
+  it("clears active points when window loses focus", async () => {
+    const detector = new PointerPointDetector(() => canvas);
+    const onDetected = vi.fn();
+    detector.onPointsDetected(onDetected);
+
+    await detector.initialize();
+    detector.start();
+
+    window.dispatchEvent(
+      createPointerEvent("pointermove", {
+        clientX: 100,
+        clientY: 50,
+        pointerType: "mouse",
+        isPrimary: true,
+      }),
+    );
+    window.dispatchEvent(new Event("blur"));
+
+    expect(onDetected).toHaveBeenLastCalledWith([]);
+  });
 });

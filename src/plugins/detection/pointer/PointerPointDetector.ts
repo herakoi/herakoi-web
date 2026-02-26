@@ -35,6 +35,8 @@ export class PointerPointDetector implements PointDetector {
   private readonly onPointerDownBound: (event: PointerEvent) => void;
   private readonly onPointerUpBound: (event: PointerEvent) => void;
   private readonly onPointerCancelBound: (event: PointerEvent) => void;
+  private readonly onWindowBlurBound: () => void;
+  private readonly onVisibilityChangeBound: () => void;
 
   constructor(getOverlayCanvas: GetOverlayCanvas) {
     this.getOverlayCanvas = getOverlayCanvas;
@@ -42,6 +44,12 @@ export class PointerPointDetector implements PointDetector {
     this.onPointerDownBound = (event) => this.onPointerDown(event);
     this.onPointerUpBound = (event) => this.onPointerUp(event);
     this.onPointerCancelBound = (event) => this.onPointerCancel(event);
+    this.onWindowBlurBound = () => this.clearActivePoints();
+    this.onVisibilityChangeBound = () => {
+      if (document.hidden) {
+        this.clearActivePoints();
+      }
+    };
   }
 
   async initialize(): Promise<ErrorOr<undefined>> {
@@ -65,6 +73,8 @@ export class PointerPointDetector implements PointDetector {
     window.addEventListener("pointerdown", this.onPointerDownBound);
     window.addEventListener("pointerup", this.onPointerUpBound);
     window.addEventListener("pointercancel", this.onPointerCancelBound);
+    window.addEventListener("blur", this.onWindowBlurBound);
+    document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
   }
 
   stop(): void {
@@ -74,10 +84,11 @@ export class PointerPointDetector implements PointDetector {
     window.removeEventListener("pointerdown", this.onPointerDownBound);
     window.removeEventListener("pointerup", this.onPointerUpBound);
     window.removeEventListener("pointercancel", this.onPointerCancelBound);
+    window.removeEventListener("blur", this.onWindowBlurBound);
+    document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
 
     this.started = false;
-    this.activePoints.clear();
-    this.emitPoints([]);
+    this.clearActivePoints({ emitWhenAlreadyEmpty: true });
   }
 
   onPointsDetected(callback: PointDetectionCallback): void {
@@ -129,6 +140,15 @@ export class PointerPointDetector implements PointDetector {
 
   private onPointerCancel(event: PointerEvent): void {
     this.onPointerUp(event);
+  }
+
+  private clearActivePoints(options?: { emitWhenAlreadyEmpty?: boolean }): void {
+    const hasPoints = this.activePoints.size > 0;
+    this.activePoints.clear();
+
+    if (hasPoints || options?.emitWhenAlreadyEmpty) {
+      this.emitPoints([]);
+    }
   }
 
   private handleMouseMove(event: PointerEvent): void {
