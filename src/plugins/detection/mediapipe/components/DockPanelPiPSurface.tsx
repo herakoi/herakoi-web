@@ -6,6 +6,7 @@ type DockPanelPiPSurfaceProps = {
   isRunning: boolean;
   mirror: boolean;
   videoReady: boolean;
+  aspectRatio: number;
   children: ReactNode;
 };
 
@@ -15,11 +16,12 @@ export const DockPanelPiPSurface = ({
   isRunning,
   mirror,
   videoReady,
+  aspectRatio,
   children,
 }: DockPanelPiPSurfaceProps) => {
   return (
     <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur">
-      <div className="group relative aspect-video select-none">
+      <div className="group relative select-none" style={{ aspectRatio }}>
         <video
           ref={videoRef}
           autoPlay

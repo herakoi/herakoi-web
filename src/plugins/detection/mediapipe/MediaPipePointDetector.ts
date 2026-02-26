@@ -47,10 +47,10 @@ export interface MediaPipePointDetectorConfig {
   /** Specific video device ID. Empty/undefined = browser default. */
   deviceId?: string;
 
-  /** Camera resolution width (default: 640) */
+  /** Camera resolution width (optional ideal constraint) */
   cameraWidth?: number;
 
-  /** Camera resolution height (default: 480) */
+  /** Camera resolution height (optional ideal constraint) */
   cameraHeight?: number;
 }
 
@@ -297,8 +297,8 @@ export class MediaPipePointDetector implements PointDetector {
           await this.hands.send({ image: this.videoElement });
         }
       },
-      width: this.config.cameraWidth ?? (this.videoElement.width || 640),
-      height: this.config.cameraHeight ?? (this.videoElement.height || 480),
+      width: this.config.cameraWidth,
+      height: this.config.cameraHeight,
     });
   }
 }

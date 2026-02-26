@@ -24,6 +24,7 @@ const baseSurfaceProps = {
   isRunning: false,
   mirror: false,
   videoReady: true,
+  aspectRatio: 16 / 9,
 };
 
 function renderActions(props: Partial<typeof baseProps>) {

@@ -25,7 +25,7 @@ export const MediaPipeDockPanel = ({
   const setMirror = useDeviceStore((s) => s.setMirror);
   const restartCamera = useDeviceStore((s) => s.restartCamera);
 
-  const { videoRef, overlayRef, videoReady } = useMediaPipeDockBindings();
+  const { videoRef, overlayRef, videoReady, videoAspectRatio } = useMediaPipeDockBindings();
   const controlsRef = useRef<HTMLDivElement>(null);
   const [pipOpen, setPipOpen] = useState(true);
   const initialPipLayout = useMemo(
@@ -53,7 +53,7 @@ export const MediaPipeDockPanel = ({
       <Floating
         open={pipOpen}
         initial={initialPipLayout}
-        aspectRatio={16 / 9}
+        aspectRatio={videoAspectRatio}
         minWidth={180}
         padding={4}
         forbiddenGap={12}
@@ -73,6 +73,7 @@ export const MediaPipeDockPanel = ({
             isRunning={isRunning}
             mirror={mirror}
             videoReady={videoReady}
+            aspectRatio={videoAspectRatio}
           >
             <button
               type="button"

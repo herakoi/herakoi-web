@@ -58,12 +58,7 @@ describe("NativeCamera", () => {
       camera.stop();
 
       expect(result).toBeUndefined();
-      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-      });
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: true });
     });
 
     it("should call getUserMedia with exact deviceId when specified and return void on success", async () => {
@@ -80,8 +75,26 @@ describe("NativeCamera", () => {
       expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
         video: {
           deviceId: { exact: "test-device-123" },
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+        },
+      });
+    });
+
+    it("should include width/height ideal constraints when provided", async () => {
+      const onFrame = vi.fn();
+      const camera = new NativeCamera(videoElement, {
+        onFrame,
+        width: 1080,
+        height: 1920,
+      });
+
+      const result = await camera.start();
+      camera.stop();
+
+      expect(result).toBeUndefined();
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+        video: {
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
         },
       });
     });
