@@ -82,7 +82,7 @@ export const DockPanelPiPActions = ({
         type="button"
         aria-label="Resize picture-in-picture"
         className={cn(
-          "absolute bottom-2 right-2 flex h-7 w-7 cursor-se-resize items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "absolute bottom-2 right-2 flex h-7 w-7 touch-none cursor-se-resize items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "z-20",
           isResizing &&
             "bg-white/85 text-black ring-1 ring-black/20 hover:bg-white/85 hover:text-black",

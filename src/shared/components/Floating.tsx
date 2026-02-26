@@ -224,6 +224,7 @@ export const Floating = ({
       };
       window.addEventListener("pointermove", onPointerMove);
       window.addEventListener("pointerup", onPointerUp, { once: true });
+      window.addEventListener("pointercancel", onPointerUp, { once: true });
     },
     [layout, onPointerMove, onPointerUp],
   );
@@ -297,6 +298,7 @@ export const Floating = ({
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
     };
   }, [onPointerMove, onPointerUp]);
 
