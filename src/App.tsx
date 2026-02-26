@@ -247,11 +247,6 @@ const App = () => {
           <Controls
             isActive={isActive}
             isInitializing={isInitializing}
-            onRestart={() => {
-              setAutoStartEnabled(true);
-              stopTransport();
-              void startTransport();
-            }}
             onStart={() => {
               setAutoStartEnabled(true);
               void startTransport();

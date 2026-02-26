@@ -1,11 +1,10 @@
-import { Loader2, Maximize, Minimize, Play, RotateCcw, Square } from "lucide-react";
-import { type RefObject, useState } from "react";
+import { Loader2, Maximize, Minimize, Play, Square } from "lucide-react";
+import type { RefObject } from "react";
 import { cn } from "#src/shared/utils/cn";
 
 type ControlsProps = {
   isActive: boolean;
   isInitializing: boolean;
-  onRestart: () => void;
   onStart: () => void;
   onStop: () => void;
   isFullscreen: boolean;
@@ -17,7 +16,6 @@ type ControlsProps = {
 export const Controls = ({
   isActive,
   isInitializing,
-  onRestart,
   onStart,
   onStop,
   isFullscreen,
@@ -25,8 +23,6 @@ export const Controls = ({
   onToggleFullscreen,
   transportButtonRef,
 }: ControlsProps) => {
-  const [restartActive, setRestartActive] = useState(false);
-
   return (
     <>
       <button
@@ -41,23 +37,6 @@ export const Controls = ({
         disabled={!fullscreenAvailable}
       >
         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-      </button>
-      <button
-        type="button"
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
-          restartActive && "border-white/40 bg-white/10 text-white",
-        )}
-        aria-label="Restart engine"
-        onClick={onRestart}
-        onPointerDown={() => setRestartActive(true)}
-        onPointerUp={() => setRestartActive(false)}
-        onPointerLeave={() => setRestartActive(false)}
-        onBlur={() => setRestartActive(false)}
-        disabled={isInitializing}
-      >
-        <RotateCcw className="h-4 w-4" />
       </button>
       <button
         type="button"
