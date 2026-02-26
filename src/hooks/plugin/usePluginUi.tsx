@@ -8,7 +8,7 @@ import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
   config: EngineConfig;
-  start: () => Promise<unknown>;
+  start: (options?: { transport?: "on" | "off" }) => Promise<unknown>;
   stop: () => void;
 };
 

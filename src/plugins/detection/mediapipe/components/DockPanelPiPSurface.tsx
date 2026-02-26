@@ -29,7 +29,7 @@ export const DockPanelPiPSurface = ({
           playsInline
           aria-label="Camera feed"
           className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
-          style={mirror && videoReady && isRunning ? { transform: "scaleX(-1)" } : undefined}
+          style={mirror && videoReady ? { transform: "scaleX(-1)" } : undefined}
         />
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
         <canvas

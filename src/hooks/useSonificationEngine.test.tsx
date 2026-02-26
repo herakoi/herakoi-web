@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { act, useCallback, useLayoutEffect, useRef } from "react";
+import { act, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EngineConfig } from "#src/core/plugin";
@@ -12,8 +12,9 @@ import type { SonificationEngineStartResult } from "./useSonificationEngine";
 import { useSonificationEngine } from "./useSonificationEngine";
 
 type HarnessApi = {
-  start: () => Promise<SonificationEngineStartResult>;
+  start: (options?: { transport?: "on" | "off" }) => Promise<SonificationEngineStartResult>;
   stop: () => void;
+  shutdown: () => void;
   switchDetectionAndStart: (id: string) => Promise<SonificationEngineStartResult>;
 };
 
@@ -25,7 +26,10 @@ type HarnessProps = {
 const HookHarness = ({ config, onReady }: HarnessProps) => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageOverlayRef = useRef<HTMLCanvasElement>(null);
-  const { start, stop } = useSonificationEngine(config, { imageCanvasRef, imageOverlayRef });
+  const { start, stop, shutdown } = useSonificationEngine(config, {
+    imageCanvasRef,
+    imageOverlayRef,
+  });
   const [, setActiveDetectionId] = useActivePlugin("detection");
 
   const switchDetectionAndStart = useCallback(
@@ -37,8 +41,10 @@ const HookHarness = ({ config, onReady }: HarnessProps) => {
   );
 
   useLayoutEffect(() => {
-    onReady({ start, stop, switchDetectionAndStart });
-  }, [onReady, start, stop, switchDetectionAndStart]);
+    onReady({ start, stop, shutdown, switchDetectionAndStart });
+  }, [onReady, start, stop, shutdown, switchDetectionAndStart]);
+
+  useEffect(() => () => shutdown(), [shutdown]);
 
   return (
     <>
@@ -334,7 +340,7 @@ describe("useSonificationEngine runtime errors", () => {
     expect(sonifierDispose).toHaveBeenCalledTimes(1);
   });
 
-  it("disposes previous handles before starting a new session", async () => {
+  it("does not recreate handles when toggling transport for the same plugin set", async () => {
     const detectorDisposeA = vi.fn();
     const samplerDisposeA = vi.fn();
     const sonifierDisposeA = vi.fn();
@@ -440,6 +446,7 @@ describe("useSonificationEngine runtime errors", () => {
     await act(async () => {
       await harnessApi.start();
     });
+    expect(startCount).toBe(1);
 
     expect(detectorDisposeA).not.toHaveBeenCalled();
     expect(samplerDisposeA).not.toHaveBeenCalled();
@@ -449,16 +456,19 @@ describe("useSonificationEngine runtime errors", () => {
       await harnessApi.start();
     });
 
-    expect(detectorDisposeA).toHaveBeenCalledTimes(1);
-    expect(samplerDisposeA).toHaveBeenCalledTimes(1);
-    expect(sonifierDisposeA).toHaveBeenCalledTimes(1);
+    expect(detectorDisposeA).not.toHaveBeenCalled();
+    expect(samplerDisposeA).not.toHaveBeenCalled();
+    expect(sonifierDisposeA).not.toHaveBeenCalled();
 
     act(() => {
       harnessApi.stop();
     });
 
-    expect(detectorDisposeB).toHaveBeenCalledTimes(1);
-    expect(samplerDisposeB).toHaveBeenCalledTimes(1);
-    expect(sonifierDisposeB).toHaveBeenCalledTimes(1);
+    expect(detectorDisposeA).not.toHaveBeenCalled();
+    expect(samplerDisposeA).not.toHaveBeenCalled();
+    expect(sonifierDisposeA).not.toHaveBeenCalled();
+    expect(detectorDisposeB).not.toHaveBeenCalled();
+    expect(samplerDisposeB).not.toHaveBeenCalled();
+    expect(sonifierDisposeB).not.toHaveBeenCalled();
   });
 });

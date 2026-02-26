@@ -9,7 +9,7 @@ import { buildPluginSection } from "./buildPluginSection";
 
 type UsePluginSectionsParams = {
   config: EngineConfig;
-  start: () => Promise<unknown>;
+  start: (options?: { transport?: "on" | "off" }) => Promise<unknown>;
   stop: () => void;
 };
 
@@ -28,12 +28,12 @@ export const usePluginSections = ({
   const [samplingConfig, setSamplingConfig] = usePluginConfig(activeSamplingId);
   const [detectionConfig, setDetectionConfig] = usePluginConfig(activeDetectionId);
 
-  // 3. Create individual plugin switch handlers (stop → update → start)
+  // 3. Create individual plugin switch handlers (stop transport → switch plugin → re-init paused)
   const handleSonificationSwitch = useCallback(
     (id: string) => {
       stop();
       setActiveSonificationId(id as ActivePlugins["sonification"]);
-      void start();
+      void start({ transport: "off" });
     },
     [start, stop, setActiveSonificationId],
   );
@@ -42,7 +42,7 @@ export const usePluginSections = ({
     (id: string) => {
       stop();
       setActiveSamplingId(id as ActivePlugins["sampling"]);
-      void start();
+      void start({ transport: "off" });
     },
     [start, stop, setActiveSamplingId],
   );
@@ -51,7 +51,7 @@ export const usePluginSections = ({
     (id: string) => {
       stop();
       setActiveDetectionId(id as ActivePlugins["detection"]);
-      void start();
+      void start({ transport: "off" });
     },
     [start, stop, setActiveDetectionId],
   );

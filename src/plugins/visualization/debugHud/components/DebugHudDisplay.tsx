@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { VisualizerDisplayProps } from "#src/core/plugin";
 import { hsvToRgb } from "../utils";
 
-export const DebugHudDisplay = ({ isRunning, frameDataRef }: VisualizerDisplayProps) => {
+export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
   const [displayData, setDisplayData] = useState<{
     detection: { handDetected: boolean; points: Array<{ id: string; x: number; y: number }> };
     sampling: Map<string, { data: Record<string, number> }>;
@@ -25,14 +25,6 @@ export const DebugHudDisplay = ({ isRunning, frameDataRef }: VisualizerDisplayPr
   const rafIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isRunning) {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
-      return;
-    }
-
     const updateDisplay = () => {
       const frameData = frameDataRef.current;
       if (frameData) {
@@ -53,7 +45,7 @@ export const DebugHudDisplay = ({ isRunning, frameDataRef }: VisualizerDisplayPr
         rafIdRef.current = null;
       }
     };
-  }, [isRunning, frameDataRef]);
+  }, [frameDataRef]);
 
   return (
     <div

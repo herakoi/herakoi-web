@@ -16,7 +16,7 @@ const App = () => {
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, analyser, visualizerFrameDataRef } = useSonificationEngine(
+  const { start, stop, shutdown, status, analyser, visualizerFrameDataRef } = useSonificationEngine(
     engineConfig,
     {
       imageCanvasRef,
@@ -44,8 +44,8 @@ const App = () => {
 
   useEffect(() => {
     void start();
-    return () => stop();
-  }, [start, stop]);
+    return () => shutdown();
+  }, [start, shutdown]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -112,7 +112,7 @@ const App = () => {
             isActive={isActive}
             isInitializing={isInitializing}
             onRestart={() => {
-              stop();
+              shutdown();
               void start();
             }}
             onStart={() => void start()}

@@ -1,4 +1,4 @@
-import { Camera, RefreshCw } from "lucide-react";
+import { Camera, RefreshCw, Video, VideoOff } from "lucide-react";
 import { Button } from "#src/shared/components/ui/button";
 import {
   Select,
@@ -15,8 +15,10 @@ type DockPanelControlsProps = {
   pipOpen: boolean;
   deviceId: string | undefined;
   devices: DeviceInfo[];
+  cameraEnabled: boolean;
   restartCamera: (() => Promise<void>) | null;
   onTogglePip: () => void;
+  onToggleCamera: () => void;
   onDeviceChange: (deviceId: string) => void;
 };
 
@@ -30,8 +32,10 @@ export const DockPanelControls = ({
   pipOpen,
   deviceId,
   devices,
+  cameraEnabled,
   restartCamera,
   onTogglePip,
+  onToggleCamera,
   onDeviceChange,
 }: DockPanelControlsProps) => {
   const cameraStatus = useDeviceStore((s) => s.cameraStatus);
@@ -49,6 +53,20 @@ export const DockPanelControls = ({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <Button
+          variant="ghost"
+          className={cn(
+            "h-9 w-9 rounded-full border p-0 backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            cameraBaseClass,
+            cameraHoverClass,
+            cameraEnabled && cameraActiveClass,
+          )}
+          aria-pressed={cameraEnabled}
+          aria-label={cameraEnabled ? "Disable camera" : "Enable camera"}
+          onClick={onToggleCamera}
+        >
+          {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+        </Button>
         <Button
           variant="ghost"
           className={cn(

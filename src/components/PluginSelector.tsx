@@ -24,8 +24,8 @@ type PluginSelectorProps = {
  *
  * Always shown to indicate plugin system. When only one plugin is available,
  * shows a "More coming soon..." placeholder. When the user switches plugins,
- * the shell stops the engine, updates the active plugin ID, and restarts
- * with the new plugin.
+ * the shell stops transport, updates the active plugin ID, and re-initializes
+ * plugins with transport left stopped.
  */
 export const PluginSelector = ({ label, plugins, activeId, onSelect }: PluginSelectorProps) => {
   const hasMultiplePlugins = plugins.length > 1;
