@@ -1,12 +1,15 @@
 import { isError } from "errore";
+import {
+  DetectionInitializeError,
+  DetectionPostInitializeError,
+  DetectionStartError,
+  SamplingPostInitializeError,
+  SonifierInitializeError,
+} from "#src/core/domain-errors";
 import type { EngineConfig } from "#src/core/plugin";
 import { createAppConfigPluginRuntimeContext } from "#src/lib/engine/pluginRuntimeContext";
-import {
-  createEngineHandles,
-  initializeEnginePlugins,
-  resolveActiveEnginePlugins,
-  startEngineDetection,
-} from "#src/lib/engine/startup";
+import { safelyCreatePluginHandle } from "#src/lib/engine/runtime";
+import { resolveActiveEnginePlugins } from "#src/lib/engine/startup";
 import type {
   ActiveEnginePluginIds,
   EngineHandles,
@@ -55,32 +58,113 @@ export const runEngineInitTransaction = async (params: {
   let retainHandles = false;
 
   try {
-    const handlesResult = await createEngineHandles(resolvedActivePlugins);
-    const abortedAfterCreate = getAbortError();
-    if (abortedAfterCreate) return abortedAfterCreate;
-    if (isError(handlesResult)) return handlesResult;
+    const previousHandles = snapshot.handles;
+    const previousIds = snapshot.ids;
+
+    const reuseDetection =
+      previousHandles &&
+      previousIds?.detectionPluginId === ids.detectionPluginId &&
+      previousHandles.detectorHandle;
+    const reuseSampling =
+      previousHandles &&
+      previousIds?.samplingPluginId === ids.samplingPluginId &&
+      previousHandles.samplerHandle;
+    const reuseSonification =
+      previousHandles &&
+      previousIds?.sonificationPluginId === ids.sonificationPluginId &&
+      previousHandles.sonifierHandle;
+
+    const detectorHandle = reuseDetection
+      ? reuseDetection
+      : await safelyCreatePluginHandle(() =>
+          resolvedActivePlugins.detection.plugin.createDetector(
+            resolvedActivePlugins.detection.config as never,
+            resolvedActivePlugins.detection.runtime as never,
+          ),
+        );
+    if (isError(detectorHandle)) return detectorHandle;
+
+    const samplerHandle = reuseSampling
+      ? reuseSampling
+      : await safelyCreatePluginHandle(() =>
+          resolvedActivePlugins.sampling.plugin.createSampler(
+            resolvedActivePlugins.sampling.config as never,
+            resolvedActivePlugins.sampling.runtime as never,
+          ),
+        );
+    if (isError(samplerHandle)) return samplerHandle;
+
+    const sonifierHandle = reuseSonification
+      ? reuseSonification
+      : await safelyCreatePluginHandle(() =>
+          resolvedActivePlugins.sonification.plugin.createSonifier(
+            resolvedActivePlugins.sonification.config as never,
+            resolvedActivePlugins.sonification.runtime as never,
+          ),
+        );
+    if (isError(sonifierHandle)) return sonifierHandle;
 
     nextHandles = {
-      detectorHandle: handlesResult.detectorHandle,
-      samplerHandle: handlesResult.samplerHandle,
-      sonifierHandle: handlesResult.sonifierHandle,
+      detectorHandle,
+      samplerHandle,
+      sonifierHandle,
     };
 
-    const initializeResult = await initializeEnginePlugins({
-      detectorHandle: nextHandles.detectorHandle,
-      samplerHandle: nextHandles.samplerHandle,
-      sonifierHandle: nextHandles.sonifierHandle,
-      imageOverlayRef,
-      imageCanvasRef,
-    });
+    nextHandles.detectorHandle.setCanvasRefs?.({ imageOverlay: imageOverlayRef });
+    nextHandles.samplerHandle.setCanvasRefs?.({ imageCanvas: imageCanvasRef });
+
+    if (!reuseSampling) {
+      try {
+        await nextHandles.samplerHandle.postInitialize?.();
+      } catch (error) {
+        return new SamplingPostInitializeError({ cause: error });
+      }
+    }
+
+    if (!reuseDetection) {
+      try {
+        const detectorInitialize = await nextHandles.detectorHandle.detector.initialize();
+        if (isError(detectorInitialize)) {
+          return new DetectionInitializeError({ cause: detectorInitialize });
+        }
+      } catch (error) {
+        return new DetectionInitializeError({ cause: error });
+      }
+    }
+
+    if (!reuseSonification) {
+      try {
+        const sonifierInitialize = await nextHandles.sonifierHandle.sonifier.initialize();
+        if (isError(sonifierInitialize)) {
+          return new SonifierInitializeError({ cause: sonifierInitialize });
+        }
+      } catch (error) {
+        return new SonifierInitializeError({ cause: error });
+      }
+    }
+
     const abortedAfterInitialize = getAbortError();
     if (abortedAfterInitialize) return abortedAfterInitialize;
-    if (isError(initializeResult)) return initializeResult;
 
-    const startResult = await startEngineDetection(nextHandles.detectorHandle);
+    if (!reuseDetection) {
+      try {
+        const detectorStart = await nextHandles.detectorHandle.detector.start();
+        if (isError(detectorStart)) {
+          return new DetectionStartError({ cause: detectorStart });
+        }
+      } catch (error) {
+        return new DetectionStartError({ cause: error });
+      }
+
+      try {
+        await nextHandles.detectorHandle.postInitialize?.();
+      } catch (error) {
+        return new DetectionPostInitializeError({ cause: error });
+      }
+    }
+
     const abortedAfterStart = getAbortError();
     if (abortedAfterStart) return abortedAfterStart;
-    if (isError(startResult)) return startResult;
 
     retainHandles = true;
     return {
@@ -89,9 +173,16 @@ export const runEngineInitTransaction = async (params: {
     };
   } finally {
     if (!retainHandles && nextHandles) {
-      nextHandles.detectorHandle[Symbol.dispose]();
-      nextHandles.samplerHandle[Symbol.dispose]();
-      nextHandles.sonifierHandle[Symbol.dispose]();
+      const previousHandles = snapshot.handles;
+      if (nextHandles.detectorHandle !== previousHandles?.detectorHandle) {
+        nextHandles.detectorHandle[Symbol.dispose]();
+      }
+      if (nextHandles.samplerHandle !== previousHandles?.samplerHandle) {
+        nextHandles.samplerHandle[Symbol.dispose]();
+      }
+      if (nextHandles.sonifierHandle !== previousHandles?.sonifierHandle) {
+        nextHandles.sonifierHandle[Symbol.dispose]();
+      }
     }
   }
 };

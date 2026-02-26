@@ -81,8 +81,17 @@ export const useEngineHandles = (params: {
     ids: ActiveEnginePluginIds;
     handles: EngineHandles;
   }) => {
-    if (snapshotRef.current.handles !== nextSnapshot.handles) {
-      disposeHandles(snapshotRef.current.handles);
+    const previousHandles = snapshotRef.current.handles;
+    if (previousHandles && previousHandles !== nextSnapshot.handles) {
+      if (previousHandles.detectorHandle !== nextSnapshot.handles.detectorHandle) {
+        previousHandles.detectorHandle[Symbol.dispose]();
+      }
+      if (previousHandles.samplerHandle !== nextSnapshot.handles.samplerHandle) {
+        previousHandles.samplerHandle[Symbol.dispose]();
+      }
+      if (previousHandles.sonifierHandle !== nextSnapshot.handles.sonifierHandle) {
+        previousHandles.sonifierHandle[Symbol.dispose]();
+      }
     }
     snapshotRef.current = {
       ids: nextSnapshot.ids,
