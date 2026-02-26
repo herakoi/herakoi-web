@@ -1,4 +1,4 @@
-import { Loader2, Play, RotateCcw, Square } from "lucide-react";
+import { Loader2, Maximize, Minimize, Play, RotateCcw, Square } from "lucide-react";
 import { type RefObject, useState } from "react";
 import { cn } from "#src/shared/utils/cn";
 
@@ -8,6 +8,9 @@ type ControlsProps = {
   onRestart: () => void;
   onStart: () => void;
   onStop: () => void;
+  isFullscreen: boolean;
+  fullscreenAvailable: boolean;
+  onToggleFullscreen: () => void;
   transportButtonRef: RefObject<HTMLButtonElement>;
 };
 
@@ -17,12 +20,28 @@ export const Controls = ({
   onRestart,
   onStart,
   onStop,
+  isFullscreen,
+  fullscreenAvailable,
+  onToggleFullscreen,
   transportButtonRef,
 }: ControlsProps) => {
   const [restartActive, setRestartActive] = useState(false);
 
   return (
     <>
+      <button
+        type="button"
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+          isFullscreen && "border-white/40 bg-white/10 text-white",
+        )}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        onClick={onToggleFullscreen}
+        disabled={!fullscreenAvailable}
+      >
+        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+      </button>
       <button
         type="button"
         className={cn(

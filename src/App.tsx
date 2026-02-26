@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { Crop, Maximize, Minimize } from "lucide-react";
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
@@ -8,7 +9,9 @@ import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
 import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
-import { useUiPreferences } from "./state/appConfigStore";
+import { hsvSamplingPluginId } from "./plugins/sampling/hsv/config";
+import { PluginNotification } from "./shared/components/notifications/PluginNotification";
+import { useActivePlugin, usePluginConfig, useUiPreferences } from "./state/appConfigStore";
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,7 +31,15 @@ const App = () => {
     imageOverlayRef,
   });
   const [uiPrefs] = useUiPreferences();
+  const [activeSamplingId] = useActivePlugin("sampling");
+  const [hsvSamplingConfig] = usePluginConfig(hsvSamplingPluginId);
   const dimLogoMark = uiPrefs.dimLogoMark;
+  const isHSVSamplingActive = activeSamplingId === hsvSamplingPluginId;
+  const isHSVCoverMode =
+    typeof hsvSamplingConfig.viewportMode === "object" &&
+    hsvSamplingConfig.viewportMode !== null &&
+    "kind" in hsvSamplingConfig.viewportMode &&
+    hsvSamplingConfig.viewportMode.kind === "cover";
 
   // Idle dimming: dim UI after idle when points are detected
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
@@ -52,6 +63,98 @@ const App = () => {
 
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
   const [autoStartEnabled, setAutoStartEnabled] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenAvailable =
+    typeof document !== "undefined" && Boolean(document.fullscreenEnabled);
+  const [fullscreenNotice, setFullscreenNotice] = useState<{
+    message: string;
+    icon: typeof Maximize | typeof Minimize;
+  } | null>(null);
+  const [showFullscreenHint, setShowFullscreenHint] = useState(fullscreenAvailable);
+  const [showCoverModeHint, setShowCoverModeHint] = useState(true);
+  const fullscreenNoticeTimeoutRef = useRef<number | null>(null);
+  const fullscreenSyncReadyRef = useRef(false);
+  const previousFullscreenRef = useRef(false);
+
+  const showFullscreenNotice = useCallback(
+    (notice: { message: string; icon: typeof Maximize | typeof Minimize }) => {
+      if (typeof window === "undefined") return;
+      if (fullscreenNoticeTimeoutRef.current) {
+        window.clearTimeout(fullscreenNoticeTimeoutRef.current);
+      }
+      setFullscreenNotice(notice);
+      fullscreenNoticeTimeoutRef.current = window.setTimeout(() => {
+        setFullscreenNotice(null);
+        fullscreenNoticeTimeoutRef.current = null;
+      }, 2200);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const syncFullscreenState = () => {
+      const nextFullscreen = Boolean(document.fullscreenElement);
+      setIsFullscreen(nextFullscreen);
+      if (!fullscreenSyncReadyRef.current) {
+        fullscreenSyncReadyRef.current = true;
+        previousFullscreenRef.current = nextFullscreen;
+        return;
+      }
+      if (nextFullscreen === previousFullscreenRef.current) return;
+      previousFullscreenRef.current = nextFullscreen;
+      showFullscreenNotice(
+        nextFullscreen
+          ? {
+              message: "Fullscreen enabled. Double-click anywhere to toggle.",
+              icon: Maximize,
+            }
+          : {
+              message: "Fullscreen disabled.",
+              icon: Minimize,
+            },
+      );
+    };
+    syncFullscreenState();
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    };
+  }, [showFullscreenNotice]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window === "undefined") return;
+      if (fullscreenNoticeTimeoutRef.current) {
+        window.clearTimeout(fullscreenNoticeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isHSVCoverMode) {
+      setShowCoverModeHint(false);
+    }
+  }, [isHSVCoverMode]);
+
+  const toggleFullscreen = () => {
+    if (typeof document === "undefined") return;
+    if (!document.fullscreenEnabled) return;
+    setShowFullscreenHint(false);
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+      return;
+    }
+    void document.documentElement.requestFullscreen().catch(() => {});
+  };
+
+  const handleShellDoubleClick = (event: MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("button, a, input, select, textarea, [role='button']")) {
+      return;
+    }
+    toggleFullscreen();
+  };
 
   useEffect(() => {
     if (!autoStartEnabled) return;
@@ -61,7 +164,10 @@ const App = () => {
   }, [autoStartEnabled, engineStatus, startTransport, transportStatus.status]);
 
   return (
-    <main className="relative min-h-screen touch-none overscroll-none overflow-hidden bg-background text-foreground">
+    <main
+      className="relative min-h-screen touch-none overscroll-none overflow-hidden bg-background text-foreground"
+      onDoubleClick={handleShellDoubleClick}
+    >
       <a
         href="#herakoi-main-canvas"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring"
@@ -97,6 +203,23 @@ const App = () => {
       </div>
 
       <NotificationArea>
+        {showFullscreenHint && !isFullscreen && !fullscreenNotice ? (
+          <PluginNotification
+            message="Tip: double-click the canvas or use the fullscreen button in controls."
+            icon={Maximize}
+            onDismiss={() => setShowFullscreenHint(false)}
+          />
+        ) : null}
+        {showCoverModeHint && isHSVSamplingActive && !isHSVCoverMode ? (
+          <PluginNotification
+            message="Tip: enable Cover image in HSV settings to pan, zoom, and rotate the image."
+            icon={Crop}
+            onDismiss={() => setShowCoverModeHint(false)}
+          />
+        ) : null}
+        {fullscreenNotice ? (
+          <PluginNotification message={fullscreenNotice.message} icon={fullscreenNotice.icon} />
+        ) : null}
         {PluginNotificationComponents.map(({ id, Notifications }) => (
           <Notifications key={id} />
         ))}
@@ -137,6 +260,9 @@ const App = () => {
               setAutoStartEnabled(false);
               stopTransport();
             }}
+            isFullscreen={isFullscreen}
+            fullscreenAvailable={fullscreenAvailable}
+            onToggleFullscreen={toggleFullscreen}
             transportButtonRef={transportButtonRef}
           />
         </div>
