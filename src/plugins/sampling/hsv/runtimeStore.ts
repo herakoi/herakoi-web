@@ -4,11 +4,12 @@
  * Manages transient state that changes during execution but should NOT persist
  * across sessions. This includes image readiness indicator.
  *
- * Configuration (viewportMode, currentImageId) is managed by the
- * framework in appConfigStore.
+ * Persistent configuration (currentImageId) is managed by appConfigStore.
+ * Viewport interactions (cover/pan/zoom/rotate lock state) stay runtime-only.
  */
 
 import { create } from "zustand";
+import type { HSVViewportMode } from "./config";
 import type { ImageLibraryRuntimeError } from "./errors";
 import { UploadCacheReadError, UploadCacheWriteError } from "./errors";
 import type { ImageEntry } from "./types/image";
@@ -20,8 +21,12 @@ export type ImageLibraryStatus = { status: "ok" } | { status: "error"; error: Im
 export interface HSVRuntimeState {
   /** Whether the image has been loaded and encoded */
   imageReady: boolean;
+  /** Runtime viewport mode for image rendering and interactions. */
+  viewportMode: HSVViewportMode;
   /** Whether cover viewport mode is currently active. */
   coverModeActive: boolean;
+  /** Whether cover image editing interactions are unlocked. */
+  panInteractionEnabled: boolean;
   /** Incremented each time cover mode is activated to retrigger guidance notifications. */
   coverModeActivationToken: number;
   /** User uploaded images cached for the HSV image library */
@@ -34,7 +39,9 @@ export interface HSVRuntimeState {
 
 export interface HSVRuntimeActions {
   setImageReady: (ready: boolean) => void;
+  setViewportMode: (mode: HSVViewportMode) => void;
   setCoverModeActive: (active: boolean) => void;
+  setPanInteractionEnabled: (enabled: boolean) => void;
   notifyCoverModeActivated: () => void;
   setImageLibraryOk: () => void;
   setImageLibraryError: (error: ImageLibraryError) => void;
@@ -86,7 +93,9 @@ const persistUploadCache = (uploads: ImageEntry[]): UploadCacheWriteError | unde
 
 const defaultState: HSVRuntimeState = {
   imageReady: false,
+  viewportMode: { kind: "contain" },
   coverModeActive: false,
+  panInteractionEnabled: false,
   coverModeActivationToken: 0,
   uploads: [],
   uploadsHydrated: false,
@@ -96,7 +105,9 @@ const defaultState: HSVRuntimeState = {
 export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((set, get) => ({
   ...defaultState,
   setImageReady: (ready) => set({ imageReady: ready }),
+  setViewportMode: (mode) => set({ viewportMode: mode }),
   setCoverModeActive: (active) => set({ coverModeActive: active }),
+  setPanInteractionEnabled: (enabled) => set({ panInteractionEnabled: enabled }),
   notifyCoverModeActivated: () =>
     set((state) => ({
       coverModeActive: true,

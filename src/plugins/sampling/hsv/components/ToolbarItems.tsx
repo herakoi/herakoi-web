@@ -42,6 +42,10 @@ export const HSVToolbarItems = ({
       },
     });
   const imageLibraryStatus = useHSVRuntimeStore((state) => state.imageLibraryStatus);
+  const viewportMode = useHSVRuntimeStore((state) => state.viewportMode);
+  const panInteractionEnabled = useHSVRuntimeStore((state) => state.panInteractionEnabled);
+  const setViewportMode = useHSVRuntimeStore((state) => state.setViewportMode);
+  const setPanInteractionEnabled = useHSVRuntimeStore((state) => state.setPanInteractionEnabled);
 
   useEffect(() => {
     if (!importActive) return;
@@ -65,9 +69,9 @@ export const HSVToolbarItems = ({
 
   const baseButtonClass =
     "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground";
-  const isCoverMode = config.viewportMode.kind === "cover";
-  const isPanEnabled = config.panInteractionEnabled;
-  const coverMode = config.viewportMode.kind === "cover" ? config.viewportMode : null;
+  const isCoverMode = viewportMode.kind === "cover";
+  const isPanEnabled = panInteractionEnabled;
+  const coverMode = viewportMode.kind === "cover" ? viewportMode : null;
 
   return (
     <Popover>
@@ -112,14 +116,14 @@ export const HSVToolbarItems = ({
             )}
             aria-label="Toggle cover mode"
             aria-pressed={isCoverMode}
-            onClick={() =>
-              setConfig({
-                viewportMode: isCoverMode
-                  ? { kind: "contain" }
-                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
-                ...(isCoverMode ? { panInteractionEnabled: false } : {}),
-              })
-            }
+            onClick={() => {
+              if (isCoverMode) {
+                setViewportMode({ kind: "contain" });
+                setPanInteractionEnabled(false);
+                return;
+              }
+              setViewportMode({ kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 });
+            }}
           >
             <Crop className="h-4 w-4" />
           </button>
@@ -134,7 +138,7 @@ export const HSVToolbarItems = ({
             aria-label={isPanEnabled ? "Lock image editing" : "Unlock image editing"}
             aria-pressed={isPanEnabled}
             disabled={!isCoverMode}
-            onClick={() => setConfig({ panInteractionEnabled: !isPanEnabled })}
+            onClick={() => setPanInteractionEnabled(!isPanEnabled)}
           >
             {isPanEnabled ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
           </button>
@@ -175,9 +179,7 @@ export const HSVToolbarItems = ({
                     aria-label="Zoom level"
                     onValueChange={([z]) => {
                       if (z === undefined) return;
-                      setConfig({
-                        viewportMode: { ...coverMode, zoom: z },
-                      });
+                      setViewportMode({ ...coverMode, zoom: z });
                     }}
                   />
                   <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -198,9 +200,7 @@ export const HSVToolbarItems = ({
                     aria-label="Rotation angle"
                     onValueChange={([rotation]) => {
                       if (rotation === undefined) return;
-                      setConfig({
-                        viewportMode: { ...coverMode, rotation },
-                      });
+                      setViewportMode({ ...coverMode, rotation });
                     }}
                   />
                   <div className="flex justify-between text-[10px] text-muted-foreground">

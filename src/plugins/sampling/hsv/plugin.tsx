@@ -8,7 +8,12 @@ import { defineSamplingPlugin } from "#src/core/plugin";
 import { HSVNotifications } from "./components/Notifications";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
-import { defaultHSVSamplingConfig, type HSVSamplingConfig, hsvSamplingPluginId } from "./config";
+import {
+  defaultHSVSamplingConfig,
+  type HSVSamplingConfig,
+  type HSVViewportMode,
+  hsvSamplingPluginId,
+} from "./config";
 import { HSVImageSampler } from "./HSVImageSampler";
 import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
 import { getDefaultImageId, resolveImageSourceById } from "./lib/imageSourceResolver";
@@ -33,10 +38,7 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-const isViewportModeEqual = (
-  left: HSVSamplingConfig["viewportMode"],
-  right: HSVSamplingConfig["viewportMode"],
-) => {
+const isViewportModeEqual = (left: HSVViewportMode, right: HSVViewportMode) => {
   if (left.kind === "contain") return right.kind === "contain";
   if (right.kind !== "cover") return false;
   return (
@@ -80,11 +82,19 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         imageBuffer = null;
         visibleRect = null;
         useHSVRuntimeStore.getState().setCoverModeActive(false);
+        useHSVRuntimeStore.getState().setPanInteractionEnabled(false);
+        useHSVRuntimeStore.getState().setViewportMode({ kind: "contain" });
         useHSVRuntimeStore.getState().setImageReady(false);
       };
 
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
+      const getViewportMode = (): HSVViewportMode => useHSVRuntimeStore.getState().viewportMode;
+      const getPanInteractionEnabled = (): boolean =>
+        useHSVRuntimeStore.getState().panInteractionEnabled;
+      const setViewportMode = (mode: HSVViewportMode) => {
+        useHSVRuntimeStore.getState().setViewportMode(mode);
+      };
       const normalizeRotation = (rotation: number | undefined) => {
         const value = Number.isFinite(rotation) ? (rotation as number) : 0;
         let normalized = ((value + 180) % 360) - 180;
@@ -94,7 +104,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
       //TODO: estrarre queste logiche
       const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
-        const { viewportMode } = getConfig();
+        const viewportMode = getViewportMode();
         resizeCanvasToContainer(canvas);
         const layout = drawImageToCanvas(canvas, img, viewportMode);
         if (!layout) return;
@@ -116,13 +126,11 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         const requestVersion = ++loadRequestVersion;
         const img = await loadImageElement(src);
         if (requestVersion !== loadRequestVersion) return;
-        const currentViewportMode = getConfig().viewportMode;
+        const currentViewportMode = getViewportMode();
         if (currentViewportMode.kind === "cover") {
-          runtime.setConfig({
-            viewportMode: {
-              ...currentViewportMode,
-              pan: { x: 0, y: 0 },
-            },
+          setViewportMode({
+            ...currentViewportMode,
+            pan: { x: 0, y: 0 },
           });
         }
         if (requestVersion !== loadRequestVersion) return;
@@ -164,48 +172,21 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             }
           }
           const runtimeState = useHSVRuntimeStore.getState();
-          if (getConfig().viewportMode.kind === "cover") {
-            runtimeState.notifyCoverModeActivated();
-          } else {
-            runtimeState.setCoverModeActive(false);
-          }
+          runtimeState.setViewportMode({ kind: "contain" });
+          runtimeState.setPanInteractionEnabled(false);
+          runtimeState.setCoverModeActive(false);
 
-          // Subscribe to config changes for runtime updates
-          let previousConfig = { ...config };
-          let previousViewportKind = getConfig().viewportMode.kind;
+          // Subscribe to persisted config changes (image selection only)
+          let previousImageId = config.currentImageId;
           configUnsub = runtime.subscribeConfig((currentConfig) => {
-            const canvas = getCanvas();
-            if (!canvas) return;
-            const currentViewportKind = currentConfig.viewportMode.kind;
-            if (currentViewportKind !== previousViewportKind) {
-              if (currentViewportKind === "cover") {
-                useHSVRuntimeStore.getState().notifyCoverModeActivated();
-              } else {
-                useHSVRuntimeStore.getState().setCoverModeActive(false);
-              }
-              previousViewportKind = currentViewportKind;
-            }
-
-            // Selected image changed — resolve source and load.
-            if (
-              currentConfig.currentImageId !== previousConfig.currentImageId &&
-              currentConfig.currentImageId
-            ) {
-              previousConfig = { ...currentConfig };
+            if (currentConfig.currentImageId !== previousImageId && currentConfig.currentImageId) {
+              previousImageId = currentConfig.currentImageId;
               const source = resolveImageSourceById(currentConfig.currentImageId);
               if (source) {
                 void loadAndDraw(source);
               }
-              return;
-            }
-
-            // Viewport mode changed — redraw current image
-            if (
-              imageBuffer &&
-              !isViewportModeEqual(currentConfig.viewportMode, previousConfig.viewportMode)
-            ) {
-              previousConfig = { ...currentConfig };
-              void drawAndEncode(imageBuffer, canvas);
+            } else {
+              previousImageId = currentConfig.currentImageId;
             }
           });
 
@@ -223,7 +204,8 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             const canvas = getCanvas();
             if (!canvas) return null;
 
-            const { viewportMode, panInteractionEnabled } = getConfig();
+            const viewportMode = getViewportMode();
+            const panInteractionEnabled = getPanInteractionEnabled();
             const panModeEnabled = viewportMode.kind === "cover" && panInteractionEnabled;
 
             // Update cursor styles
@@ -263,16 +245,14 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
             const applyPan = () => {
               if (!pendingX && !pendingY) return;
-              const currentViewportMode = getConfig().viewportMode;
+              const currentViewportMode = getViewportMode();
               if (currentViewportMode.kind !== "cover") return;
-              runtime.setConfig({
-                viewportMode: {
-                  ...currentViewportMode,
-                  rotation: currentViewportMode.rotation ?? 0,
-                  pan: {
-                    x: currentViewportMode.pan.x + pendingX,
-                    y: currentViewportMode.pan.y + pendingY,
-                  },
+              setViewportMode({
+                ...currentViewportMode,
+                rotation: currentViewportMode.rotation ?? 0,
+                pan: {
+                  x: currentViewportMode.pan.x + pendingX,
+                  y: currentViewportMode.pan.y + pendingY,
                 },
               });
               pendingX = 0;
@@ -280,33 +260,29 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             };
 
             const applyWheelZoom = (event: WheelEvent) => {
-              const currentViewportMode = getConfig().viewportMode;
+              const currentViewportMode = getViewportMode();
               if (currentViewportMode.kind !== "cover") return;
 
               const factor = Math.exp(-event.deltaY * 0.002);
               const nextZoom = Math.max(0.2, Math.min(10, currentViewportMode.zoom * factor));
               if (Math.abs(nextZoom - currentViewportMode.zoom) < 0.001) return;
 
-              runtime.setConfig({
-                viewportMode: {
-                  ...currentViewportMode,
-                  zoom: nextZoom,
-                },
+              setViewportMode({
+                ...currentViewportMode,
+                zoom: nextZoom,
               });
             };
 
             const applyWheelRotate = (delta: number) => {
-              const currentViewportMode = getConfig().viewportMode;
+              const currentViewportMode = getViewportMode();
               if (currentViewportMode.kind !== "cover") return;
               const nextRotation = normalizeRotation(
                 (currentViewportMode.rotation ?? 0) - delta * 0.15,
               );
               if (Math.abs(nextRotation - (currentViewportMode.rotation ?? 0)) < 0.01) return;
-              runtime.setConfig({
-                viewportMode: {
-                  ...currentViewportMode,
-                  rotation: nextRotation,
-                },
+              setViewportMode({
+                ...currentViewportMode,
+                rotation: nextRotation,
               });
             };
 
@@ -348,7 +324,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               } else if (pointers.size >= 2) {
                 applyPan();
                 const gesture = getGestureFromPoints(toPointArray());
-                const currentViewport = getConfig().viewportMode;
+                const currentViewport = getViewportMode();
                 if (gesture && currentViewport.kind === "cover") {
                   gestureStart = {
                     ...gesture,
@@ -395,15 +371,13 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
                 const deltaCentroidX = gesture.centroidX - gestureStart.centroidX;
                 const deltaCentroidY = gesture.centroidY - gestureStart.centroidY;
 
-                runtime.setConfig({
-                  viewportMode: {
-                    ...gestureStart.viewport,
-                    zoom: nextZoom,
-                    rotation: nextRotation,
-                    pan: {
-                      x: gestureStart.viewport.pan.x + deltaCentroidX,
-                      y: gestureStart.viewport.pan.y + deltaCentroidY,
-                    },
+                setViewportMode({
+                  ...gestureStart.viewport,
+                  zoom: nextZoom,
+                  rotation: nextRotation,
+                  pan: {
+                    x: gestureStart.viewport.pan.x + deltaCentroidX,
+                    y: gestureStart.viewport.pan.y + deltaCentroidY,
                   },
                 });
               }
@@ -444,7 +418,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
             const onGestureStart = (event: Event) => {
               event.preventDefault();
-              const currentViewportMode = getConfig().viewportMode;
+              const currentViewportMode = getViewportMode();
               if (currentViewportMode.kind !== "cover") return;
               const gestureEvent = event as Event & { clientX?: number; clientY?: number };
               webkitGestureStart = {
@@ -488,13 +462,11 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
                 (gestureEvent.clientY ?? webkitGestureStart.y) -
                 webkitGestureStart.y;
 
-              runtime.setConfig({
-                viewportMode: {
-                  ...webkitGestureStart.viewport,
-                  zoom: nextZoom,
-                  rotation: nextRotation,
-                  pan: { x: nextPanX, y: nextPanY },
-                },
+              setViewportMode({
+                ...webkitGestureStart.viewport,
+                zoom: nextZoom,
+                rotation: nextRotation,
+                pan: { x: nextPanX, y: nextPanY },
               });
             };
 
@@ -565,15 +537,32 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
           // Initial setup
           panZoomCleanup = setupPanZoom();
 
-          // Re-setup when viewport mode kind or pan interaction mode changes
-          let previousKind = getConfig().viewportMode.kind;
-          let previousPanEnabled = getConfig().panInteractionEnabled;
-          const panZoomUnsub = runtime.subscribeConfig((currentConfig) => {
-            const currentKind = currentConfig.viewportMode.kind;
-            const currentPanEnabled = currentConfig.panInteractionEnabled;
-            if (currentKind !== previousKind || currentPanEnabled !== previousPanEnabled) {
-              previousKind = currentKind;
-              previousPanEnabled = currentPanEnabled;
+          // React to runtime viewport/pan interaction changes.
+          const panZoomUnsub = useHSVRuntimeStore.subscribe((state, prevState) => {
+            const viewportChanged = !isViewportModeEqual(
+              state.viewportMode,
+              prevState.viewportMode,
+            );
+            const kindChanged = state.viewportMode.kind !== prevState.viewportMode.kind;
+            const panInteractionChanged =
+              state.panInteractionEnabled !== prevState.panInteractionEnabled;
+
+            if (kindChanged) {
+              if (state.viewportMode.kind === "cover") {
+                useHSVRuntimeStore.getState().notifyCoverModeActivated();
+              } else {
+                useHSVRuntimeStore.getState().setCoverModeActive(false);
+              }
+            }
+
+            if (viewportChanged && imageBuffer) {
+              const activeCanvas = getCanvas();
+              if (activeCanvas) {
+                void drawAndEncode(imageBuffer, activeCanvas);
+              }
+            }
+
+            if (kindChanged || panInteractionChanged) {
               panZoomCleanup?.();
               panZoomCleanup = setupPanZoom();
             }

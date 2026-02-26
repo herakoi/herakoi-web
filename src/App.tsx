@@ -1,4 +1,4 @@
-import { LockOpen, Maximize, Minimize } from "lucide-react";
+import { Maximize, Minimize } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
@@ -9,9 +9,8 @@ import { engineConfig } from "./engineConfig";
 import { usePluginUi } from "./hooks/plugin";
 import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
-import { hsvSamplingPluginId } from "./plugins/sampling/hsv/config";
 import { PluginNotification } from "./shared/components/notifications/PluginNotification";
-import { useActivePlugin, usePluginConfig, useUiPreferences } from "./state/appConfigStore";
+import { useUiPreferences } from "./state/appConfigStore";
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,15 +30,7 @@ const App = () => {
     imageOverlayRef,
   });
   const [uiPrefs] = useUiPreferences();
-  const [activeSamplingId] = useActivePlugin("sampling");
-  const [hsvSamplingConfig] = usePluginConfig(hsvSamplingPluginId);
   const dimLogoMark = uiPrefs.dimLogoMark;
-  const isHSVSamplingActive = activeSamplingId === hsvSamplingPluginId;
-  const isHSVCoverMode =
-    typeof hsvSamplingConfig.viewportMode === "object" &&
-    hsvSamplingConfig.viewportMode !== null &&
-    "kind" in hsvSamplingConfig.viewportMode &&
-    hsvSamplingConfig.viewportMode.kind === "cover";
 
   // Idle dimming: dim UI after idle when points are detected
   useIdleDimmer({ baseOpacity: uiPrefs.baseUiOpacity });
@@ -71,7 +62,6 @@ const App = () => {
     icon: typeof Maximize | typeof Minimize;
   } | null>(null);
   const [showFullscreenHint, setShowFullscreenHint] = useState(fullscreenAvailable);
-  const [showCoverModeHint, setShowCoverModeHint] = useState(true);
   const fullscreenNoticeTimeoutRef = useRef<number | null>(null);
   const fullscreenSyncReadyRef = useRef(false);
   const previousFullscreenRef = useRef(false);
@@ -130,12 +120,6 @@ const App = () => {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (isHSVCoverMode) {
-      setShowCoverModeHint(false);
-    }
-  }, [isHSVCoverMode]);
 
   const toggleFullscreen = () => {
     if (typeof document === "undefined") return;
@@ -208,13 +192,6 @@ const App = () => {
             message="Tip: double-click the canvas or use the fullscreen button in controls."
             icon={Maximize}
             onDismiss={() => setShowFullscreenHint(false)}
-          />
-        ) : null}
-        {showCoverModeHint && isHSVSamplingActive && !isHSVCoverMode ? (
-          <PluginNotification
-            message="Tip: enable Cover image, then unlock to pan, zoom, and rotate the image."
-            icon={LockOpen}
-            onDismiss={() => setShowCoverModeHint(false)}
           />
         ) : null}
         {fullscreenNotice ? (

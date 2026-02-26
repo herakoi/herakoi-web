@@ -35,14 +35,18 @@ export const HSVSettingsPanel = ({
     },
   });
   const imageLibraryStatus = useHSVRuntimeStore((state) => state.imageLibraryStatus);
+  const viewportMode = useHSVRuntimeStore((state) => state.viewportMode);
+  const panInteractionEnabled = useHSVRuntimeStore((state) => state.panInteractionEnabled);
+  const setViewportMode = useHSVRuntimeStore((state) => state.setViewportMode);
+  const setPanInteractionEnabled = useHSVRuntimeStore((state) => state.setPanInteractionEnabled);
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     await handleImageFile(file);
   };
-  const isCoverMode = config.viewportMode.kind === "cover";
-  const isPanEnabled = config.panInteractionEnabled;
+  const isCoverMode = viewportMode.kind === "cover";
+  const isPanEnabled = panInteractionEnabled;
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -73,17 +77,14 @@ export const HSVSettingsPanel = ({
           id="cover-toggle"
           checked={isCoverMode}
           onCheckedChange={(checked) => {
-            const updates: Partial<HSVSamplingConfig> = {
-              viewportMode: checked
-                ? isCoverMode
-                  ? config.viewportMode
-                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 }
-                : { kind: "contain" },
-            };
-            if (!checked) {
-              updates.panInteractionEnabled = false;
+            if (checked) {
+              if (!isCoverMode) {
+                setViewportMode({ kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 });
+              }
+              return;
             }
-            setConfig(updates);
+            setViewportMode({ kind: "contain" });
+            setPanInteractionEnabled(false);
           }}
         />
       </div>
@@ -95,7 +96,7 @@ export const HSVSettingsPanel = ({
           id="pan-toggle"
           checked={isPanEnabled}
           disabled={!isCoverMode}
-          onCheckedChange={(checked) => setConfig({ panInteractionEnabled: checked })}
+          onCheckedChange={setPanInteractionEnabled}
         />
       </div>
       <button

@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultHSVSamplingConfig, type HSVSamplingConfig } from "./config";
+import { defaultHSVSamplingConfig, type HSVSamplingConfig, type HSVViewportMode } from "./config";
 import { plugin } from "./plugin";
 
 const expectSamplerHandle = (result: ReturnType<typeof plugin.createSampler>) => {
@@ -14,11 +14,7 @@ const expectSamplerHandle = (result: ReturnType<typeof plugin.createSampler>) =>
 const mocks = vi.hoisted(() => ({
   samplerLoadImage: vi.fn().mockResolvedValue(undefined),
   drawImageToCanvas: vi.fn(
-    (
-      _canvas: HTMLCanvasElement,
-      _image: HTMLImageElement,
-      _viewportMode: HSVSamplingConfig["viewportMode"],
-    ) => true,
+    (_canvas: HTMLCanvasElement, _image: HTMLImageElement, _viewportMode: HSVViewportMode) => true,
   ),
   resizeCanvasToContainer: vi.fn(),
   getDefaultImageId: vi.fn<() => string | null>(() => "curated-default"),
@@ -28,6 +24,8 @@ const mocks = vi.hoisted(() => ({
   }),
   setImageReady: vi.fn(),
   setCoverModeActive: vi.fn(),
+  setPanInteractionEnabled: vi.fn(),
+  setViewportMode: vi.fn(),
   notifyCoverModeActivated: vi.fn(),
 }));
 
@@ -70,9 +68,16 @@ vi.mock("./lib/imageSourceResolver", () => ({
 
 vi.mock("./runtimeStore", () => ({
   useHSVRuntimeStore: {
+    subscribe: vi.fn(() => () => {
+      // noop
+    }),
     getState: () => ({
+      viewportMode: { kind: "contain" },
+      panInteractionEnabled: false,
       setImageReady: mocks.setImageReady,
       setCoverModeActive: mocks.setCoverModeActive,
+      setPanInteractionEnabled: mocks.setPanInteractionEnabled,
+      setViewportMode: mocks.setViewportMode,
       notifyCoverModeActivated: mocks.notifyCoverModeActivated,
     }),
   },
