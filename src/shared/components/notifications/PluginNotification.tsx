@@ -23,10 +23,7 @@ export const PluginNotification = ({
 }: PluginNotificationProps) => {
   return (
     <>
-      <div
-        aria-hidden="true"
-        className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur"
-      >
+      <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur">
         {children ?? (
           <>
             {Icon && <Icon className="h-5 w-5 shrink-0 text-white/70" />}

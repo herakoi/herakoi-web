@@ -20,6 +20,10 @@ export type ImageLibraryStatus = { status: "ok" } | { status: "error"; error: Im
 export interface HSVRuntimeState {
   /** Whether the image has been loaded and encoded */
   imageReady: boolean;
+  /** Whether cover viewport mode is currently active. */
+  coverModeActive: boolean;
+  /** Incremented each time cover mode is activated to retrigger guidance notifications. */
+  coverModeActivationToken: number;
   /** User uploaded images cached for the HSV image library */
   uploads: ImageEntry[];
   /** Whether upload cache has been hydrated from localStorage */
@@ -30,6 +34,8 @@ export interface HSVRuntimeState {
 
 export interface HSVRuntimeActions {
   setImageReady: (ready: boolean) => void;
+  setCoverModeActive: (active: boolean) => void;
+  notifyCoverModeActivated: () => void;
   setImageLibraryOk: () => void;
   setImageLibraryError: (error: ImageLibraryError) => void;
   hydrateUploads: () => void;
@@ -80,6 +86,8 @@ const persistUploadCache = (uploads: ImageEntry[]): UploadCacheWriteError | unde
 
 const defaultState: HSVRuntimeState = {
   imageReady: false,
+  coverModeActive: false,
+  coverModeActivationToken: 0,
   uploads: [],
   uploadsHydrated: false,
   imageLibraryStatus: { status: "ok" },
@@ -88,6 +96,12 @@ const defaultState: HSVRuntimeState = {
 export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((set, get) => ({
   ...defaultState,
   setImageReady: (ready) => set({ imageReady: ready }),
+  setCoverModeActive: (active) => set({ coverModeActive: active }),
+  notifyCoverModeActivated: () =>
+    set((state) => ({
+      coverModeActive: true,
+      coverModeActivationToken: state.coverModeActivationToken + 1,
+    })),
   setImageLibraryOk: () => set({ imageLibraryStatus: { status: "ok" } }),
   setImageLibraryError: (error) => set({ imageLibraryStatus: { status: "error", error } }),
   hydrateUploads: () => {

@@ -5,6 +5,7 @@ import type {
   SamplingPluginDefinition,
 } from "#src/core/plugin";
 import { defineSamplingPlugin } from "#src/core/plugin";
+import { HSVNotifications } from "./components/Notifications";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
 import { defaultHSVSamplingConfig, type HSVSamplingConfig, hsvSamplingPluginId } from "./config";
@@ -17,6 +18,7 @@ import { useHSVRuntimeStore } from "./runtimeStore";
 const ui: PluginUISlots<HSVSamplingConfig> = {
   SettingsPanel: HSVSettingsPanel,
   ToolbarItems: HSVToolbarItems,
+  Notifications: HSVNotifications,
 };
 
 /**
@@ -77,6 +79,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
         loadRequestVersion += 1;
         imageBuffer = null;
         visibleRect = null;
+        useHSVRuntimeStore.getState().setCoverModeActive(false);
         useHSVRuntimeStore.getState().setImageReady(false);
       };
 
@@ -160,12 +163,28 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               runtime.setConfig({ currentImageId: initialImageId });
             }
           }
+          const runtimeState = useHSVRuntimeStore.getState();
+          if (getConfig().viewportMode.kind === "cover") {
+            runtimeState.notifyCoverModeActivated();
+          } else {
+            runtimeState.setCoverModeActive(false);
+          }
 
           // Subscribe to config changes for runtime updates
           let previousConfig = { ...config };
+          let previousViewportKind = getConfig().viewportMode.kind;
           configUnsub = runtime.subscribeConfig((currentConfig) => {
             const canvas = getCanvas();
             if (!canvas) return;
+            const currentViewportKind = currentConfig.viewportMode.kind;
+            if (currentViewportKind !== previousViewportKind) {
+              if (currentViewportKind === "cover") {
+                useHSVRuntimeStore.getState().notifyCoverModeActivated();
+              } else {
+                useHSVRuntimeStore.getState().setCoverModeActive(false);
+              }
+              previousViewportKind = currentViewportKind;
+            }
 
             // Selected image changed — resolve source and load.
             if (
@@ -393,11 +412,12 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
             const onWheel = (event: WheelEvent) => {
               event.preventDefault();
               if (pointers.size > 0) return;
+              const shiftRotationDelta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
 
               const trackpadWheel = isLikelyTrackpadWheel(event);
               if (!trackpadWheel) {
                 if (event.shiftKey) {
-                  applyWheelRotate(event.deltaY);
+                  applyWheelRotate(shiftRotationDelta);
                   return;
                 }
                 applyWheelZoom(event);
@@ -413,7 +433,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
                 return;
               }
               if (event.shiftKey) {
-                applyWheelRotate(event.deltaY);
+                applyWheelRotate(shiftRotationDelta);
                 return;
               }
 
