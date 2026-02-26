@@ -24,6 +24,8 @@ export const MediaPipeDockPanel = ({
   const setDeviceId = useDeviceStore((s) => s.setDeviceId);
   const setMirror = useDeviceStore((s) => s.setMirror);
   const restartCamera = useDeviceStore((s) => s.restartCamera);
+  const cameraEnabled = useDeviceStore((s) => s.cameraEnabled);
+  const setCameraEnabled = useDeviceStore((s) => s.setCameraEnabled);
 
   const { videoRef, overlayRef, videoReady, videoAspectRatio } = useMediaPipeDockBindings();
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -45,8 +47,10 @@ export const MediaPipeDockPanel = ({
           pipOpen={pipOpen}
           deviceId={deviceId}
           devices={devices}
+          cameraEnabled={cameraEnabled}
           restartCamera={restartCamera}
           onTogglePip={() => setPipOpen((prev) => !prev)}
+          onToggleCamera={() => setCameraEnabled(!cameraEnabled)}
           onDeviceChange={setDeviceId}
         />
       </div>

@@ -27,6 +27,16 @@ const createPointerEvent = (
   return event;
 };
 
+const nextPoints = async (detector: PointerPointDetector, run: () => void) => {
+  const abortController = new AbortController();
+  const iterator = detector.points(abortController.signal)[Symbol.asyncIterator]();
+  const pending = iterator.next();
+  run();
+  const result = await pending;
+  abortController.abort();
+  return result.value ?? [];
+};
+
 describe("PointerPointDetector", () => {
   let canvas: HTMLCanvasElement;
 
@@ -56,28 +66,26 @@ describe("PointerPointDetector", () => {
 
   it("emits normalized mouse pointer coordinates", async () => {
     const detector = new PointerPointDetector(() => canvas);
-    const onDetected = vi.fn();
-    detector.onPointsDetected(onDetected);
 
     await detector.initialize();
     detector.start();
 
-    window.dispatchEvent(
-      createPointerEvent("pointermove", {
-        clientX: 100,
-        clientY: 50,
-        pointerType: "mouse",
-        isPrimary: true,
-      }),
-    );
+    const points = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointermove", {
+          clientX: 100,
+          clientY: 50,
+          pointerType: "mouse",
+          isPrimary: true,
+        }),
+      );
+    });
 
-    expect(onDetected).toHaveBeenLastCalledWith([{ id: "pointer-mouse", x: 0.5, y: 0.5 }]);
+    expect(points).toEqual([{ id: "pointer-mouse", x: 0.5, y: 0.5 }]);
   });
 
   it("emits empty points when active touch pointer ends", async () => {
     const detector = new PointerPointDetector(() => canvas);
-    const onDetected = vi.fn();
-    detector.onPointsDetected(onDetected);
 
     await detector.initialize();
     detector.start();
@@ -90,64 +98,72 @@ describe("PointerPointDetector", () => {
         pointerId: 7,
       }),
     );
-    window.dispatchEvent(
-      createPointerEvent("pointerup", {
-        clientX: 100,
-        clientY: 50,
-        pointerType: "touch",
-        pointerId: 7,
-      }),
-    );
 
-    expect(onDetected).toHaveBeenLastCalledWith([]);
+    const points = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointerup", {
+          clientX: 100,
+          clientY: 50,
+          pointerType: "touch",
+          pointerId: 7,
+        }),
+      );
+    });
+
+    expect(points).toEqual([]);
   });
 
   it("tracks multiple touches at the same time", async () => {
     const detector = new PointerPointDetector(() => canvas);
-    const onDetected = vi.fn();
-    detector.onPointsDetected(onDetected);
 
     await detector.initialize();
     detector.start();
 
-    window.dispatchEvent(
-      createPointerEvent("pointerdown", {
-        clientX: 40,
-        clientY: 20,
-        pointerType: "touch",
-        pointerId: 1,
-      }),
-    );
-    window.dispatchEvent(
-      createPointerEvent("pointerdown", {
-        clientX: 160,
-        clientY: 80,
-        pointerType: "touch",
-        pointerId: 2,
-      }),
-    );
+    const firstPoints = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointerdown", {
+          clientX: 40,
+          clientY: 20,
+          pointerType: "touch",
+          pointerId: 1,
+        }),
+      );
+    });
 
-    expect(onDetected).toHaveBeenLastCalledWith([
+    expect(firstPoints).toEqual([{ id: "pointer-touch-1", x: 0.2, y: 0.2 }]);
+
+    const secondPoints = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointerdown", {
+          clientX: 160,
+          clientY: 80,
+          pointerType: "touch",
+          pointerId: 2,
+        }),
+      );
+    });
+
+    expect(secondPoints).toEqual([
       { id: "pointer-touch-1", x: 0.2, y: 0.2 },
       { id: "pointer-touch-2", x: 0.8, y: 0.8 },
     ]);
 
-    window.dispatchEvent(
-      createPointerEvent("pointerup", {
-        clientX: 40,
-        clientY: 20,
-        pointerType: "touch",
-        pointerId: 1,
-      }),
-    );
+    const thirdPoints = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointerup", {
+          clientX: 40,
+          clientY: 20,
+          pointerType: "touch",
+          pointerId: 1,
+        }),
+      );
+    });
 
-    expect(onDetected).toHaveBeenLastCalledWith([{ id: "pointer-touch-2", x: 0.8, y: 0.8 }]);
+    expect(thirdPoints).toEqual([{ id: "pointer-touch-2", x: 0.8, y: 0.8 }]);
   });
 
   it("clears active points when window loses focus", async () => {
     const detector = new PointerPointDetector(() => canvas);
-    const onDetected = vi.fn();
-    detector.onPointsDetected(onDetected);
 
     await detector.initialize();
     detector.start();
@@ -160,8 +176,11 @@ describe("PointerPointDetector", () => {
         isPrimary: true,
       }),
     );
-    window.dispatchEvent(new Event("blur"));
 
-    expect(onDetected).toHaveBeenLastCalledWith([]);
+    const points = await nextPoints(detector, () => {
+      window.dispatchEvent(new Event("blur"));
+    });
+
+    expect(points).toEqual([]);
   });
 });

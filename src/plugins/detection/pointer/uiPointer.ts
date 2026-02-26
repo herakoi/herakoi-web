@@ -13,19 +13,25 @@ const pointerFocusStyle: HandOverlayStyle = {
 export const bindPointerUi = (detector: PointerPointDetector, canvas: HTMLCanvasElement) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return () => {};
+  const abortController = new AbortController();
 
   const clear = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  detector.onPointsDetected((points) => {
-    clear();
-    for (const point of points) {
-      drawFingerFocus(
-        ctx,
-        { x: point.x * canvas.width, y: point.y * canvas.height },
-        pointerFocusStyle,
-      );
+  void (async () => {
+    for await (const points of detector.points(abortController.signal)) {
+      clear();
+      for (const point of points) {
+        drawFingerFocus(
+          ctx,
+          { x: point.x * canvas.width, y: point.y * canvas.height },
+          pointerFocusStyle,
+        );
+      }
     }
-  });
+  })();
 
-  return clear;
+  return () => {
+    abortController.abort();
+    clear();
+  };
 };

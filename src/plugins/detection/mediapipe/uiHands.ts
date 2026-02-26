@@ -107,7 +107,11 @@ const mapLandmarks = (
   }) as NormalizedLandmarkList;
 };
 
-export function bindHandsUi(detector: MediaPipePointDetector, overlays: OverlayInput[]): void {
+export function bindHandsUi(
+  detector: MediaPipePointDetector,
+  overlays: OverlayInput[],
+): () => void {
+  const abortController = new AbortController();
   const targets = overlays
     .map((overlay) => {
       const { canvas, style, getPointStyle, sourceSize, fitMode } = normalizeOverlay(overlay);
@@ -140,15 +144,21 @@ export function bindHandsUi(detector: MediaPipePointDetector, overlays: OverlayI
     }
   });
 
-  detector.onPointsDetected((points) => {
-    for (const point of points) {
-      for (const { canvas, ctx, style, getPointStyle, sourceSize, fitMode } of targets) {
-        const projected = mapNormalizedPoint(point.x, point.y, canvas, sourceSize, fitMode);
-        const pixelX = projected.x * canvas.width;
-        const pixelY = projected.y * canvas.height;
-        const focusStyle = getPointStyle?.(point) ?? style;
-        drawFingerFocus(ctx, { x: pixelX, y: pixelY }, focusStyle);
+  void (async () => {
+    for await (const points of detector.points(abortController.signal)) {
+      for (const point of points) {
+        for (const { canvas, ctx, style, getPointStyle, sourceSize, fitMode } of targets) {
+          const projected = mapNormalizedPoint(point.x, point.y, canvas, sourceSize, fitMode);
+          const pixelX = projected.x * canvas.width;
+          const pixelY = projected.y * canvas.height;
+          const focusStyle = getPointStyle?.(point) ?? style;
+          drawFingerFocus(ctx, { x: pixelX, y: pixelY }, focusStyle);
+        }
       }
     }
-  });
+  })();
+
+  return () => {
+    abortController.abort();
+  };
 }

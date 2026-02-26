@@ -1,14 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import { DetectionInitializeError, PluginCreationError } from "#src/core/domain-errors";
+import type { DetectedPoint } from "#src/core/interfaces";
 import type { ResolvedEnginePlugins } from "./startup";
 import { createEngineHandles, initializeEnginePlugins } from "./startup";
+
+const createIdlePointStream = (): AsyncIterable<DetectedPoint[]> => ({
+  async *[Symbol.asyncIterator]() {
+    await new Promise<never>(() => {});
+  },
+});
 
 describe("createEngineHandles", () => {
   it("disposes handles already created when one plugin handle creation fails", async () => {
     const detectorDispose = vi.fn();
     const samplerDispose = vi.fn();
 
-    const resolved = {
+    const resolved: ResolvedEnginePlugins = {
       detection: {
         id: "detection/a",
         plugin: {
@@ -23,7 +30,7 @@ describe("createEngineHandles", () => {
               initialize: vi.fn().mockResolvedValue(undefined),
               start: vi.fn().mockResolvedValue(undefined),
               stop: vi.fn(),
-              onPointsDetected: vi.fn(),
+              points: vi.fn(() => createIdlePointStream()),
             },
           })),
         },
@@ -62,7 +69,7 @@ describe("createEngineHandles", () => {
         config: {},
         runtime: {} as never,
       },
-    } satisfies ResolvedEnginePlugins;
+    };
 
     const result = await createEngineHandles(resolved);
 
@@ -81,7 +88,7 @@ describe("initializeEnginePlugins", () => {
           initialize: vi.fn().mockRejectedValue(new Error("detector blew up")),
           start: vi.fn().mockResolvedValue(undefined),
           stop: vi.fn(),
-          onPointsDetected: vi.fn(),
+          points: vi.fn(() => createIdlePointStream()),
         },
       },
       samplerHandle: {

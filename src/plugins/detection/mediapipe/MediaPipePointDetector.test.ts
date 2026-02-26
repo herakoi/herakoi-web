@@ -6,6 +6,7 @@
 
 import type { Results } from "@mediapipe/hands";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 // Store MediaPipe Hands onResults callback for test simulation
 let mockOnResultsCallback: ((results: Results) => void) | null = null;
@@ -69,6 +70,16 @@ describe("MediaPipePointDetector", () => {
       .fn()
       .mockResolvedValue([]);
   });
+
+  const collectNextPoints = async (detector: MediaPipePointDetector, emit: () => void) => {
+    const abortController = new AbortController();
+    const iterator = detector.points(abortController.signal)[Symbol.asyncIterator]();
+    const pending = iterator.next();
+    emit();
+    const result = await pending;
+    abortController.abort();
+    return result.value ?? [];
+  };
 
   describe("Constructor", () => {
     it("should accept video element and config", async () => {
@@ -194,26 +205,27 @@ describe("MediaPipePointDetector", () => {
 
       expect(true).toBe(true);
     });
-  });
 
-  describe("onPointsDetected()", () => {
-    it("should register callback", async () => {
+    it("should allow start again after stop", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
-      const callback = vi.fn();
 
-      detector.onPointsDetected(callback);
+      await detector.initialize();
+      await detector.start();
+      detector.stop();
+      await detector.start();
 
-      expect(callback).not.toHaveBeenCalled();
+      expect(NativeCameraMock).toHaveBeenCalledTimes(2);
+      expect(lastCameraInstance?.start).toHaveBeenCalledTimes(1);
     });
+  });
 
+  describe("points()", () => {
     it("should invoke callback when hands detected", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
-      const callback = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback);
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -227,18 +239,18 @@ describe("MediaPipePointDetector", () => {
         multiHandWorldLandmarks: [],
       };
 
-      mockOnResultsCallback?.(mockResults);
+      const points = await collectNextPoints(detector, () => {
+        mockOnResultsCallback?.(mockResults);
+      });
 
-      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.5, y: 0.6 }]);
+      expect(points).toEqual([{ id: "hand-0-index-tip", x: 0.5, y: 0.6 }]);
     });
 
     it("should emit multiple points for multiple hands", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
-      const callback = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback);
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -255,9 +267,11 @@ describe("MediaPipePointDetector", () => {
         multiHandWorldLandmarks: [],
       };
 
-      mockOnResultsCallback?.(mockResults);
+      const points = await collectNextPoints(detector, () => {
+        mockOnResultsCallback?.(mockResults);
+      });
 
-      expect(callback).toHaveBeenCalledWith([
+      expect(points).toEqual([
         { id: "hand-0-index-tip", x: 0.3, y: 0.4 },
         { id: "hand-1-index-tip", x: 0.7, y: 0.8 },
       ]);
@@ -266,10 +280,8 @@ describe("MediaPipePointDetector", () => {
     it("should emit empty array when no hands detected", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
-      const callback = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback);
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -279,20 +291,24 @@ describe("MediaPipePointDetector", () => {
         multiHandWorldLandmarks: [],
       };
 
-      mockOnResultsCallback?.(mockResults);
+      const points = await collectNextPoints(detector, () => {
+        mockOnResultsCallback?.(mockResults);
+      });
 
-      expect(callback).toHaveBeenCalledWith([]);
+      expect(points).toEqual([]);
     });
 
-    it("should support multiple callbacks", async () => {
+    it("should support multiple stream consumers", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement);
-      const callback1 = vi.fn();
-      const callback2 = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback1);
-      detector.onPointsDetected(callback2);
+      const abortA = new AbortController();
+      const abortB = new AbortController();
+      const iterA = detector.points(abortA.signal)[Symbol.asyncIterator]();
+      const iterB = detector.points(abortB.signal)[Symbol.asyncIterator]();
+      const pendingA = iterA.next();
+      const pendingB = iterB.next();
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -308,17 +324,19 @@ describe("MediaPipePointDetector", () => {
 
       mockOnResultsCallback?.(mockResults);
 
-      expect(callback1).toHaveBeenCalled();
-      expect(callback2).toHaveBeenCalled();
+      const [resultA, resultB] = await Promise.all([pendingA, pendingB]);
+      abortA.abort();
+      abortB.abort();
+
+      expect(resultA.value).toEqual([{ id: "hand-0-index-tip", x: 0.5, y: 0.6 }]);
+      expect(resultB.value).toEqual([{ id: "hand-0-index-tip", x: 0.5, y: 0.6 }]);
     });
 
     it("should mirror x-coordinates when mirrorX is true", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement, { mirrorX: true });
-      const callback = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback);
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -332,18 +350,18 @@ describe("MediaPipePointDetector", () => {
         multiHandWorldLandmarks: [],
       };
 
-      mockOnResultsCallback?.(mockResults);
+      const points = await collectNextPoints(detector, () => {
+        mockOnResultsCallback?.(mockResults);
+      });
 
-      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.7, y: 0.4 }]);
+      expect(points).toEqual([{ id: "hand-0-index-tip", x: 0.7, y: 0.4 }]);
     });
 
     it("should not mirror coordinates when mirrorX is false", async () => {
       const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
       const detector = new MediaPipePointDetector(videoElement, { mirrorX: false });
-      const callback = vi.fn();
 
       await detector.initialize();
-      detector.onPointsDetected(callback);
 
       const mockImage = document.createElement("img") as HTMLImageElement;
       const mockResults: Results = {
@@ -357,9 +375,11 @@ describe("MediaPipePointDetector", () => {
         multiHandWorldLandmarks: [],
       };
 
-      mockOnResultsCallback?.(mockResults);
+      const points = await collectNextPoints(detector, () => {
+        mockOnResultsCallback?.(mockResults);
+      });
 
-      expect(callback).toHaveBeenCalledWith([{ id: "hand-0-index-tip", x: 0.3, y: 0.4 }]);
+      expect(points).toEqual([{ id: "hand-0-index-tip", x: 0.3, y: 0.4 }]);
     });
   });
 

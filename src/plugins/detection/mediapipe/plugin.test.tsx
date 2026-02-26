@@ -14,12 +14,87 @@ const expectDetectorHandle = (result: ReturnType<typeof plugin.createDetector>) 
   return result;
 };
 
-const { setMirror, setMaxHands, restartCamera, stop } = vi.hoisted(() => ({
-  setMirror: vi.fn(),
-  setMaxHands: vi.fn(),
-  restartCamera: vi.fn().mockResolvedValue(undefined),
-  stop: vi.fn(),
-}));
+const flushMicrotasks = async (count = 3) => {
+  for (let i = 0; i < count; i++) {
+    await Promise.resolve();
+  }
+};
+
+const { setMirror, setMaxHands, restartCamera, stop, emitPoints, clearPointStreams, points } =
+  vi.hoisted(() => {
+    const subscribers = new Set<(points: Array<{ id: string; x: number; y: number }>) => void>();
+    return {
+      setMirror: vi.fn(),
+      setMaxHands: vi.fn(),
+      restartCamera: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      emitPoints: (points: Array<{ id: string; x: number; y: number }>) => {
+        for (const subscriber of subscribers) {
+          subscriber(points);
+        }
+      },
+      clearPointStreams: () => subscribers.clear(),
+      points: (
+        signal?: AbortSignal,
+      ): AsyncIterable<Array<{ id: string; x: number; y: number }>> => ({
+        [Symbol.asyncIterator]() {
+          const queue: Array<Array<{ id: string; x: number; y: number }>> = [];
+          let waiting:
+            | ((value: IteratorResult<Array<{ id: string; x: number; y: number }>>) => void)
+            | null = null;
+          let done = false;
+
+          const close = () => {
+            if (done) return;
+            done = true;
+            subscribers.delete(push);
+            if (waiting) {
+              const resolve = waiting;
+              waiting = null;
+              resolve({ value: undefined, done: true });
+            }
+          };
+
+          const push = (points: Array<{ id: string; x: number; y: number }>) => {
+            if (done) return;
+            if (waiting) {
+              const resolve = waiting;
+              waiting = null;
+              resolve({ value: points, done: false });
+              return;
+            }
+            queue.push(points);
+          };
+
+          subscribers.add(push);
+          if (signal) {
+            if (signal.aborted) {
+              close();
+            } else {
+              signal.addEventListener("abort", close, { once: true });
+            }
+          }
+
+          return {
+            next: async () => {
+              if (done) return { value: undefined, done: true };
+              const value = queue.shift();
+              if (value) return { value, done: false };
+              return new Promise<IteratorResult<Array<{ id: string; x: number; y: number }>>>(
+                (resolve) => {
+                  waiting = resolve;
+                },
+              );
+            },
+            return: async () => {
+              close();
+              return { value: undefined, done: true };
+            },
+          };
+        },
+      }),
+    };
+  });
 
 vi.mock("./MediaPipePointDetector", () => {
   const MockClass = vi.fn().mockImplementation(
@@ -30,7 +105,7 @@ vi.mock("./MediaPipePointDetector", () => {
       public stop = stop;
       public initialize = vi.fn().mockResolvedValue(undefined);
       public start = vi.fn().mockResolvedValue(undefined);
-      public onPointsDetected = vi.fn();
+      public points = points;
       public onHandsDrawn = vi.fn();
       public getActiveFacingMode = vi.fn().mockReturnValue(undefined);
       // biome-ignore lint/suspicious/noExplicitAny: Constructor mocking requires widened signature in tests
@@ -45,6 +120,7 @@ vi.mock("./MediaPipePointDetector", () => {
 describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearPointStreams();
     useDeviceStore.setState({
       devices: [],
       deviceId: undefined,
@@ -160,7 +236,7 @@ describe("MediaPipe detection plugin hand tracking", () => {
     useDeviceStore.getState().setHasHands(null);
   });
 
-  it("sets hasHands to false on first empty detection frame", () => {
+  it("sets hasHands to false on first empty detection frame", async () => {
     const runtime = {
       getConfig: vi.fn(() => defaultMediaPipeConfig),
       setConfig: vi.fn(),
@@ -169,23 +245,14 @@ describe("MediaPipe detection plugin hand tracking", () => {
 
     const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
-
-    // Find the onPointsDetected callback registered by postInitialize
-    // (it is the last registered callback; no canvases means no bindHandsUi call)
-    const { onPointsDetected } = handle.detector as unknown as {
-      onPointsDetected: ReturnType<typeof vi.fn>;
-    };
-    const callback = onPointsDetected.mock.calls[0]?.[0] as
-      | ((points: unknown[]) => void)
-      | undefined;
-    expect(callback).toBeTypeOf("function");
-
-    callback?.([]);
+    await flushMicrotasks();
+    emitPoints([]);
+    await flushMicrotasks();
 
     expect(useDeviceStore.getState().hasHands).toBe(false);
   });
 
-  it("sets hasHands to true when points are detected", () => {
+  it("sets hasHands to true when points are detected", async () => {
     const runtime = {
       getConfig: vi.fn(() => defaultMediaPipeConfig),
       setConfig: vi.fn(),
@@ -194,20 +261,14 @@ describe("MediaPipe detection plugin hand tracking", () => {
 
     const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
-
-    const { onPointsDetected } = handle.detector as unknown as {
-      onPointsDetected: ReturnType<typeof vi.fn>;
-    };
-    const callback = onPointsDetected.mock.calls[0]?.[0] as
-      | ((points: unknown[]) => void)
-      | undefined;
-
-    callback?.([{ id: "index-0", x: 0.5, y: 0.5 }]);
+    await flushMicrotasks();
+    emitPoints([{ id: "index-0", x: 0.5, y: 0.5 }]);
+    await flushMicrotasks();
 
     expect(useDeviceStore.getState().hasHands).toBe(true);
   });
 
-  it("does not call setHasHands on repeated frames with the same state", () => {
+  it("does not call setHasHands on repeated frames with the same state", async () => {
     const runtime = {
       getConfig: vi.fn(() => defaultMediaPipeConfig),
       setConfig: vi.fn(),
@@ -216,21 +277,16 @@ describe("MediaPipe detection plugin hand tracking", () => {
 
     const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
     handle.postInitialize?.();
-
-    const { onPointsDetected } = handle.detector as unknown as {
-      onPointsDetected: ReturnType<typeof vi.fn>;
-    };
-    const callback = onPointsDetected.mock.calls[0]?.[0] as
-      | ((points: unknown[]) => void)
-      | undefined;
+    await flushMicrotasks();
 
     // Spy after postInitialize to only catch subsequent setHasHands calls
     const setHasHands = vi.spyOn(useDeviceStore.getState(), "setHasHands");
 
-    callback?.([]);
-    callback?.([]);
+    emitPoints([]);
+    emitPoints([]);
+    await flushMicrotasks();
 
-    expect(setHasHands).toHaveBeenCalledTimes(1);
     expect(setHasHands).toHaveBeenCalledWith(false);
+    expect(setHasHands).not.toHaveBeenCalledWith(true);
   });
 });

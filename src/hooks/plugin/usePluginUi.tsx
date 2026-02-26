@@ -8,8 +8,8 @@ import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
   config: EngineConfig;
-  start: () => Promise<unknown>;
-  stop: () => void;
+  startTransport: () => Promise<unknown>;
+  stopTransport: () => void;
 };
 
 type UsePluginUiReturn = {
@@ -20,7 +20,11 @@ type UsePluginUiReturn = {
   PluginNotificationComponents: Array<{ id: string; Notifications: ComponentType }>;
 };
 
-export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePluginUiReturn => {
+export const usePluginUi = ({
+  config,
+  startTransport,
+  stopTransport,
+}: UsePluginUiParams): UsePluginUiReturn => {
   // Get active plugin IDs from store
   const [activeDetectionId] = useActivePlugin("detection");
   const [activeSamplingId] = useActivePlugin("sampling");
@@ -28,7 +32,11 @@ export const usePluginUi = ({ config, start, stop }: UsePluginUiParams): UsePlug
   const [activeVisualizerId] = useActivePlugin("visualization");
 
   // Build settings panel sections
-  const sections = usePluginSections({ config, start, stop });
+  const sections = usePluginSections({
+    config,
+    startTransport,
+    stopTransport,
+  });
 
   // Resolve sampling toolbar
   const SamplingToolbar = usePluginToolbar({ config, activeSamplingId });

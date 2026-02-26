@@ -9,14 +9,14 @@ import { buildPluginSection } from "./buildPluginSection";
 
 type UsePluginSectionsParams = {
   config: EngineConfig;
-  start: () => Promise<unknown>;
-  stop: () => void;
+  startTransport: () => Promise<unknown>;
+  stopTransport: () => void;
 };
 
 export const usePluginSections = ({
   config,
-  start,
-  stop,
+  startTransport,
+  stopTransport,
 }: UsePluginSectionsParams): SettingsPanelSection[] => {
   // 1. Subscribe to active plugin IDs and setters from store
   const [activeDetectionId, setActiveDetectionId] = useActivePlugin("detection");
@@ -28,32 +28,32 @@ export const usePluginSections = ({
   const [samplingConfig, setSamplingConfig] = usePluginConfig(activeSamplingId);
   const [detectionConfig, setDetectionConfig] = usePluginConfig(activeDetectionId);
 
-  // 3. Create individual plugin switch handlers (stop → update → start)
+  // 3. Create individual plugin switch handlers (stop transport → switch plugin → re-init paused)
   const handleSonificationSwitch = useCallback(
     (id: string) => {
-      stop();
+      stopTransport();
       setActiveSonificationId(id as ActivePlugins["sonification"]);
-      void start();
+      void startTransport();
     },
-    [start, stop, setActiveSonificationId],
+    [startTransport, stopTransport, setActiveSonificationId],
   );
 
   const handleSamplingSwitch = useCallback(
     (id: string) => {
-      stop();
+      stopTransport();
       setActiveSamplingId(id as ActivePlugins["sampling"]);
-      void start();
+      void startTransport();
     },
-    [start, stop, setActiveSamplingId],
+    [startTransport, stopTransport, setActiveSamplingId],
   );
 
   const handleDetectionSwitch = useCallback(
     (id: string) => {
-      stop();
+      stopTransport();
       setActiveDetectionId(id as ActivePlugins["detection"]);
-      void start();
+      void startTransport();
     },
-    [start, stop, setActiveDetectionId],
+    [startTransport, stopTransport, setActiveDetectionId],
   );
 
   // 4. Create refs to hold latest config values (standardized ref pattern for all dynamic plugin UI)

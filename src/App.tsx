@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
@@ -16,13 +16,17 @@ const App = () => {
   const logoRef = useRef<HTMLButtonElement>(null);
   const transportButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { start, stop, status, analyser, visualizerFrameDataRef } = useSonificationEngine(
-    engineConfig,
-    {
-      imageCanvasRef,
-      imageOverlayRef,
-    },
-  );
+  const {
+    startTransport,
+    stopTransport,
+    engineStatus,
+    transportStatus,
+    analyser,
+    visualizerFrameDataRef,
+  } = useSonificationEngine(engineConfig, {
+    imageCanvasRef,
+    imageOverlayRef,
+  });
   const [uiPrefs] = useUiPreferences();
   const dimLogoMark = uiPrefs.dimLogoMark;
 
@@ -32,20 +36,23 @@ const App = () => {
   const { sections, SamplingToolbar, DockPanel, VisualizerDisplays, PluginNotificationComponents } =
     usePluginUi({
       config: engineConfig,
-      start,
-      stop,
+      startTransport,
+      stopTransport,
     });
 
-  const isRunning = status.status === "running";
-  const isInitializing = status.status === "initializing";
+  const isRunning = transportStatus.status === "running";
+  const isInitializing = engineStatus === "initializing";
   const isActive = isRunning || isInitializing;
 
   const { uiFadeStyle, uiDimmed } = useUiDimFade();
+  const [autoStartEnabled, setAutoStartEnabled] = useState(true);
 
   useEffect(() => {
-    void start();
-    return () => stop();
-  }, [start, stop]);
+    if (!autoStartEnabled) return;
+    if (engineStatus !== "ready") return;
+    if (transportStatus.status !== "stopped") return;
+    void startTransport();
+  }, [autoStartEnabled, engineStatus, startTransport, transportStatus.status]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -112,11 +119,18 @@ const App = () => {
             isActive={isActive}
             isInitializing={isInitializing}
             onRestart={() => {
-              stop();
-              void start();
+              setAutoStartEnabled(true);
+              stopTransport();
+              void startTransport();
             }}
-            onStart={() => void start()}
-            onStop={() => stop()}
+            onStart={() => {
+              setAutoStartEnabled(true);
+              void startTransport();
+            }}
+            onStop={() => {
+              setAutoStartEnabled(false);
+              stopTransport();
+            }}
             transportButtonRef={transportButtonRef}
           />
         </div>
@@ -130,8 +144,14 @@ const App = () => {
           <DockPanel
             isRunning={isRunning}
             isInitializing={isInitializing}
-            onStart={() => void start()}
-            onStop={() => stop()}
+            onStart={() => {
+              setAutoStartEnabled(true);
+              void startTransport();
+            }}
+            onStop={() => {
+              setAutoStartEnabled(false);
+              stopTransport();
+            }}
           />
         </div>
       ) : null}
@@ -141,7 +161,7 @@ const App = () => {
         <Display key={id} isRunning={isRunning} frameDataRef={visualizerFrameDataRef} />
       ))}
 
-      <EngineStatusAnnouncer status={status} />
+      <EngineStatusAnnouncer engineStatus={engineStatus} transportStatus={transportStatus} />
     </main>
   );
 };

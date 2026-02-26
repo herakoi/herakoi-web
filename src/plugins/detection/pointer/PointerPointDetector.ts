@@ -1,9 +1,4 @@
-import type {
-  DetectedPoint,
-  ErrorOr,
-  PointDetectionCallback,
-  PointDetector,
-} from "#src/core/interfaces";
+import type { DetectedPoint, ErrorOr, PointDetector } from "#src/core/interfaces";
 import { PointerOverlayNotMountedError } from "./errors";
 
 type GetOverlayCanvas = () => HTMLCanvasElement | null;
@@ -25,8 +20,8 @@ const isInteractiveTarget = (target: EventTarget | null): boolean => {
 
 export class PointerPointDetector implements PointDetector {
   private readonly getOverlayCanvas: GetOverlayCanvas;
-  private readonly callbacks: PointDetectionCallback[] = [];
   private readonly activePoints = new Map<string, DetectedPoint>();
+  private readonly pointListeners = new Set<(points: DetectedPoint[]) => void>();
 
   private initialized = false;
   private started = false;
@@ -91,8 +86,71 @@ export class PointerPointDetector implements PointDetector {
     this.clearActivePoints({ emitWhenAlreadyEmpty: true });
   }
 
-  onPointsDetected(callback: PointDetectionCallback): void {
-    this.callbacks.push(callback);
+  points(signal?: AbortSignal): AsyncIterable<DetectedPoint[]> {
+    return this.createPointStream(signal);
+  }
+
+  private createPointStream(signal?: AbortSignal): AsyncIterable<DetectedPoint[]> {
+    const detector = this;
+    return {
+      [Symbol.asyncIterator](): AsyncIterator<DetectedPoint[]> {
+        const queue: DetectedPoint[][] = [];
+        let waitingResolver: ((value: IteratorResult<DetectedPoint[]>) => void) | null = null;
+        let done = false;
+
+        const close = () => {
+          if (done) return;
+          done = true;
+          detector.pointListeners.delete(push);
+          if (signal) {
+            signal.removeEventListener("abort", close);
+          }
+          if (waitingResolver) {
+            const resolve = waitingResolver;
+            waitingResolver = null;
+            resolve({ value: undefined, done: true });
+          }
+        };
+
+        const push = (points: DetectedPoint[]) => {
+          if (done) return;
+          if (waitingResolver) {
+            const resolve = waitingResolver;
+            waitingResolver = null;
+            resolve({ value: points, done: false });
+            return;
+          }
+          queue.push(points);
+        };
+
+        detector.pointListeners.add(push);
+
+        if (signal?.aborted) {
+          close();
+        } else if (signal) {
+          signal.addEventListener("abort", close, { once: true });
+        }
+
+        return {
+          next: async () => {
+            if (done) return { value: undefined, done: true };
+            const queued = queue.shift();
+            if (queued) return { value: queued, done: false };
+            return new Promise<IteratorResult<DetectedPoint[]>>((resolve) => {
+              waitingResolver = resolve;
+            });
+          },
+          return: async () => {
+            close();
+            return { value: undefined, done: true };
+          },
+          throw: async (error) => {
+            close();
+            throw error;
+          },
+        };
+      },
+    };
   }
 
   private onPointerMove(event: PointerEvent): void {
@@ -192,8 +250,8 @@ export class PointerPointDetector implements PointDetector {
   }
 
   private emitPoints(points: DetectedPoint[]): void {
-    for (const callback of this.callbacks) {
-      callback(points);
+    for (const listener of this.pointListeners) {
+      listener(points);
     }
   }
 

@@ -38,11 +38,15 @@ const refreshDeviceList = async (): Promise<ErrorOr<undefined>> => {
 export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
   const restartAndRefresh = async (): Promise<void> => {
     useDeviceStore.getState().setCameraOk();
+    const cameraEnabled = useDeviceStore.getState().cameraEnabled;
     const currentDeviceId = useDeviceStore.getState().deviceId;
-    const restartResult = await detector.restartCamera(currentDeviceId);
-    if (restartResult instanceof Error) {
-      useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: restartResult }));
-      return;
+    if (cameraEnabled) {
+      const restartResult = await detector.restartCamera(currentDeviceId);
+      if (restartResult instanceof Error) {
+        useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: restartResult }));
+        return;
+      }
+      applyFacingMode(detector, restartResult);
     }
 
     const refreshResult = await refreshDeviceList();
@@ -52,8 +56,6 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
         .setCameraError(new DeviceEnumerationError({ cause: refreshResult }));
       return;
     }
-
-    applyFacingMode(detector, restartResult);
   };
 
   useDeviceStore.getState().setRestartCamera(restartAndRefresh);
@@ -83,6 +85,25 @@ export function bindDeviceSync(detector: MediaPipePointDetector): () => void {
 
   // Subscribe to deviceStore for mirror and deviceId runtime changes
   const unsubscribeStore = useDeviceStore.subscribe((state, prevState) => {
+    if (state.cameraEnabled !== prevState.cameraEnabled) {
+      if (!state.cameraEnabled) {
+        detector.stop();
+        useDeviceStore.getState().setHasHands(null);
+        return;
+      }
+
+      useDeviceStore.getState().setCameraOk();
+      void detector.start().then((startResult) => {
+        if (startResult instanceof Error) {
+          useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: startResult }));
+          return;
+        }
+
+        applyFacingMode(detector, detector.getActiveFacingMode());
+      });
+      return;
+    }
+
     if (state.mirror !== prevState.mirror) {
       detector.setMirror(state.mirror);
     }

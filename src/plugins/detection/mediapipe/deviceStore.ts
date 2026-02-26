@@ -9,9 +9,11 @@ interface DeviceStoreState {
   devices: DeviceInfo[];
   deviceId: string | undefined;
   mirror: boolean;
+  cameraEnabled: boolean;
   setDevices: (devices: DeviceInfo[]) => void;
   setDeviceId: (deviceId: string | undefined) => void;
   setMirror: (mirror: boolean) => void;
+  setCameraEnabled: (enabled: boolean) => void;
   /** Restart the camera (re-triggers getUserMedia). Set by plugin at runtime. */
   restartCamera: (() => Promise<void>) | null;
   setRestartCamera: (fn: (() => Promise<void>) | null) => void;
@@ -28,9 +30,11 @@ export const useDeviceStore = create<DeviceStoreState>((set) => ({
   devices: [],
   deviceId: undefined,
   mirror: true,
+  cameraEnabled: true,
   setDevices: (devices) => set({ devices }),
   setDeviceId: (deviceId) => set({ deviceId }),
   setMirror: (mirror) => set({ mirror }),
+  setCameraEnabled: (enabled) => set({ cameraEnabled: enabled }),
   restartCamera: null,
   setRestartCamera: (fn) => set({ restartCamera: fn }),
   cameraStatus: { status: "ok" },
