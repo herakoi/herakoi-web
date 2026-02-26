@@ -186,9 +186,8 @@ export class MediaPipePointDetector implements PointDetector {
       return this.startInFlight;
     }
 
-    // Bail out if stop() was already called on this instance (e.g. React StrictMode
-    // calls stop() while initialize() is still pending, then start() resumes here).
-    if (this.startAborted) return;
+    // A fresh explicit start request must clear previous stop() intent.
+    this.startAborted = false;
 
     return this.startCameraWithDedupe();
   }

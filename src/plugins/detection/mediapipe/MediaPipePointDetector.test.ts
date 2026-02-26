@@ -205,6 +205,19 @@ describe("MediaPipePointDetector", () => {
 
       expect(true).toBe(true);
     });
+
+    it("should allow start again after stop", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+      await detector.start();
+      detector.stop();
+      await detector.start();
+
+      expect(NativeCameraMock).toHaveBeenCalledTimes(2);
+      expect(lastCameraInstance?.start).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("points()", () => {

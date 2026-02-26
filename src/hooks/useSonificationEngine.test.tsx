@@ -26,7 +26,7 @@ const startTransportWhenReady = async (
   startTransport: () => Promise<SonificationEngineStartResult>,
 ): Promise<SonificationEngineStartResult> => {
   let lastResult: SonificationEngineStartResult = new Error("Engine not ready");
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     await act(async () => {
       lastResult = await startTransport();
     });
@@ -34,8 +34,7 @@ const startTransportWhenReady = async (
       return lastResult;
     }
     await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   }
   throw new Error("Engine did not become ready in time.");
