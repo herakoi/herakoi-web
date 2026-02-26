@@ -2,7 +2,7 @@ export const hsvSamplingPluginId = "sampling/hsv" as const;
 
 export type HSVViewportMode =
   | { kind: "contain" }
-  | { kind: "cover"; pan: { x: number; y: number }; zoom: number };
+  | { kind: "cover"; pan: { x: number; y: number }; zoom: number; rotation: number };
 
 export interface HSVSamplingConfig {
   viewportMode: HSVViewportMode;

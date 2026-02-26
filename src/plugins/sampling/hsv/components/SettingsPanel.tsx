@@ -77,7 +77,7 @@ export const HSVSettingsPanel = ({
               viewportMode: checked
                 ? isCoverMode
                   ? config.viewportMode
-                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 }
+                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 }
                 : { kind: "contain" },
             };
             if (!checked) {

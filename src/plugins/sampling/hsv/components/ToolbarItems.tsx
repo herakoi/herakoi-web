@@ -108,7 +108,7 @@ export const HSVToolbarItems = ({
               setConfig({
                 viewportMode: isCoverMode
                   ? { kind: "contain" }
-                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1 },
+                  : { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
                 ...(isCoverMode ? { panInteractionEnabled: false } : {}),
               })
             }
@@ -175,6 +175,29 @@ export const HSVToolbarItems = ({
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>0.2x</span>
                     <span>10x</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Rotation</span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {Math.round(coverMode.rotation ?? 0)}°
+                    </span>
+                  </div>
+                  <Slider
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={[coverMode.rotation ?? 0]}
+                    aria-label="Rotation angle"
+                    onValueChange={([rotation]) => {
+                      if (rotation === undefined) return;
+                      setConfig({
+                        viewportMode: { ...coverMode, rotation },
+                      });
+                    }}
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>-180°</span>
+                    <span>180°</span>
                   </div>
                 </div>
               </PopoverContent>

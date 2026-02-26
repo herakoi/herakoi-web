@@ -45,12 +45,37 @@ export const drawImageToCanvas = (
     viewportMode.kind === "cover"
       ? clamp(baseOffsetY + viewportMode.pan.y, baseOffsetY - extraY, baseOffsetY + extraY)
       : baseOffsetY;
+  const rotationDeg = viewportMode.kind === "cover" ? (viewportMode.rotation ?? 0) : 0;
+  const rotation = (rotationDeg * Math.PI) / 180;
+  const centerX = offsetX + drawWidth / 2;
+  const centerY = offsetY + drawHeight / 2;
+
+  const corners = [
+    { x: -drawWidth / 2, y: -drawHeight / 2 },
+    { x: drawWidth / 2, y: -drawHeight / 2 },
+    { x: drawWidth / 2, y: drawHeight / 2 },
+    { x: -drawWidth / 2, y: drawHeight / 2 },
+  ].map((corner) => {
+    const x = corner.x * Math.cos(rotation) - corner.y * Math.sin(rotation) + centerX;
+    const y = corner.x * Math.sin(rotation) + corner.y * Math.cos(rotation) + centerY;
+    return { x, y };
+  });
+  const minX = Math.min(...corners.map((c) => c.x));
+  const maxX = Math.max(...corners.map((c) => c.x));
+  const minY = Math.min(...corners.map((c) => c.y));
+  const maxY = Math.max(...corners.map((c) => c.y));
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.rotate(rotation);
+  ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+  ctx.restore();
+
   return {
-    x: offsetX,
-    y: offsetY,
-    width: drawWidth,
-    height: drawHeight,
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
   };
 };

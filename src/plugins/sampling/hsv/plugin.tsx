@@ -37,7 +37,12 @@ const isViewportModeEqual = (
 ) => {
   if (left.kind === "contain") return right.kind === "contain";
   if (right.kind !== "cover") return false;
-  return left.pan.x === right.pan.x && left.pan.y === right.pan.y && left.zoom === right.zoom;
+  return (
+    left.pan.x === right.pan.x &&
+    left.pan.y === right.pan.y &&
+    left.zoom === right.zoom &&
+    (left.rotation ?? 0) === (right.rotation ?? 0)
+  );
 };
 
 export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSamplingConfig> =
@@ -77,6 +82,12 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
       const getCanvas = () => hsvSamplingRefs.imageCanvas?.current ?? null;
       const getConfig = (): HSVSamplingConfig => runtime.getConfig();
+      const normalizeRotation = (rotation: number | undefined) => {
+        const value = Number.isFinite(rotation) ? (rotation as number) : 0;
+        let normalized = ((value + 180) % 360) - 180;
+        if (normalized < -180) normalized += 360;
+        return normalized;
+      };
 
       //TODO: estrarre queste logiche
       const drawAndEncode = async (img: HTMLImageElement, canvas: HTMLCanvasElement) => {
@@ -202,10 +213,21 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
 
             if (!panModeEnabled) return null;
 
-            // Pan/drag state
-            let dragging = false;
-            let lastX = 0;
-            let lastY = 0;
+            // Pan/gesture state
+            const pointers = new Map<number, { x: number; y: number }>();
+            let lastPanPoint: { x: number; y: number } | null = null;
+            let gestureStart: {
+              centroidX: number;
+              centroidY: number;
+              distance: number;
+              angle: number;
+              viewport: {
+                kind: "cover";
+                pan: { x: number; y: number };
+                zoom: number;
+                rotation: number;
+              };
+            } | null = null;
             let rafId = 0;
             let pendingX = 0;
             let pendingY = 0;
@@ -217,6 +239,7 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               runtime.setConfig({
                 viewportMode: {
                   ...currentViewportMode,
+                  rotation: currentViewportMode.rotation ?? 0,
                   pan: {
                     x: currentViewportMode.pan.x + pendingX,
                     y: currentViewportMode.pan.y + pendingY,
@@ -227,55 +250,161 @@ export const plugin: SamplingPluginDefinition<typeof hsvSamplingPluginId, HSVSam
               pendingY = 0;
             };
 
+            const applyWheelZoom = (event: WheelEvent) => {
+              const currentViewportMode = getConfig().viewportMode;
+              if (currentViewportMode.kind !== "cover") return;
+
+              const factor = Math.exp(-event.deltaY * 0.002);
+              const nextZoom = Math.max(0.2, Math.min(10, currentViewportMode.zoom * factor));
+              if (Math.abs(nextZoom - currentViewportMode.zoom) < 0.001) return;
+
+              runtime.setConfig({
+                viewportMode: {
+                  ...currentViewportMode,
+                  zoom: nextZoom,
+                },
+              });
+            };
+
+            const schedulePan = () => {
+              if (rafId) return;
+              rafId = requestAnimationFrame(() => {
+                rafId = 0;
+                applyPan();
+              });
+            };
+
+            const toPointArray = () => [...pointers.values()];
+            const getGestureFromPoints = (points: Array<{ x: number; y: number }>) => {
+              const [a, b] = points;
+              if (!a || !b) return null;
+              const dx = b.x - a.x;
+              const dy = b.y - a.y;
+              return {
+                centroidX: (a.x + b.x) / 2,
+                centroidY: (a.y + b.y) / 2,
+                distance: Math.hypot(dx, dy),
+                angle: Math.atan2(dy, dx),
+              };
+            };
+
             const onPointerDown = (event: PointerEvent) => {
-              if (event.button !== 0) return;
-              dragging = true;
-              lastX = event.clientX;
-              lastY = event.clientY;
-              canvas.style.cursor = "grabbing";
+              if (event.pointerType === "mouse" && event.button !== 0) return;
+
+              pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+              if (pointers.size === 1) {
+                lastPanPoint = { x: event.clientX, y: event.clientY };
+                canvas.style.cursor = "grabbing";
+              } else if (pointers.size >= 2) {
+                applyPan();
+                const gesture = getGestureFromPoints(toPointArray());
+                const currentViewport = getConfig().viewportMode;
+                if (gesture && currentViewport.kind === "cover") {
+                  gestureStart = {
+                    ...gesture,
+                    viewport: {
+                      ...currentViewport,
+                      rotation: currentViewport.rotation ?? 0,
+                    },
+                  };
+                }
+                lastPanPoint = null;
+                canvas.style.cursor = "grabbing";
+              }
               canvas.setPointerCapture(event.pointerId);
             };
 
             const onPointerMove = (event: PointerEvent) => {
-              if (!dragging) return;
-              const dx = event.clientX - lastX;
-              const dy = event.clientY - lastY;
-              lastX = event.clientX;
-              lastY = event.clientY;
-              pendingX += dx;
-              pendingY += dy;
-              if (!rafId) {
-                rafId = requestAnimationFrame(() => {
-                  rafId = 0;
-                  applyPan();
+              if (!pointers.has(event.pointerId)) return;
+
+              pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+              if (pointers.size === 1 && lastPanPoint) {
+                const dx = event.clientX - lastPanPoint.x;
+                const dy = event.clientY - lastPanPoint.y;
+                lastPanPoint = { x: event.clientX, y: event.clientY };
+                pendingX += dx;
+                pendingY += dy;
+                schedulePan();
+                return;
+              }
+
+              if (pointers.size >= 2 && gestureStart) {
+                const gesture = getGestureFromPoints(toPointArray());
+                if (!gesture || gestureStart.distance <= 0) return;
+
+                const zoomRatio = gesture.distance / gestureStart.distance;
+                const nextZoom = Math.max(
+                  0.2,
+                  Math.min(10, gestureStart.viewport.zoom * zoomRatio),
+                );
+                const deltaAngleDeg = ((gesture.angle - gestureStart.angle) * 180) / Math.PI;
+                const nextRotation = normalizeRotation(
+                  gestureStart.viewport.rotation + deltaAngleDeg,
+                );
+                const deltaCentroidX = gesture.centroidX - gestureStart.centroidX;
+                const deltaCentroidY = gesture.centroidY - gestureStart.centroidY;
+
+                runtime.setConfig({
+                  viewportMode: {
+                    ...gestureStart.viewport,
+                    zoom: nextZoom,
+                    rotation: nextRotation,
+                    pan: {
+                      x: gestureStart.viewport.pan.x + deltaCentroidX,
+                      y: gestureStart.viewport.pan.y + deltaCentroidY,
+                    },
+                  },
                 });
               }
             };
 
-            const endDrag = (event: PointerEvent) => {
-              if (!dragging) return;
-              dragging = false;
+            const onWheel = (event: WheelEvent) => {
+              event.preventDefault();
+              applyWheelZoom(event);
+            };
+
+            const endPointer = (event: PointerEvent) => {
+              const hadPointer = pointers.delete(event.pointerId);
+              if (!hadPointer) return;
+
               if (canvas.hasPointerCapture(event.pointerId)) {
                 canvas.releasePointerCapture(event.pointerId);
               }
-              canvas.style.cursor = "grab";
-              if (rafId) {
-                cancelAnimationFrame(rafId);
-                rafId = 0;
+
+              if (pointers.size === 0) {
+                lastPanPoint = null;
+                gestureStart = null;
+                canvas.style.cursor = "grab";
+                if (rafId) {
+                  cancelAnimationFrame(rafId);
+                  rafId = 0;
+                }
+                applyPan();
+                return;
               }
-              applyPan();
+
+              if (pointers.size === 1) {
+                const [remaining] = toPointArray();
+                if (remaining) {
+                  lastPanPoint = { ...remaining };
+                }
+                gestureStart = null;
+              }
             };
 
             canvas.addEventListener("pointerdown", onPointerDown);
-            window.addEventListener("pointermove", onPointerMove);
-            window.addEventListener("pointerup", endDrag);
-            window.addEventListener("pointercancel", endDrag);
+            canvas.addEventListener("pointermove", onPointerMove);
+            canvas.addEventListener("pointerup", endPointer);
+            canvas.addEventListener("pointercancel", endPointer);
+            canvas.addEventListener("wheel", onWheel, { passive: false });
 
             return () => {
               canvas.removeEventListener("pointerdown", onPointerDown);
-              window.removeEventListener("pointermove", onPointerMove);
-              window.removeEventListener("pointerup", endDrag);
-              window.removeEventListener("pointercancel", endDrag);
+              canvas.removeEventListener("pointermove", onPointerMove);
+              canvas.removeEventListener("pointerup", endPointer);
+              canvas.removeEventListener("pointercancel", endPointer);
+              canvas.removeEventListener("wheel", onWheel);
               canvas.style.cursor = "default";
               canvas.style.touchAction = "auto";
               if (rafId) cancelAnimationFrame(rafId);
