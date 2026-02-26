@@ -1,9 +1,11 @@
 import { useMemo } from "react";
-import type { EngineStatus } from "#src/state/appRuntimeStore";
+import type { EngineHandlesStatus } from "#src/hooks/engine/useEngineHandles";
+import type { TransportStatus } from "#src/hooks/engine/useTransportLoop";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 type Props = {
-  status: EngineStatus;
+  engineStatus: EngineHandlesStatus;
+  transportStatus: TransportStatus;
 };
 
 /**
@@ -13,22 +15,25 @@ type Props = {
  * discriminated union. Uses assertive politeness to immediately
  * interrupt screen reader output when status changes.
  */
-export const EngineStatusAnnouncer = ({ status }: Props) => {
+export const EngineStatusAnnouncer = ({ engineStatus, transportStatus }: Props) => {
   const message = useMemo(() => {
-    switch (status.status) {
-      case "initializing":
-        return "Engine initializing";
+    if (engineStatus === "initializing") {
+      return "Engine initializing";
+    }
+    if (engineStatus instanceof Error) {
+      return `Engine error: ${engineStatus.message}`;
+    }
+    switch (transportStatus.status) {
       case "running":
         return "Engine running";
       case "error":
-        // TypeScript knows error exists here due to discriminated union
-        return `Engine error: ${status.error.message}`;
-      case "idle":
+        return `Transport error: ${transportStatus.error.message}`;
+      case "stopped":
         return "Engine stopped";
       default:
         return "";
     }
-  }, [status]);
+  }, [engineStatus, transportStatus]);
 
   return <ScreenReaderAnnouncer message={message} politeness="assertive" />;
 };

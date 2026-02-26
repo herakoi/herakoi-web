@@ -10,17 +10,12 @@
  * 1. Constructor stores configuration
  * 2. initialize() creates MediaPipe Hands instance
  * 3. start() opens camera via NativeCamera and begins detection loop
- * 4. [detection runs] → onPointsDetected callbacks invoked with DetectedPoint[]
+ * 4. [detection runs] → points() yields DetectedPoint[]
  * 5. stop() halts camera and detection
  */
 
 import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe/hands";
-import type {
-  DetectedPoint,
-  ErrorOr,
-  PointDetectionCallback,
-  PointDetector,
-} from "#src/core/interfaces";
+import type { DetectedPoint, ErrorOr, PointDetector } from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
 import { useDeviceStore } from "./deviceStore";
 import { CameraRestartError, CameraStartError } from "./errors";
@@ -67,7 +62,7 @@ export class MediaPipePointDetector implements PointDetector {
 
   private hands: Hands | null = null;
   private camera: NativeCamera | null = null;
-  private callbacks: PointDetectionCallback[] = [];
+  private pointListeners = new Set<(points: DetectedPoint[]) => void>();
   private drawers: HandsDrawerCallback[] = [];
   private initialized = false;
   private started = false;
@@ -208,8 +203,8 @@ export class MediaPipePointDetector implements PointDetector {
     this.started = false;
   }
 
-  onPointsDetected(callback: PointDetectionCallback): void {
-    this.callbacks.push(callback);
+  points(signal?: AbortSignal): AsyncIterable<DetectedPoint[]> {
+    return this.createPointStream(signal);
   }
 
   /**
@@ -246,9 +241,72 @@ export class MediaPipePointDetector implements PointDetector {
       }
     }
 
-    for (const callback of this.callbacks) {
-      callback(points);
+    for (const listener of this.pointListeners) {
+      listener(points);
     }
+  }
+
+  private createPointStream(signal?: AbortSignal): AsyncIterable<DetectedPoint[]> {
+    const detector = this;
+    return {
+      [Symbol.asyncIterator](): AsyncIterator<DetectedPoint[]> {
+        const queue: DetectedPoint[][] = [];
+        let waitingResolver: ((value: IteratorResult<DetectedPoint[]>) => void) | null = null;
+        let done = false;
+
+        const close = () => {
+          if (done) return;
+          done = true;
+          detector.pointListeners.delete(push);
+          if (signal) {
+            signal.removeEventListener("abort", close);
+          }
+          if (waitingResolver) {
+            const resolve = waitingResolver;
+            waitingResolver = null;
+            resolve({ value: undefined, done: true });
+          }
+        };
+
+        const push = (points: DetectedPoint[]) => {
+          if (done) return;
+          if (waitingResolver) {
+            const resolve = waitingResolver;
+            waitingResolver = null;
+            resolve({ value: points, done: false });
+            return;
+          }
+          queue.push(points);
+        };
+
+        detector.pointListeners.add(push);
+
+        if (signal?.aborted) {
+          close();
+        } else if (signal) {
+          signal.addEventListener("abort", close, { once: true });
+        }
+
+        return {
+          next: async () => {
+            if (done) return { value: undefined, done: true };
+            const queued = queue.shift();
+            if (queued) return { value: queued, done: false };
+            return new Promise<IteratorResult<DetectedPoint[]>>((resolve) => {
+              waitingResolver = resolve;
+            });
+          },
+          return: async () => {
+            close();
+            return { value: undefined, done: true };
+          },
+          throw: async (error) => {
+            close();
+            throw error;
+          },
+        };
+      },
+    };
   }
 
   private mirrorLandmarks(landmarks: NormalizedLandmarkList): NormalizedLandmarkList {

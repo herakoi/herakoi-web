@@ -71,11 +71,17 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
 
       let unsubscribeConfig: (() => void) | null = null;
       let cleanupDeviceSync: (() => void) | null = null;
+      let cleanupHandsUi: (() => void) | null = null;
+      let abortHasHandsStream: AbortController | null = null;
       const dispose = () => {
         unsubscribeConfig?.();
         cleanupDeviceSync?.();
+        cleanupHandsUi?.();
+        abortHasHandsStream?.abort();
         unsubscribeConfig = null;
         cleanupDeviceSync = null;
+        cleanupHandsUi = null;
+        abortHasHandsStream = null;
         useDeviceStore.getState().setHasHands(null);
         detector.stop();
       };
@@ -138,20 +144,23 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
           }
 
           if (canvases.length > 0) {
-            bindHandsUi(detector, canvases);
+            cleanupHandsUi = bindHandsUi(detector, canvases);
           }
 
           cleanupDeviceSync = bindDeviceSync(detector);
 
           // Track hand presence for the Notifications component
           let lastHasHands: boolean | null = null;
-          detector.onPointsDetected((points) => {
-            const has = points.length > 0;
-            if (has !== lastHasHands) {
-              lastHasHands = has;
-              useDeviceStore.getState().setHasHands(has);
+          abortHasHandsStream = new AbortController();
+          void (async () => {
+            for await (const points of detector.points(abortHasHandsStream.signal)) {
+              const has = points.length > 0;
+              if (has !== lastHasHands) {
+                lastHasHands = has;
+                useDeviceStore.getState().setHasHands(has);
+              }
             }
-          });
+          })();
 
           // Subscribe to config changes for runtime updates
           const prevConfig = { ...config };

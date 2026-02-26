@@ -10,7 +10,7 @@
  * - Normalized coordinates (0-1) for detector output
  * - Flexible key-value image data (supports different color spaces)
  * - Async initialization for heavy resources (models, audio context)
- * - Callback-based detection for real-time streaming
+ * - AsyncIterable-based detection streaming
  */
 
 /**
@@ -35,13 +35,6 @@ export interface DetectedPoint {
 }
 
 /**
- * Callback function invoked when new points are detected.
- *
- * @param points Array of detected points in the current frame
- */
-export type PointDetectionCallback = (points: DetectedPoint[]) => void;
-
-/**
  * Go-style result type where failures are returned as Error values.
  *
  * Success is represented by T (or undefined for void-style operations).
@@ -52,10 +45,10 @@ export type ErrorOr<T> = Error | T;
  * Detects points of interest (e.g., hand landmarks, face features) from video input.
  *
  * Implementations wrap different detection backends (MediaPipe, TensorFlow, etc.)
- * and emit normalized point coordinates via callback.
+ * and emit normalized point coordinates via async stream.
  *
  * Lifecycle:
- * 1. construct → 2. initialize() → 3. start() → [detection loop] → 4. stop()
+ * 1. construct → 2. initialize() → 3. start() → 4. consume points() → 5. stop()
  */
 export interface PointDetector {
   /**
@@ -70,7 +63,7 @@ export interface PointDetector {
   /**
    * Start the detection loop.
    *
-   * Begins processing video frames and invoking registered callbacks.
+   * Begins processing video frames.
    * Requires initialize() to have completed successfully.
    *
    */
@@ -83,15 +76,8 @@ export interface PointDetector {
    */
   stop(): void;
 
-  /**
-   * Register a callback to receive detected points.
-   *
-   * Callback is invoked on each frame with detected points. Multiple callbacks
-   * can be registered and all will be invoked in registration order.
-   *
-   * @param callback Function to invoke with detected points
-   */
-  onPointsDetected(callback: PointDetectionCallback): void;
+  /** Stream point batches emitted by this detector over time. */
+  points(signal?: AbortSignal): AsyncIterable<DetectedPoint[]>;
 }
 
 /**
