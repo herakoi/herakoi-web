@@ -30,6 +30,7 @@ export class PointerPointDetector implements PointDetector {
   private readonly onPointerDownBound: (event: PointerEvent) => void;
   private readonly onPointerUpBound: (event: PointerEvent) => void;
   private readonly onPointerCancelBound: (event: PointerEvent) => void;
+  private readonly onWindowMouseOutBound: (event: MouseEvent) => void;
   private readonly onWindowBlurBound: () => void;
   private readonly onVisibilityChangeBound: () => void;
 
@@ -39,6 +40,7 @@ export class PointerPointDetector implements PointDetector {
     this.onPointerDownBound = (event) => this.onPointerDown(event);
     this.onPointerUpBound = (event) => this.onPointerUp(event);
     this.onPointerCancelBound = (event) => this.onPointerCancel(event);
+    this.onWindowMouseOutBound = (event) => this.onWindowMouseOut(event);
     this.onWindowBlurBound = () => this.clearActivePoints();
     this.onVisibilityChangeBound = () => {
       if (document.hidden) {
@@ -68,6 +70,7 @@ export class PointerPointDetector implements PointDetector {
     window.addEventListener("pointerdown", this.onPointerDownBound);
     window.addEventListener("pointerup", this.onPointerUpBound);
     window.addEventListener("pointercancel", this.onPointerCancelBound);
+    window.addEventListener("mouseout", this.onWindowMouseOutBound);
     window.addEventListener("blur", this.onWindowBlurBound);
     document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
   }
@@ -79,6 +82,7 @@ export class PointerPointDetector implements PointDetector {
     window.removeEventListener("pointerdown", this.onPointerDownBound);
     window.removeEventListener("pointerup", this.onPointerUpBound);
     window.removeEventListener("pointercancel", this.onPointerCancelBound);
+    window.removeEventListener("mouseout", this.onWindowMouseOutBound);
     window.removeEventListener("blur", this.onWindowBlurBound);
     document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
 
@@ -166,8 +170,7 @@ export class PointerPointDetector implements PointDetector {
 
     const position = this.getNormalizedPointerPosition(event);
     if (!position?.inside) {
-      this.activePoints.delete(pointId);
-      this.emitActivePoints();
+      this.removeActivePoint(pointId);
       return;
     }
 
@@ -191,9 +194,7 @@ export class PointerPointDetector implements PointDetector {
     if (event.pointerType === "mouse") return;
 
     const pointId = this.getPointId(event);
-    if (!this.activePoints.has(pointId)) return;
-    this.activePoints.delete(pointId);
-    this.emitActivePoints();
+    this.removeActivePoint(pointId);
   }
 
   private onPointerCancel(event: PointerEvent): void {
@@ -212,23 +213,35 @@ export class PointerPointDetector implements PointDetector {
   private handleMouseMove(event: PointerEvent): void {
     if (!event.isPrimary) return;
     const pointId = MOUSE_POINT_ID;
+    if (document.hidden || !document.hasFocus()) {
+      this.removeActivePoint(pointId);
+      return;
+    }
 
     if (isInteractiveTarget(event.target)) {
-      if (!this.activePoints.has(pointId)) return;
-      this.activePoints.delete(pointId);
-      this.emitActivePoints();
+      this.removeActivePoint(pointId);
       return;
     }
 
     const position = this.getNormalizedPointerPosition(event);
     if (!position?.inside) {
-      if (!this.activePoints.has(pointId)) return;
-      this.activePoints.delete(pointId);
-      this.emitActivePoints();
+      this.removeActivePoint(pointId);
       return;
     }
 
     this.activePoints.set(pointId, { id: pointId, x: position.x, y: position.y });
+    this.emitActivePoints();
+  }
+
+  private onWindowMouseOut(event: MouseEvent): void {
+    if (!this.started) return;
+    if (event.relatedTarget !== null) return;
+    this.removeActivePoint(MOUSE_POINT_ID);
+  }
+
+  private removeActivePoint(pointId: string): void {
+    if (!this.activePoints.has(pointId)) return;
+    this.activePoints.delete(pointId);
     this.emitActivePoints();
   }
 

@@ -183,4 +183,62 @@ describe("PointerPointDetector", () => {
 
     expect(points).toEqual([]);
   });
+
+  it("clears active mouse point when document no longer has focus", async () => {
+    const detector = new PointerPointDetector(() => canvas);
+    const hasFocusSpy = vi.spyOn(document, "hasFocus");
+    hasFocusSpy.mockReturnValue(true);
+
+    await detector.initialize();
+    detector.start();
+
+    window.dispatchEvent(
+      createPointerEvent("pointermove", {
+        clientX: 100,
+        clientY: 50,
+        pointerType: "mouse",
+        isPrimary: true,
+      }),
+    );
+
+    hasFocusSpy.mockReturnValue(false);
+    const points = await nextPoints(detector, () => {
+      window.dispatchEvent(
+        createPointerEvent("pointermove", {
+          clientX: 100,
+          clientY: 50,
+          pointerType: "mouse",
+          isPrimary: true,
+        }),
+      );
+    });
+
+    expect(points).toEqual([]);
+    hasFocusSpy.mockRestore();
+  });
+
+  it("clears active mouse point when pointer leaves window", async () => {
+    const detector = new PointerPointDetector(() => canvas);
+    const hasFocusSpy = vi.spyOn(document, "hasFocus");
+    hasFocusSpy.mockReturnValue(true);
+
+    await detector.initialize();
+    detector.start();
+
+    window.dispatchEvent(
+      createPointerEvent("pointermove", {
+        clientX: 100,
+        clientY: 50,
+        pointerType: "mouse",
+        isPrimary: true,
+      }),
+    );
+
+    const points = await nextPoints(detector, () => {
+      window.dispatchEvent(new MouseEvent("mouseout", { relatedTarget: null }));
+    });
+
+    expect(points).toEqual([]);
+    hasFocusSpy.mockRestore();
+  });
 });
