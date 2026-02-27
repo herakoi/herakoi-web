@@ -149,20 +149,21 @@ const App = () => {
     void startTransport();
   }, [autoStartEnabled, engineStatus, startTransport, transportStatus.status]);
 
-  // On mobile, the browser may suspend the page and interrupt the camera
-  // stream. When the tab becomes visible again, do a full engine restart so
-  // MediaPipe re-acquires the camera and the transport loop resumes.
+  // On mobile, the browser suspends JS execution when a tab goes to background.
+  // The camera stream is killed by the OS, but React state is frozen too, so
+  // transportStatus may still read "running" when the tab resumes — the async
+  // iterator hasn't had a chance to throw yet. We therefore restart
+  // unconditionally (restartEngine handles a running transport gracefully).
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) return;
       if (!autoStartEnabled) return;
-      if (transportStatus.status === "running") return;
       if (engineStatus === "initializing") return;
       restartEngine();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [autoStartEnabled, engineStatus, restartEngine, transportStatus.status]);
+  }, [autoStartEnabled, engineStatus, restartEngine]);
 
   return (
     <main
