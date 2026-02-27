@@ -12,14 +12,22 @@ class FakeOscillator {
 }
 
 class FakeGain {
-  public gain = { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), value: 1 };
+  public gain = {
+    setValueAtTime: vi.fn(),
+    exponentialRampToValueAtTime: vi.fn(),
+    cancelScheduledValues: vi.fn(),
+    linearRampToValueAtTime: vi.fn(),
+    value: 1,
+  };
   public connect = vi.fn();
   public disconnect = vi.fn();
 }
 
 class FakeAudioContext {
   public readonly currentTime = 0;
+  public state: AudioContextState = "running";
   public destination = {};
+  public setSinkId = vi.fn(async (_sinkId: string) => {});
   public createOscillator = vi.fn(() => new FakeOscillator());
   public createGain = vi.fn(() => new FakeGain());
 }
@@ -112,5 +120,24 @@ describe("OscillatorSonifier", () => {
     const oscB = ctx.createOscillator.mock.results[1].value as FakeOscillator;
     expect(oscA.stop).toHaveBeenCalled();
     expect(oscB.stop).toHaveBeenCalled();
+  });
+
+  it("restores master gain when reset to default sink fails", async () => {
+    ctx.setSinkId = vi.fn(async (_sinkId: string) => {});
+    const sonifier = new OscillatorSonifier(ctx as unknown as AudioContext);
+    await sonifier.initialize();
+    sonifier.processSamples(new Map([["a", makeSample(0, 255)]]));
+    await sonifier.setOutputSinkId("device-1");
+
+    ctx.setSinkId = vi.fn(async () => {
+      throw new Error("not supported");
+    });
+
+    const changed = await sonifier.setOutputSinkId("");
+    expect(changed).toBe(false);
+
+    const masterGain = ctx.createGain.mock.results[2]?.value as FakeGain | undefined;
+    expect(masterGain).toBeDefined();
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenCalledWith(1, ctx.currentTime);
   });
 });

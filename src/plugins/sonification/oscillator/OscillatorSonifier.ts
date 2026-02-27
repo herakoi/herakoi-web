@@ -12,6 +12,10 @@
  */
 
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
+import {
+  type SinkableAudioContext,
+  SinkOutputRouter,
+} from "#src/plugins/sonification/shared/SinkOutputRouter";
 
 export type OscillatorSonifierOptions = SonifierOptions & {
   minFreq?: number;
@@ -27,10 +31,6 @@ export type OscillatorSonifierOptions = SonifierOptions & {
 type ToneNodes = {
   osc: OscillatorNode;
   gain: GainNode;
-};
-
-type SinkableAudioContext = AudioContext & {
-  setSinkId?: (sinkId: string) => Promise<void>;
 };
 
 export type OscillatorSonifierAnalyserOptions = {
@@ -49,7 +49,7 @@ export type DebugFrameSample = {
 export class OscillatorSonifier implements Sonifier {
   private ctx: AudioContext | null;
   private nodes = new Map<string, ToneNodes>();
-  private output: AudioNode | null = null;
+  private sinkRouter: SinkOutputRouter | null = null;
   private masterGain: GainNode | null = null;
   private analyser: AnalyserNode | null = null;
   private oscillatorType: OscillatorType = "sine";
@@ -205,6 +205,8 @@ export class OscillatorSonifier implements Sonifier {
   stop(): void {
     this.stopped = true;
     this.stopAll();
+    this.sinkRouter?.dispose();
+    this.sinkRouter = null;
   }
 
   getLastFrameDebug(): Map<string, DebugFrameSample> {
@@ -223,7 +225,6 @@ export class OscillatorSonifier implements Sonifier {
   getAnalyserNode(options: OscillatorSonifierAnalyserOptions = {}): AnalyserNode | null {
     if (!this.ctx) return null;
     const ctx = this.ctx;
-    this.output ??= ctx.destination;
 
     if (!this.analyser) {
       this.analyser = ctx.createAnalyser();
@@ -237,17 +238,7 @@ export class OscillatorSonifier implements Sonifier {
       this.analyser.smoothingTimeConstant = options.smoothingTimeConstant;
     }
 
-    if (this.output !== this.analyser) {
-      this.output = this.analyser;
-      if (this.masterGain) {
-        try {
-          this.masterGain.disconnect();
-        } catch {
-          // ignore - node may already be disconnected
-        }
-        this.masterGain.connect(this.output);
-      }
-    }
+    this.ensureSinkRouter().setOutputNode(this.analyser);
 
     return this.analyser;
   }
@@ -256,17 +247,22 @@ export class OscillatorSonifier implements Sonifier {
     this.sinkId = sinkId;
     if (!this.ctx) return false;
 
-    const ctx = this.ctx as SinkableAudioContext;
-    if (typeof ctx.setSinkId !== "function") {
-      return false;
+    const router = this.ensureSinkRouter();
+    const changed = await router.setSinkId(sinkId);
+    if (changed) {
+      this.sinkId = router.getCurrentSinkId();
+      return true;
     }
 
-    try {
-      await ctx.setSinkId(sinkId);
-      return true;
-    } catch {
-      return false;
+    const sinkableCtx = this.ctx as SinkableAudioContext;
+    if (sinkableCtx.state === "closed") {
+      this.ctx = null;
+      this.nodes.clear();
+      this.masterGain = null;
+      this.sinkRouter = null;
+      this.analyser = null;
     }
+    return false;
   }
 
   private scale(byte: number, min: number, max: number): number {
@@ -328,7 +324,7 @@ export class OscillatorSonifier implements Sonifier {
     if (!this.ctx) {
       throw new Error("OscillatorSonifier must be initialized before processing samples.");
     }
-    this.output ??= this.ctx.destination;
+    this.ensureSinkRouter();
     this.ensureMasterGain();
     return this.ctx;
   }
@@ -337,7 +333,7 @@ export class OscillatorSonifier implements Sonifier {
     const ctx = this.ensureContextWithoutMasterGain();
     if (!this.masterGain) {
       this.masterGain = ctx.createGain();
-      this.masterGain.connect(this.output ?? ctx.destination);
+      this.masterGain.connect(this.ensureSinkRouter().getInputNode());
       this.applyMasterGain();
     }
     return this.masterGain;
@@ -347,8 +343,25 @@ export class OscillatorSonifier implements Sonifier {
     if (!this.ctx) {
       throw new Error("OscillatorSonifier must be initialized before processing samples.");
     }
-    this.output ??= this.ctx.destination;
     return this.ctx;
+  }
+
+  private ensureSinkRouter(): SinkOutputRouter {
+    const ctx = this.ensureContextWithoutMasterGain() as SinkableAudioContext;
+    if (!this.sinkRouter || this.sinkRouter.getContext() !== ctx) {
+      this.sinkRouter?.dispose();
+      this.sinkRouter = new SinkOutputRouter(ctx);
+      this.sinkRouter.setOutputNode(this.analyser ?? ctx.destination);
+      if (this.masterGain) {
+        try {
+          this.masterGain.disconnect();
+        } catch {
+          // ignore - node may already be disconnected
+        }
+        this.masterGain.connect(this.sinkRouter.getInputNode());
+      }
+    }
+    return this.sinkRouter;
   }
 
   private applyMasterGain(): void {

@@ -56,37 +56,40 @@ const enumerateAudioOutputs = async (): Promise<EnumeratedAudioOutputs> => {
   const allOutputs = allDevices.filter((device) => device.kind === "audiooutput");
   const defaultPseudo = allOutputs.find((device) => device.deviceId.trim() === "default");
 
-  const seenLabels = new Set<string>();
+  const seenDeviceIds = new Set<string>();
   const devices = allOutputs
-    .filter((device) => {
-      const deviceId = device.deviceId.trim();
-      if (!deviceId) return false;
-      if (deviceId === "default" || deviceId === "communications") return false;
-      return true;
-    })
+    .filter((device) => Boolean(device.deviceId.trim()))
     .map((device, index) => {
       const rawLabel = device.label || `Audio output ${index + 1}`;
       const cleanLabel = rawLabel.replace(/^default\s*-\s*/i, "").trim();
       return {
-        deviceId: device.deviceId,
+        deviceId: device.deviceId.trim(),
         label: cleanLabel || rawLabel,
       };
     })
     .filter((device) => {
-      const normalizedLabel = device.label.toLowerCase();
-      if (seenLabels.has(normalizedLabel)) return false;
-      seenLabels.add(normalizedLabel);
+      if (seenDeviceIds.has(device.deviceId)) return false;
+      seenDeviceIds.add(device.deviceId);
       return true;
     });
 
+  if (devices.length === 0 && allOutputs.length > 0) {
+    devices.push({
+      deviceId: defaultPseudo?.deviceId?.trim() || "default",
+      label: defaultPseudo?.label?.trim() || "System default",
+    });
+  }
+
   const cleanedDefaultLabel = defaultPseudo?.label?.replace(/^default\s*-\s*/i, "").trim();
+  const defaultById = devices.find((device) => device.deviceId === "default");
   const matchedDefault = cleanedDefaultLabel
     ? devices.find((device) => device.label.toLowerCase() === cleanedDefaultLabel.toLowerCase())
     : undefined;
 
   return {
     devices,
-    inferredDefaultDeviceId: matchedDefault?.deviceId ?? devices[0]?.deviceId ?? "",
+    inferredDefaultDeviceId:
+      defaultById?.deviceId ?? matchedDefault?.deviceId ?? devices[0]?.deviceId ?? "",
   };
 };
 
@@ -145,6 +148,7 @@ export const useAudioOutputDevices = ({
       } catch {
         // User may deny permission or browser may block; keep current list.
       } finally {
+        await refreshOutputDevices();
         setIsRequestingOutputAccess(false);
       }
     },
