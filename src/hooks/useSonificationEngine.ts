@@ -72,9 +72,15 @@ export const useSonificationEngine = (
 
   useEffect(() => {
     const handleResize = () => resizeCanvasRefToContainer(imageOverlayRef);
+    // visibilitychange covers mobile tab resume where no resize event is fired.
+    const handleVisibilityChange = () => {
+      if (!document.hidden) resizeCanvasRefToContainer(imageOverlayRef);
+    };
     window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [imageOverlayRef]);
 
