@@ -21,6 +21,7 @@ const App = () => {
   const {
     startTransport,
     stopTransport,
+    restartEngine,
     engineStatus,
     transportStatus,
     analyser,
@@ -147,6 +148,21 @@ const App = () => {
     if (transportStatus.status !== "stopped") return;
     void startTransport();
   }, [autoStartEnabled, engineStatus, startTransport, transportStatus.status]);
+
+  // On mobile, the browser may suspend the page and interrupt the camera
+  // stream. When the tab becomes visible again, do a full engine restart so
+  // MediaPipe re-acquires the camera and the transport loop resumes.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) return;
+      if (!autoStartEnabled) return;
+      if (transportStatus.status === "running") return;
+      if (engineStatus === "initializing") return;
+      restartEngine();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [autoStartEnabled, engineStatus, restartEngine, transportStatus.status]);
 
   return (
     <main
