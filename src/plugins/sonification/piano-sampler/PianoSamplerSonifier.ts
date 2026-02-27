@@ -1,5 +1,9 @@
 import { Frequency, getContext, now, Sampler, setContext, start } from "tone";
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
+import {
+  type SinkableAudioContext,
+  SinkOutputRouter,
+} from "#src/plugins/sonification/shared/SinkOutputRouter";
 
 const SALAMANDER_BASE_URL = "https://tonejs.github.io/audio/salamander/";
 
@@ -47,12 +51,9 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   sinkId?: string;
 }
 
-type SinkableAudioContext = AudioContext & {
-  setSinkId?: (sinkId: string) => Promise<void>;
-};
-
 export class PianoSamplerSonifier implements Sonifier {
   private sampler: Sampler | null = null;
+  private sinkRouter: SinkOutputRouter | null = null;
   private samplerReady = false;
   private initialized = false;
   private stopped = false;
@@ -90,7 +91,7 @@ export class PianoSamplerSonifier implements Sonifier {
           this.loadResolver = null;
           resolve(false);
         },
-      }).toDestination();
+      });
     });
 
     this.loadResolver = null;
@@ -98,6 +99,7 @@ export class PianoSamplerSonifier implements Sonifier {
     if (aborted) {
       return new Error("PianoSamplerSonifier was stopped during sample loading");
     }
+    this.sampler?.connect(this.ensureSinkRouter().getInputNode());
 
     // Try to resume Tone's AudioContext; will succeed after user gesture
     await start().catch(() => {
@@ -180,9 +182,12 @@ export class PianoSamplerSonifier implements Sonifier {
     this.loadResolver = null;
     if (this.sampler) {
       this.sampler.releaseAll();
+      this.sampler.disconnect();
       this.sampler.dispose();
       this.sampler = null;
     }
+    this.sinkRouter?.dispose();
+    this.sinkRouter = null;
     // Tone uses a shared global context. Closing it during plugin switches can leave
     // future plugin instances bound to a closed context and block audio recovery.
     this.lastNotes.clear();
@@ -208,37 +213,21 @@ export class PianoSamplerSonifier implements Sonifier {
   async setOutputSinkId(sinkId: string): Promise<boolean> {
     this.sinkId = sinkId;
 
-    const rawContext = this.getRawAudioContext();
-    if (typeof rawContext.setSinkId !== "function") {
-      return false;
-    }
-
-    if (this.sampler) {
-      this.sampler.volume.value = -60;
-    }
-
-    try {
-      await rawContext.setSinkId(sinkId);
-      this.applyOutputMixState();
+    const router = this.ensureSinkRouter();
+    const changed = await router.setSinkId(sinkId);
+    this.applyOutputMixState();
+    if (changed) {
+      this.sinkId = router.getCurrentSinkId();
       return true;
-    } catch {
-      if (!sinkId) {
-        this.applyOutputMixState();
-        return false;
-      }
-      try {
-        await rawContext.setSinkId("");
-        this.sinkId = "";
-        this.applyOutputMixState();
-        return true;
-      } catch {
-        if (rawContext.state === "closed") {
-          this.ensureSinkCapableToneContext();
-        }
-        this.applyOutputMixState();
-        return false;
-      }
     }
+
+    const rawContext = this.getRawAudioContext();
+    if (rawContext.state === "closed") {
+      this.ensureSinkCapableToneContext();
+      this.ensureSinkRouter();
+    }
+
+    return false;
   }
 
   private ensureSinkCapableToneContext(): void {
@@ -250,11 +239,33 @@ export class PianoSamplerSonifier implements Sonifier {
     try {
       const nativeContext = new window.AudioContext();
       setContext(nativeContext);
+      this.sinkRouter?.dispose();
+      this.sinkRouter = null;
     } catch {}
   }
 
   private getRawAudioContext(): SinkableAudioContext {
     return getContext().rawContext as SinkableAudioContext;
+  }
+
+  private ensureSinkRouter(): SinkOutputRouter {
+    const rawContext = this.getRawAudioContext();
+    if (!this.sinkRouter || this.sinkRouter.getContext() !== rawContext) {
+      this.sinkRouter?.dispose();
+      // Piano samples can produce stronger transients during sink rerouting (notably on macOS);
+      // use a slower fade-in plus a short settle delay to reduce audible peaks.
+      this.sinkRouter = new SinkOutputRouter(rawContext, {
+        fadeOutMs: 45,
+        fadeInMs: 90,
+        settleMs: 40,
+        minGain: 0,
+      });
+      if (this.sampler) {
+        this.sampler.disconnect();
+        this.sampler.connect(this.sinkRouter.getInputNode());
+      }
+    }
+    return this.sinkRouter;
   }
 
   private applyOutputMixState(): void {
