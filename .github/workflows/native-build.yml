@@ -1,0 +1,202 @@
+# Native packaging matrix: builds unsigned desktop installers for macOS,
+# Windows and Linux, an unsigned debug APK for Android, and a compile-only
+# iOS smoke test. Runs on tag pushes (v*) so each release ships artifacts,
+# and on workflow_dispatch so the pipeline can be exercised on demand.
+#
+# Signing is intentionally out of scope for this iteration:
+# - macOS: CSC_IDENTITY_AUTO_DISCOVERY=false skips code signing & notarization.
+# - Windows: no certificate is provided, so the .exe is unsigned.
+# - Android: assembleDebug ships the SDK debug keystore.
+# - iOS: CODE_SIGNING_ALLOWED=NO; we only verify the project compiles.
+name: Native build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  electron-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Electron (.dmg, unsigned)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: pnpm electron:build:mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: herakoi-mac
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
+
+  electron-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Electron (.exe NSIS, unsigned)
+        run: pnpm electron:build:win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: herakoi-win
+          path: release/*.exe
+          if-no-files-found: error
+
+  electron-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Electron (AppImage)
+        run: pnpm electron:build:linux
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: herakoi-linux
+          path: release/*.AppImage
+          if-no-files-found: error
+
+  capacitor-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # JDK 17 is required by AGP 8.x which Capacitor 8 ships.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The runner already ships an Android SDK; this action just makes sure
+      # ANDROID_HOME is exported and the requested platform/build-tools are present.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Sync Capacitor (build web + copy to android/)
+        run: pnpm cap:sync
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: herakoi-android
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  capacitor-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Sync Capacitor (build web + copy to ios/)
+        run: pnpm cap:sync
+
+      # Compile-only smoke test: building for the simulator skips code signing
+      # and confirms the Xcode project, Swift Package Manager bridge and web
+      # bundle still link together. We do not produce a runnable IPA — that
+      # would require an Apple Developer signing identity.
+      - name: Build iOS for simulator (no signing)
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+  release:
+    needs:
+      - electron-mac
+      - electron-win
+      - electron-linux
+      - capacitor-android
+      - capacitor-ios
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
