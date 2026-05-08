@@ -1,3 +1,4 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,59 @@ const ICON_PATH = path.join(APP_ROOT, "build", "icon.png");
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 app.setName("Herakoi");
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+
+interface WindowState {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  isMaximized?: boolean;
+}
+
+const DEFAULT_STATE: WindowState = { width: 1280, height: 800 };
+
+function getStateFilePath(): string {
+  return path.join(app.getPath("userData"), "window-state.json");
+}
+
+function loadWindowState(): WindowState {
+  try {
+    const file = getStateFilePath();
+    if (!existsSync(file)) return DEFAULT_STATE;
+    const parsed = JSON.parse(readFileSync(file, "utf-8")) as Partial<WindowState>;
+    return {
+      width: typeof parsed.width === "number" ? parsed.width : DEFAULT_STATE.width,
+      height: typeof parsed.height === "number" ? parsed.height : DEFAULT_STATE.height,
+      x: typeof parsed.x === "number" ? parsed.x : undefined,
+      y: typeof parsed.y === "number" ? parsed.y : undefined,
+      isMaximized: parsed.isMaximized === true,
+    };
+  } catch {
+    return DEFAULT_STATE;
+  }
+}
+
+function saveWindowState(win: BrowserWindow): void {
+  if (win.isDestroyed()) return;
+  const bounds = win.getNormalBounds();
+  const state: WindowState = {
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
+    isMaximized: win.isMaximized(),
+  };
+  try {
+    writeFileSync(getStateFilePath(), JSON.stringify(state));
+  } catch {
+    // Persistence is best-effort: if the user folder is read-only just keep going.
+  }
+}
 
 const MIME_BY_EXT: Record<string, string> = {
   html: "text/html",
@@ -106,10 +160,15 @@ function buildApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+let mainWindow: BrowserWindow | null = null;
+
 function createWindow(): void {
+  const state = loadWindowState();
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
     backgroundColor: "#0a0a0a",
     titleBarStyle: isMac ? "hiddenInset" : isWin ? "hidden" : "default",
     titleBarOverlay: isWin ? { color: "#0a0a0a", symbolColor: "#cfcfcf", height: 30 } : undefined,
@@ -121,6 +180,10 @@ function createWindow(): void {
     },
   });
 
+  if (state.isMaximized) win.maximize();
+
+  win.on("close", () => saveWindowState(win));
+
   win.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === "media");
   });
@@ -131,6 +194,11 @@ function createWindow(): void {
   } else {
     win.loadURL("app://./index.html");
   }
+
+  mainWindow = win;
+  win.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -174,6 +242,12 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("second-instance", () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.focus();
 });
 
 app.on("window-all-closed", () => {
