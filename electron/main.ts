@@ -160,7 +160,54 @@ function buildApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+const SPLASH_HTML = `<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<title>Herakoi</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0a0a; color: #cfcfcf;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; user-select: none; -webkit-app-region: drag; }
+  .name { font-size: 18px; letter-spacing: 0.18em; font-weight: 500; }
+  .spinner { width: 22px; height: 22px; border: 2px solid #2b2b2b; border-top-color: #cfcfcf;
+    border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .label { font-size: 12px; opacity: 0.6; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="name">HERAKOI</div>
+  <div class="spinner"></div>
+  <div class="label">Caricamento…</div>
+</body>
+</html>`;
+
+let splashWindow: BrowserWindow | null = null;
 let mainWindow: BrowserWindow | null = null;
+
+function createSplash(): void {
+  const splash = new BrowserWindow({
+    width: 280,
+    height: 220,
+    frame: false,
+    resizable: false,
+    center: true,
+    backgroundColor: "#0a0a0a",
+    skipTaskbar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(SPLASH_HTML)}`);
+  splash.on("closed", () => {
+    splashWindow = null;
+  });
+  splashWindow = splash;
+}
 
 function createWindow(): void {
   const state = loadWindowState();
@@ -169,6 +216,7 @@ function createWindow(): void {
     height: state.height,
     x: state.x,
     y: state.y,
+    show: false,
     backgroundColor: "#0a0a0a",
     titleBarStyle: isMac ? "hiddenInset" : isWin ? "hidden" : "default",
     titleBarOverlay: isWin ? { color: "#0a0a0a", symbolColor: "#cfcfcf", height: 30 } : undefined,
@@ -181,6 +229,11 @@ function createWindow(): void {
   });
 
   if (state.isMaximized) win.maximize();
+
+  win.once("ready-to-show", () => {
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.destroy();
+    win.show();
+  });
 
   win.on("close", () => saveWindowState(win));
 
@@ -237,6 +290,7 @@ app.whenReady().then(() => {
     }
   });
 
+  createSplash();
   createWindow();
 
   app.on("activate", () => {
