@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, protocol, session } from "electron";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, "..");
 const RENDERER_DIST = path.join(APP_ROOT, "dist");
-const PRELOAD = path.join(__dirname, "preload.mjs");
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -46,7 +47,6 @@ function createWindow(): void {
     height: 800,
     backgroundColor: "#0a0a0a",
     webPreferences: {
-      preload: PRELOAD,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
