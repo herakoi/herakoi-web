@@ -75,3 +75,31 @@ body {
   );
   background-size: 32px 32px;
 }
+
+/* Window drag strip for Electron's frameless / hiddenInset title bar.
+   Active only when running inside Electron (the renderer sets
+   data-runtime="electron" on <html> from index.html). The thin band
+   sits above macOS traffic lights / Windows caption buttons so the
+   user can drag the window from there. Interactive elements are
+   excluded so buttons that happen to land in the band stay clickable. */
+html[data-runtime="electron"] body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  z-index: 9999;
+  -webkit-app-region: drag;
+}
+
+html[data-runtime="electron"] button,
+html[data-runtime="electron"] a,
+html[data-runtime="electron"] input,
+html[data-runtime="electron"] select,
+html[data-runtime="electron"] textarea,
+html[data-runtime="electron"] [role="button"],
+html[data-runtime="electron"] [role="slider"],
+html[data-runtime="electron"] [role="tab"] {
+  -webkit-app-region: no-drag;
+}
