@@ -41,11 +41,16 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+const isMac = process.platform === "darwin";
+const isWin = process.platform === "win32";
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     backgroundColor: "#0a0a0a",
+    titleBarStyle: isMac ? "hiddenInset" : isWin ? "hidden" : "default",
+    titleBarOverlay: isWin ? { color: "#0a0a0a", symbolColor: "#cfcfcf", height: 30 } : undefined,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
