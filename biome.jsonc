@@ -12,9 +12,11 @@
     "useIgnoreFile": true
   },
   "files": {
-    // Format and lint everything by default, but skip legacy snapshots
-    // that live under legacy_html/ so we can keep the historical artifacts untouched.
-    "includes": ["**", "!legacy_html"]
+    // Format and lint everything by default, but skip legacy snapshots that
+    // live under legacy_html/ so we can keep the historical artifacts untouched,
+    // and the Capacitor-generated native projects under ios/ and android/ which
+    // are owned by Xcode / Android Studio and rewritten with their own style.
+    "includes": ["**", "!legacy_html", "!ios", "!android"]
   },
   "javascript": {
     // Match the legacy demo's preference for double quotes to avoid churn.
