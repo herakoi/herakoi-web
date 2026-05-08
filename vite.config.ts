@@ -5,7 +5,9 @@ import electron from "vite-plugin-electron/simple";
 
 const repoName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const isElectron = process.env.ELECTRON === "1";
-const base = isElectron ? "./" : repoName ? `/${repoName}/` : "/";
+const isCapacitor = process.env.CAPACITOR === "1";
+const isNative = isElectron || isCapacitor;
+const base = isNative ? "./" : repoName ? `/${repoName}/` : "/";
 const https = process.env.HTTPS === "1";
 
 export default defineConfig({

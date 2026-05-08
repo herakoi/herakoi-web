@@ -24,7 +24,15 @@
     "electron:build": "ELECTRON=1 vite build && electron-builder",
     "electron:build:mac": "ELECTRON=1 vite build && electron-builder --mac",
     "electron:build:win": "ELECTRON=1 vite build && electron-builder --win",
-    "electron:build:linux": "ELECTRON=1 vite build && electron-builder --linux"
+    "electron:build:linux": "ELECTRON=1 vite build && electron-builder --linux",
+    "cap:build": "CAPACITOR=1 vite build",
+    "cap:add:ios": "pnpm cap:build && cap add ios",
+    "cap:add:android": "pnpm cap:build && cap add android",
+    "cap:sync": "pnpm cap:build && cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "pnpm cap:build && cap run ios",
+    "cap:run:android": "pnpm cap:build && cap run android"
   },
   "build": {
     "appId": "org.herakoi.app",
@@ -128,6 +136,10 @@
   },
   "packageManager": "pnpm@10.20.0",
   "dependencies": {
+    "@capacitor/android": "^8.3.2",
+    "@capacitor/cli": "^8.3.2",
+    "@capacitor/core": "^8.3.2",
+    "@capacitor/ios": "^8.3.2",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/hands": "^0.4.1675469240",
     "@radix-ui/react-label": "^2.1.0",
