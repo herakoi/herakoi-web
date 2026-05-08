@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "dev:https": "HTTPS=1 vite",
@@ -18,7 +19,65 @@
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "commit": "cz",
-    "postinstall": "lefthook install"
+    "postinstall": "lefthook install",
+    "electron:dev": "ELECTRON=1 vite",
+    "electron:build": "ELECTRON=1 vite build && electron-builder",
+    "electron:build:mac": "ELECTRON=1 vite build && electron-builder --mac",
+    "electron:build:win": "ELECTRON=1 vite build && electron-builder --win",
+    "electron:build:linux": "ELECTRON=1 vite build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "org.herakoi.app",
+    "productName": "Herakoi",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.music",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "extendInfo": {
+        "NSCameraUsageDescription": "Herakoi accede alla webcam per il tracking della mano.",
+        "NSMicrophoneUsageDescription": "Herakoi può accedere al microfono per la selezione dei dispositivi audio."
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo"
+    }
   },
   "imports": {
     "#src/*": [
@@ -46,7 +105,10 @@
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.10.0",
     "commitizen": "^4.3.1",
+    "concurrently": "^9.2.1",
     "cz-conventional-changelog": "^3.3.0",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.2",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
@@ -58,6 +120,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.1",
     "vite": "^7.2.1",
+    "vite-plugin-electron": "^0.29.1",
     "vitest": "4.0.18"
   },
   "engines": {
