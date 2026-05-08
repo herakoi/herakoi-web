@@ -56,6 +56,7 @@
           ]
         }
       ],
+      "icon": "build/icon.png",
       "category": "public.app-category.music",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
@@ -73,7 +74,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "build/icon.png"
     },
     "linux": {
       "target": [
@@ -84,6 +86,7 @@
           ]
         }
       ],
+      "icon": "build/icon.png",
       "category": "AudioVideo"
     }
   },
