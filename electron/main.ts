@@ -2,12 +2,23 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, Menu, protocol, session } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  protocol,
+  session,
+  shell,
+  systemPreferences,
+} from "electron";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, "..");
 const RENDERER_DIST = path.join(APP_ROOT, "dist");
 const ICON_PATH = path.join(APP_ROOT, "build", "icon.png");
+// preload.cjs is emitted as a sibling of main.js inside dist-electron/.
+const PRELOAD_PATH = path.join(__dirname, "preload.cjs");
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 app.setName("Herakoi");
@@ -221,6 +232,7 @@ function createWindow(): void {
     titleBarStyle: isMac ? "hiddenInset" : isWin ? "hidden" : "default",
     titleBarOverlay: isWin ? { color: "#0a0a0a", symbolColor: "#cfcfcf", height: 30 } : undefined,
     webPreferences: {
+      preload: PRELOAD_PATH,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -236,10 +248,6 @@ function createWindow(): void {
   });
 
   win.on("close", () => saveWindowState(win));
-
-  win.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
-    callback(permission === "media");
-  });
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -269,6 +277,35 @@ app.whenReady().then(() => {
 
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === "media");
+  });
+
+  // Camera permission bridge for the renderer (see electron/preload.ts).
+  ipcMain.handle("permissions:getCameraStatus", () => {
+    // Only macOS has a queryable TCC status. On Windows/Linux getUserMedia
+    // itself governs access, so report "granted" to make the renderer
+    // pre-flight a no-op and fall straight through to getUserMedia.
+    return isMac ? systemPreferences.getMediaAccessStatus("camera") : "granted";
+  });
+
+  ipcMain.handle("permissions:requestCameraAccess", async () => {
+    // askForMediaAccess only surfaces a prompt when status is "not-determined";
+    // if already denied it resolves false without prompting.
+    return isMac ? systemPreferences.askForMediaAccess("camera") : true;
+  });
+
+  ipcMain.handle("permissions:openCameraSettings", async () => {
+    const url = isMac
+      ? "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera"
+      : isWin
+        ? "ms-settings:privacy-webcam"
+        : null;
+    if (!url) return false; // Linux has no universal settings deep-link.
+    try {
+      await shell.openExternal(url);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   protocol.handle("app", async (req) => {

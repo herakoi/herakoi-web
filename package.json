@@ -63,7 +63,7 @@
       "hardenedRuntime": true,
       "extendInfo": {
         "NSCameraUsageDescription": "Herakoi accede alla webcam per il tracking della mano.",
-        "NSMicrophoneUsageDescription": "Herakoi può accedere al microfono per la selezione dei dispositivi audio."
+        "NSMicrophoneUsageDescription": "Herakoi usa il microfono solo per elencare i dispositivi audio di output; non registra audio."
       }
     },
     "win": {

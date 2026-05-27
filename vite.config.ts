@@ -19,6 +19,19 @@ export default defineConfig({
       ? [
           electron({
             main: { entry: "electron/main.ts" },
+            preload: {
+              input: "electron/preload.ts",
+              // The plugin defaults to `preload.mjs` under `"type": "module"`, but
+              // forces CommonJS content — an `.mjs` file with `require` crashes.
+              // A sandboxed preload must be CJS, so pin the output to `.cjs`.
+              vite: {
+                build: {
+                  rollupOptions: {
+                    output: { entryFileNames: "preload.cjs", format: "cjs" },
+                  },
+                },
+              },
+            },
           }),
         ]
       : []),

@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CameraPermissionDeniedError } from "./errors";
 import { NativeCamera } from "./NativeCamera";
 
 describe("NativeCamera", () => {
@@ -384,5 +385,90 @@ describe("NativeCamera", () => {
 
       expect(devices[0].label).toBe("Camera abcdef12");
     });
+  });
+});
+
+describe("NativeCamera Electron camera permission pre-flight", () => {
+  let videoElement: HTMLVideoElement;
+  let getUserMedia: ReturnType<typeof vi.fn>;
+  let getCameraPermissionStatus: ReturnType<typeof vi.fn>;
+  let requestCameraAccess: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    videoElement = document.createElement("video") as HTMLVideoElement;
+    vi.spyOn(videoElement, "play").mockResolvedValue(undefined);
+    Object.defineProperty(videoElement, "srcObject", {
+      value: null,
+      writable: true,
+      configurable: true,
+    });
+
+    const mockTrack = { stop: vi.fn() } as unknown as MediaStreamTrack;
+    const mockStream = {
+      getTracks: vi.fn().mockReturnValue([mockTrack]),
+      getVideoTracks: vi.fn().mockReturnValue([mockTrack]),
+    } as unknown as MediaStream;
+
+    getUserMedia = vi.fn().mockResolvedValue(mockStream);
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([]) },
+      writable: true,
+      configurable: true,
+    });
+
+    getCameraPermissionStatus = vi.fn();
+    requestCameraAccess = vi.fn().mockResolvedValue(true);
+    Object.defineProperty(window, "herakoiNative", {
+      value: {
+        platform: "darwin",
+        getCameraPermissionStatus,
+        requestCameraAccess,
+        openCameraSettings: vi.fn().mockResolvedValue(true),
+      },
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(window, "herakoiNative");
+  });
+
+  it("proceeds to getUserMedia when permission is already granted", async () => {
+    getCameraPermissionStatus.mockResolvedValue("granted");
+    const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+    const result = await camera.start();
+    camera.stop();
+
+    expect(result).toBeUndefined();
+    expect(requestCameraAccess).not.toHaveBeenCalled();
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests access on not-determined, then proceeds once granted", async () => {
+    getCameraPermissionStatus
+      .mockResolvedValueOnce("not-determined")
+      .mockResolvedValueOnce("granted");
+    const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+    const result = await camera.start();
+    camera.stop();
+
+    expect(result).toBeUndefined();
+    expect(requestCameraAccess).toHaveBeenCalledTimes(1);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a permission-denied error without calling getUserMedia when denied", async () => {
+    getCameraPermissionStatus.mockResolvedValue("denied");
+    const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+    const result = await camera.start();
+
+    expect(CameraPermissionDeniedError.is(result)).toBe(true);
+    expect((result as CameraPermissionDeniedError).action).toBe("open-camera-settings");
+    expect(getUserMedia).not.toHaveBeenCalled();
   });
 });

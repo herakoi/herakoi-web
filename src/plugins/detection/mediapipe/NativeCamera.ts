@@ -8,6 +8,13 @@
  * - Frame loop via requestVideoFrameCallback (fallback: requestAnimationFrame)
  */
 
+import {
+  getCameraPermissionStatus,
+  isMacElectron,
+  requestCameraAccess,
+} from "#src/shared/platform/native";
+import { CameraPermissionDeniedError } from "./errors";
+
 /**
  * Convert DOMException errors from getUserMedia into user-friendly messages.
  * Implements Go-style error handling: returns error as value rather than throwing.
@@ -92,6 +99,24 @@ export class NativeCamera {
     }
 
     this.stopped = false;
+
+    // macOS/Electron TCC pre-flight: drive the OS prompt ourselves and bail out
+    // before getUserMedia when the user has denied access, so we can surface an
+    // actionable error instead of a confusing silent failure. No-op elsewhere.
+    if (isMacElectron()) {
+      let status = await getCameraPermissionStatus();
+      if (status === "not-determined") {
+        await requestCameraAccess();
+        status = await getCameraPermissionStatus();
+      }
+      if (status === "denied" || status === "restricted") {
+        return new CameraPermissionDeniedError({
+          message:
+            "La fotocamera è bloccata nelle impostazioni di sistema. Aprila in Impostazioni e riprova.",
+          action: "open-camera-settings",
+        });
+      }
+    }
 
     const videoConstraints: MediaTrackConstraints = {};
     if (this.options.deviceId) {

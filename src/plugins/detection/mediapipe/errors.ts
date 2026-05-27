@@ -1,4 +1,4 @@
-import { createTaggedError } from "errore";
+import { createTaggedError, TaggedError } from "errore";
 
 export class CameraRestartError extends createTaggedError({
   name: "CameraRestartError",
@@ -20,4 +20,18 @@ export class MediaPipeVideoNotMountedError extends createTaggedError({
   message: "MediaPipe video element is not mounted.",
 }) {}
 
-export type CameraRuntimeError = CameraStartError | CameraRestartError | DeviceEnumerationError;
+/**
+ * The OS (macOS TCC) blocks camera access. Unlike the wrappers above, this
+ * carries the user-facing `message` directly (so it reaches the screen) plus an
+ * `action` hint that lets the UI offer an "open system settings" affordance.
+ */
+export class CameraPermissionDeniedError extends TaggedError("CameraPermissionDeniedError")<{
+  message: string;
+  action: "open-camera-settings";
+}>() {}
+
+export type CameraRuntimeError =
+  | CameraStartError
+  | CameraRestartError
+  | DeviceEnumerationError
+  | CameraPermissionDeniedError;

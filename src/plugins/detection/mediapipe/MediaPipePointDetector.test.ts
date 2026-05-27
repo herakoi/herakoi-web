@@ -6,6 +6,8 @@
 
 import type { Results } from "@mediapipe/hands";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useDeviceStore } from "./deviceStore";
+import { CameraPermissionDeniedError } from "./errors";
 import type { MediaPipePointDetector } from "./MediaPipePointDetector";
 
 // Store MediaPipe Hands onResults callback for test simulation
@@ -147,6 +149,35 @@ describe("MediaPipePointDetector", () => {
       expect(NativeCameraMock).toHaveBeenCalled();
       expect(lastCameraInstance).not.toBeNull();
       expect(lastCameraInstance?.start).toHaveBeenCalled();
+    });
+
+    it("stores a CameraPermissionDeniedError as-is, without wrapping it", async () => {
+      const deniedError = new CameraPermissionDeniedError({
+        message: "blocked",
+        action: "open-camera-settings",
+      });
+      NativeCameraMock.mockImplementationOnce(
+        class {
+          public start = vi.fn().mockResolvedValue(deniedError);
+          public stop = vi.fn();
+          public activeFacingMode: string | undefined = undefined;
+          // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
+          constructor(_videoElement: HTMLVideoElement, _config: any) {
+            lastCameraInstance = this;
+          }
+        } as unknown as (...args: unknown[]) => unknown,
+      );
+
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+      const result = await detector.start();
+
+      expect(result).toBe(deniedError);
+      const { cameraStatus } = useDeviceStore.getState();
+      expect(cameraStatus.status).toBe("error");
+      expect(cameraStatus.status === "error" && cameraStatus.error).toBe(deniedError);
     });
 
     it("should deduplicate concurrent start calls", async () => {

@@ -9,6 +9,8 @@ export type PluginNotificationProps = {
   politeness?: "polite" | "assertive";
   /** Called when the user dismisses the notification. If omitted, no dismiss button is shown. */
   onDismiss?: () => void;
+  /** Optional inline action button (e.g. "Open settings"). If omitted, no button is shown. */
+  action?: { label: string; onClick: () => void };
   /** Custom pill content instead of icon+message */
   children?: ReactNode;
 };
@@ -19,6 +21,7 @@ export const PluginNotification = ({
   screenReaderMessage,
   politeness,
   onDismiss,
+  action,
   children,
 }: PluginNotificationProps) => {
   return (
@@ -31,6 +34,15 @@ export const PluginNotification = ({
               {message}
             </span>
           </>
+        )}
+        {action && (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="pointer-events-auto shrink-0 rounded-full border border-white/25 px-3 py-1 font-sans text-xs font-medium tracking-wide text-white/80 transition-colors hover:bg-white/10"
+          >
+            {action.label}
+          </button>
         )}
         {onDismiss && (
           <button

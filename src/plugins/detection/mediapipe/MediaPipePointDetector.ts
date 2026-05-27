@@ -18,7 +18,7 @@ import type { Hands, NormalizedLandmarkList, Options, Results } from "@mediapipe
 import type { DetectedPoint, ErrorOr, PointDetector } from "#src/core/interfaces";
 import { createHands } from "#src/plugins/detection/mediapipe/hands";
 import { useDeviceStore } from "./deviceStore";
-import { CameraRestartError, CameraStartError } from "./errors";
+import { CameraPermissionDeniedError, CameraRestartError, CameraStartError } from "./errors";
 import { NativeCamera } from "./NativeCamera";
 
 /**
@@ -131,7 +131,11 @@ export class MediaPipePointDetector implements PointDetector {
 
       if (result instanceof Error) {
         this.camera = null;
-        useDeviceStore.getState().setCameraError(new CameraRestartError({ cause: result }));
+        const cameraError =
+          result instanceof CameraPermissionDeniedError
+            ? result
+            : new CameraRestartError({ cause: result });
+        useDeviceStore.getState().setCameraError(cameraError);
         return result;
       }
 
@@ -338,7 +342,13 @@ export class MediaPipePointDetector implements PointDetector {
 
     // Handle error returned from camera.start()
     if (result instanceof Error) {
-      useDeviceStore.getState().setCameraError(new CameraStartError({ cause: result }));
+      // The permission-denied error already carries a friendly message + action;
+      // store it as-is so the UI can offer the "open settings" affordance.
+      const cameraError =
+        result instanceof CameraPermissionDeniedError
+          ? result
+          : new CameraStartError({ cause: result });
+      useDeviceStore.getState().setCameraError(cameraError);
       return result;
     }
 
