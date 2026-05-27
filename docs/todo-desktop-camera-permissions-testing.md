@@ -32,8 +32,15 @@ test, and target `Electron` (not `Herakoi`) when toggling permissions in dev.
 
 ## C. Faithful test on the packaged build
 
-- [ ] `pnpm electron:build:mac`, install the DMG, launch `Herakoi.app`.
-      (If Gatekeeper blocks an unsigned build: `xattr -dr com.apple.quarantine /Applications/Herakoi.app`.)
+The bundle is ad-hoc signed by `build/afterPack.cjs`, so it launches natively on
+Apple Silicon without any manual `codesign` step. It is **not** notarized, so a
+downloaded DMG is quarantined and Gatekeeper prompts on first open.
+
+- [ ] `pnpm electron:build:mac`, copy `Herakoi.app` out of the DMG into /Applications
+      (do not run it from the mounted DMG, and eject stale `Herakoi*` volumes first).
+- [ ] First open: right-click → **Open** (or System Settings → Privacy & Security →
+      "Open Anyway"). It must launch — no `dyld` "different Team IDs" crash.
+      (Alternatively clear quarantine: `xattr -dr com.apple.quarantine /Applications/Herakoi.app`.)
 - [ ] `tccutil reset Camera org.herakoi.app` → relaunch → first engine start shows
       the macOS prompt. Allow → camera runs.
 - [ ] `tccutil reset Camera org.herakoi.app` → relaunch → Deny → friendly message

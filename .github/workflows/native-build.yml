@@ -4,7 +4,9 @@
 # and on workflow_dispatch so the pipeline can be exercised on demand.
 #
 # Signing is intentionally out of scope for this iteration:
-# - macOS: CSC_IDENTITY_AUTO_DISCOVERY=false skips code signing & notarization.
+# - macOS: CSC_IDENTITY_AUTO_DISCOVERY=false skips Developer ID signing &
+#   notarization. The build/afterPack.cjs hook still ad-hoc signs the bundle so
+#   it launches natively on Apple Silicon; Gatekeeper still prompts on first open.
 # - Windows: no certificate is provided, so the .exe is unsigned.
 # - Android: assembleDebug ships the SDK debug keystore.
 # - iOS: CODE_SIGNING_ALLOWED=NO; we only verify the project compiles.

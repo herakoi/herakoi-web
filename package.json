@@ -41,6 +41,7 @@
       "output": "release",
       "buildResources": "build"
     },
+    "afterPack": "build/afterPack.cjs",
     "files": [
       "dist/**",
       "dist-electron/**",
@@ -60,7 +61,7 @@
       "category": "public.app-category.music",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "extendInfo": {
         "NSCameraUsageDescription": "Herakoi accede alla webcam per il tracking della mano.",
         "NSMicrophoneUsageDescription": "Herakoi usa il microfono solo per elencare i dispositivi audio di output; non registra audio."
