@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
-import type { PianoSamplerConfig } from "../config";
+import { defaultPianoSamplerConfig, type PianoSamplerConfig } from "../config";
+import { PIANO_SCALE_LABELS, PIANO_SCALES, type PianoScale } from "../scale";
 import { usePianoSamplerAudioStore } from "../store";
 
 const NOTE_DURATIONS = ["32n", "16n", "8n", "4n", "2n", "1n", "0.5"] as const;
@@ -24,6 +25,8 @@ export const PianoSamplerSettingsPanel = ({
   setConfig,
 }: PluginSettingsPanelProps<PianoSamplerConfig>) => {
   const { noteMin, noteMax, velocityMin, velocityMax, noteDuration } = config;
+  // Configs persisted before the scale setting existed have no `scale` key.
+  const scale = config.scale ?? defaultPianoSamplerConfig.scale;
   const sinkId = usePianoSamplerAudioStore((state) => state.sinkId);
   const setSinkId = usePianoSamplerAudioStore((state) => state.setSinkId);
 
@@ -43,6 +46,21 @@ export const PianoSamplerSettingsPanel = ({
           thumbLabels={["Minimum note", "Maximum note"]}
           onValueChange={([min, max]) => setConfig({ noteMin: min, noteMax: max })}
         />
+      </div>
+      <div className="space-y-2">
+        <Label>Scale</Label>
+        <Select value={scale} onValueChange={(value) => setConfig({ scale: value as PianoScale })}>
+          <SelectTrigger aria-label="Scale">
+            <SelectValue placeholder="Scale" />
+          </SelectTrigger>
+          <SelectContent>
+            {PIANO_SCALES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {PIANO_SCALE_LABELS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label>

@@ -4,6 +4,7 @@ import {
   type SinkableAudioContext,
   SinkOutputRouter,
 } from "#src/plugins/sonification/shared/SinkOutputRouter";
+import { buildScaleNotes, type PianoScale, pickScaleNote } from "./scale";
 
 const SALAMANDER_BASE_URL = "https://tonejs.github.io/audio/salamander/";
 
@@ -46,6 +47,7 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   velocityMin?: number;
   velocityMax?: number;
   noteDuration?: string;
+  scale?: PianoScale;
   masterVolume?: number;
   muted?: boolean;
   sinkId?: string;
@@ -66,6 +68,8 @@ export class PianoSamplerSonifier implements Sonifier {
   private velocityMin = 40;
   private velocityMax = 127;
   private noteDuration = "8n";
+  private scale: PianoScale = "pentatonic";
+  private scaleNotes: number[] = [];
   private masterVolume = 1;
   private muted = false;
   private sinkId = "";
@@ -142,14 +146,8 @@ export class PianoSamplerSonifier implements Sonifier {
       const hueRaw = (hueByte * 360) / 255;
       const hue = hueRaw > 300 ? 0 : hueRaw;
 
-      // Map hue° (0–300) → MIDI note
-      const midiNote = Math.max(
-        this.noteMin,
-        Math.min(
-          this.noteMax,
-          this.noteMin + Math.round((hue / 300) * (this.noteMax - this.noteMin)),
-        ),
-      );
+      // Map hue° (0–300) → a note of the selected scale
+      const midiNote = pickScaleNote(this.scaleNotes, hue / 300);
 
       if (midiNote === this.lastNotes.get(id)) {
         seen.add(id);
@@ -199,6 +197,8 @@ export class PianoSamplerSonifier implements Sonifier {
     if (options.velocityMin !== undefined) this.velocityMin = options.velocityMin;
     if (options.velocityMax !== undefined) this.velocityMax = options.velocityMax;
     if (options.noteDuration !== undefined) this.noteDuration = options.noteDuration;
+    if (options.scale !== undefined) this.scale = options.scale;
+    this.scaleNotes = buildScaleNotes(this.noteMin, this.noteMax, this.scale);
     if (options.masterVolume !== undefined) {
       this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
     }

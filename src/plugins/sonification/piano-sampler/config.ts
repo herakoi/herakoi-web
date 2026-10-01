@@ -1,3 +1,5 @@
+import type { PianoScale } from "./scale";
+
 export const pianoSamplerPluginId = "sonification/piano-sampler" as const;
 
 export interface PianoSamplerConfig {
@@ -6,6 +8,7 @@ export interface PianoSamplerConfig {
   velocityMin: number;
   velocityMax: number;
   noteDuration: string;
+  scale: PianoScale;
 }
 
 export const defaultPianoSamplerConfig: PianoSamplerConfig = {
@@ -14,4 +17,5 @@ export const defaultPianoSamplerConfig: PianoSamplerConfig = {
   velocityMin: 40,
   velocityMax: 127,
   noteDuration: "8n",
+  scale: "pentatonic",
 };
