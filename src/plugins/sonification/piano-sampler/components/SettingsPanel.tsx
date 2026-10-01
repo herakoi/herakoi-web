@@ -25,8 +25,10 @@ export const PianoSamplerSettingsPanel = ({
   setConfig,
 }: PluginSettingsPanelProps<PianoSamplerConfig>) => {
   const { noteMin, noteMax, velocityMin, velocityMax, noteDuration } = config;
-  // Configs persisted before the scale setting existed have no `scale` key.
+  // Configs persisted before these settings existed lack their keys.
   const scale = config.scale ?? defaultPianoSamplerConfig.scale;
+  const hysteresis = config.hysteresis ?? defaultPianoSamplerConfig.hysteresis;
+  const minIntervalMs = config.minIntervalMs ?? defaultPianoSamplerConfig.minIntervalMs;
   const sinkId = usePianoSamplerAudioStore((state) => state.sinkId);
   const setSinkId = usePianoSamplerAudioStore((state) => state.setSinkId);
 
@@ -61,6 +63,30 @@ export const PianoSamplerSettingsPanel = ({
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Note change threshold ({Math.round(hysteresis * 100)}%)</Label>
+        <Slider
+          min={0}
+          max={45}
+          step={5}
+          value={[Math.round(hysteresis * 100)]}
+          aria-label="Note change threshold"
+          thumbLabels={["Note change threshold"]}
+          onValueChange={([percent]) => setConfig({ hysteresis: percent / 100 })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Minimum time between notes ({minIntervalMs} ms)</Label>
+        <Slider
+          min={0}
+          max={500}
+          step={10}
+          value={[minIntervalMs]}
+          aria-label="Minimum time between notes"
+          thumbLabels={["Minimum time between notes"]}
+          onValueChange={([ms]) => setConfig({ minIntervalMs: ms })}
+        />
       </div>
       <div className="space-y-2">
         <Label>

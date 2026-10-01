@@ -4,7 +4,8 @@ import {
   type SinkableAudioContext,
   SinkOutputRouter,
 } from "#src/plugins/sonification/shared/SinkOutputRouter";
-import { buildScaleNotes, type PianoScale, pickScaleNote } from "./scale";
+import { type LastNote, nextNote } from "./noteGate";
+import { buildScaleNotes, type PianoScale } from "./scale";
 
 const SALAMANDER_BASE_URL = "https://tonejs.github.io/audio/salamander/";
 
@@ -48,6 +49,8 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   velocityMax?: number;
   noteDuration?: string;
   scale?: PianoScale;
+  hysteresis?: number;
+  minIntervalMs?: number;
   masterVolume?: number;
   muted?: boolean;
   sinkId?: string;
@@ -59,7 +62,7 @@ export class PianoSamplerSonifier implements Sonifier {
   private samplerReady = false;
   private initialized = false;
   private stopped = false;
-  private lastNotes = new Map<string, number>();
+  private lastNotes = new Map<string, LastNote>();
   /** Stored so stop() can abort a pending initialize() load. */
   private loadResolver: ((aborted: boolean) => void) | null = null;
 
@@ -70,6 +73,8 @@ export class PianoSamplerSonifier implements Sonifier {
   private noteDuration = "8n";
   private scale: PianoScale = "pentatonic";
   private scaleNotes: number[] = [];
+  private hysteresis = 0.25;
+  private minIntervalMs = 100;
   private masterVolume = 1;
   private muted = false;
   private sinkId = "";
@@ -147,12 +152,14 @@ export class PianoSamplerSonifier implements Sonifier {
       const hue = hueRaw > 300 ? 0 : hueRaw;
 
       // Map hue° (0–300) → a note of the selected scale
-      const midiNote = pickScaleNote(this.scaleNotes, hue / 300);
+      const nowMs = performance.now();
+      const midiNote = nextNote(this.scaleNotes, hue / 300, this.lastNotes.get(id), nowMs, {
+        hysteresis: this.hysteresis,
+        minIntervalMs: this.minIntervalMs,
+      });
+      seen.add(id);
 
-      if (midiNote === this.lastNotes.get(id)) {
-        seen.add(id);
-        continue;
-      }
+      if (midiNote === null) continue;
 
       // Map valueByte (0–255) → velocity (0–1)
       const velocity =
@@ -161,8 +168,7 @@ export class PianoSamplerSonifier implements Sonifier {
       const noteName = Frequency(midiNote, "midi").toNote();
       this.sampler.triggerAttackRelease(noteName, this.noteDuration, now(), velocity);
 
-      this.lastNotes.set(id, midiNote);
-      seen.add(id);
+      this.lastNotes.set(id, { note: midiNote, triggeredAt: nowMs });
     }
 
     // Clean up IDs no longer in samples
@@ -198,6 +204,8 @@ export class PianoSamplerSonifier implements Sonifier {
     if (options.velocityMax !== undefined) this.velocityMax = options.velocityMax;
     if (options.noteDuration !== undefined) this.noteDuration = options.noteDuration;
     if (options.scale !== undefined) this.scale = options.scale;
+    if (options.hysteresis !== undefined) this.hysteresis = options.hysteresis;
+    if (options.minIntervalMs !== undefined) this.minIntervalMs = options.minIntervalMs;
     this.scaleNotes = buildScaleNotes(this.noteMin, this.noteMax, this.scale);
     if (options.masterVolume !== undefined) {
       this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));

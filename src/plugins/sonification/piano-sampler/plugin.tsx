@@ -37,6 +37,8 @@ export const plugin: SonificationPluginDefinition<typeof pianoSamplerPluginId, P
         velocityMax: config.velocityMax,
         noteDuration: config.noteDuration,
         scale: config.scale,
+        hysteresis: config.hysteresis,
+        minIntervalMs: config.minIntervalMs,
         masterVolume: audioState.volume,
         muted: audioState.muted,
         sinkId: audioState.sinkId,
@@ -50,6 +52,8 @@ export const plugin: SonificationPluginDefinition<typeof pianoSamplerPluginId, P
           velocityMax: config.velocityMax,
           noteDuration: config.noteDuration,
           scale: config.scale,
+          hysteresis: config.hysteresis,
+          minIntervalMs: config.minIntervalMs,
         });
       });
       const unsubscribeAudio = usePianoSamplerAudioStore.subscribe((nextState, prevState) => {

@@ -9,6 +9,8 @@ export interface PianoSamplerConfig {
   velocityMax: number;
   noteDuration: string;
   scale: PianoScale;
+  hysteresis: number;
+  minIntervalMs: number;
 }
 
 export const defaultPianoSamplerConfig: PianoSamplerConfig = {
@@ -18,4 +20,6 @@ export const defaultPianoSamplerConfig: PianoSamplerConfig = {
   velocityMax: 127,
   noteDuration: "8n",
   scale: "pentatonic",
+  hysteresis: 0.25,
+  minIntervalMs: 100,
 };
