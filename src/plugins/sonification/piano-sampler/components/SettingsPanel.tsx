@@ -11,6 +11,7 @@ import {
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
 import type { PianoSamplerConfig } from "../config";
+import { useT } from "../i18n";
 import { usePianoSamplerAudioStore } from "../store";
 
 const NOTE_DURATIONS = ["32n", "16n", "8n", "4n", "2n", "1n", "0.5"] as const;
@@ -26,43 +27,42 @@ export const PianoSamplerSettingsPanel = ({
   const { noteMin, noteMax, velocityMin, velocityMax, noteDuration } = config;
   const sinkId = usePianoSamplerAudioStore((state) => state.sinkId);
   const setSinkId = usePianoSamplerAudioStore((state) => state.setSinkId);
+  const t = useT();
 
   return (
     <div className="space-y-4">
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
       <div className="space-y-2">
         <Label>
-          MIDI note range ({midiToNoteName(noteMin)} – {midiToNoteName(noteMax)})
+          {t("noteRange.label", { min: midiToNoteName(noteMin), max: midiToNoteName(noteMax) })}
         </Label>
         <Slider
           min={21}
           max={108}
           step={1}
           value={[noteMin, noteMax]}
-          aria-label="MIDI note range"
-          thumbLabels={["Minimum note", "Maximum note"]}
+          aria-label={t("noteRange.aria")}
+          thumbLabels={[t("noteRange.min"), t("noteRange.max")]}
           onValueChange={([min, max]) => setConfig({ noteMin: min, noteMax: max })}
         />
       </div>
       <div className="space-y-2">
-        <Label>
-          Velocity range ({velocityMin} – {velocityMax})
-        </Label>
+        <Label>{t("velocityRange.label", { min: velocityMin, max: velocityMax })}</Label>
         <Slider
           min={0}
           max={127}
           step={1}
           value={[velocityMin, velocityMax]}
-          aria-label="Velocity range"
-          thumbLabels={["Minimum velocity", "Maximum velocity"]}
+          aria-label={t("velocityRange.aria")}
+          thumbLabels={[t("velocityRange.min"), t("velocityRange.max")]}
           onValueChange={([min, max]) => setConfig({ velocityMin: min, velocityMax: max })}
         />
       </div>
       <div className="space-y-2">
-        <Label>Note duration</Label>
+        <Label>{t("noteDuration.label")}</Label>
         <Select value={noteDuration} onValueChange={(value) => setConfig({ noteDuration: value })}>
-          <SelectTrigger aria-label="Note duration">
-            <SelectValue placeholder="Duration" />
+          <SelectTrigger aria-label={t("noteDuration.label")}>
+            <SelectValue placeholder={t("noteDuration.placeholder")} />
           </SelectTrigger>
           <SelectContent>
             {NOTE_DURATIONS.map((d) => (

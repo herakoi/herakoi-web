@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { VisualizerDisplayProps } from "#src/core/plugin";
+import { useT } from "../i18n";
 import { hsvToRgb } from "../utils";
 
 export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
+  const t = useT();
   const [displayData, setDisplayData] = useState<{
     detection: { handDetected: boolean; points: Array<{ id: string; x: number; y: number }> };
     sampling: Map<string, { data: Record<string, number> }>;
@@ -54,11 +56,11 @@ export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
     >
       {/* Detection Section */}
       <section className="mb-4">
-        <h3 className="font-bold mb-2">Detection</h3>
-        <div>Hands detected: {displayData.detection.handDetected ? "1" : "0"}</div>
+        <h3 className="font-bold mb-2">{t("section.detection")}</h3>
+        <div>{t("handsDetected", { count: displayData.detection.handDetected ? 1 : 0 })}</div>
         {displayData.detection.points.length > 0 && (
           <div className="mt-2 space-y-1">
-            <div className="text-xs opacity-75">Normalized coords (0-1):</div>
+            <div className="text-xs opacity-75">{t("normalizedCoords")}</div>
             {displayData.detection.points.map((point) => (
               <div key={point.id}>
                 {point.id}: ({point.x.toFixed(3)}, {point.y.toFixed(3)})
@@ -71,7 +73,7 @@ export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
       {/* Sampling Section */}
       {displayData.sampling.size > 0 && (
         <section className="mb-4">
-          <h3 className="font-bold mb-2">Sampling</h3>
+          <h3 className="font-bold mb-2">{t("section.sampling")}</h3>
           <div className="space-y-1">
             {Array.from(displayData.sampling.entries()).map(([id, sample]) => {
               const hueByte = sample.data.hueByte ?? 0;
@@ -99,7 +101,7 @@ export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
       {/* Sonification Section */}
       {displayData.sonification.size > 0 && (
         <section>
-          <h3 className="font-bold mb-2">Sonification</h3>
+          <h3 className="font-bold mb-2">{t("section.sonification")}</h3>
           <div className="space-y-1">
             {Array.from(displayData.sonification.entries()).map(([id, tone]) => {
               const color = hsvToRgb(tone.hueByte, tone.saturationByte, tone.valueByte);
@@ -124,9 +126,7 @@ export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
 
       {displayData.detection.points.length === 0 &&
         displayData.sampling.size === 0 &&
-        displayData.sonification.size === 0 && (
-          <div>No data yet. Start the engine and move your hand in front of the camera.</div>
-        )}
+        displayData.sonification.size === 0 && <div>{t("noData")}</div>}
     </div>
   );
 };

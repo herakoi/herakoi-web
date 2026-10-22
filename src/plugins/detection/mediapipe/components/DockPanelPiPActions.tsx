@@ -1,6 +1,7 @@
 import { FlipHorizontal, Hand, MoveDiagonal2, X } from "lucide-react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { cn } from "#src/shared/utils/cn";
+import { useT } from "../i18n";
 
 type DockPanelPiPActionsProps = {
   mirror: boolean;
@@ -23,11 +24,12 @@ export const DockPanelPiPActions = ({
   onResizePointerDown,
   onResizeKeyDown,
 }: DockPanelPiPActionsProps) => {
+  const t = useT();
   return (
     <>
       <button
         type="button"
-        aria-label="Hide picture-in-picture"
+        aria-label={t("pip.close")}
         className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={(event) => {
           event.stopPropagation();
@@ -38,7 +40,7 @@ export const DockPanelPiPActions = ({
       </button>
       <button
         type="button"
-        aria-label={mirror ? "Disable mirror" : "Enable mirror"}
+        aria-label={mirror ? t("mirror.disable") : t("mirror.enable")}
         aria-pressed={mirror}
         className={cn(
           "absolute left-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent transition hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -59,7 +61,7 @@ export const DockPanelPiPActions = ({
       </button>
       <button
         type="button"
-        aria-label="Cycle max hands"
+        aria-label={t("hands.cycle")}
         className="absolute bottom-2 left-2 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={(event) => {
           event.stopPropagation();
@@ -76,11 +78,11 @@ export const DockPanelPiPActions = ({
         >
           {maxHands}
         </span>
-        <span className="sr-only">Max hands: {maxHands}</span>
+        <span className="sr-only">{t("hands.max", { hands: maxHands })}</span>
       </button>
       <button
         type="button"
-        aria-label="Resize picture-in-picture"
+        aria-label={t("pip.resize")}
         className={cn(
           "absolute bottom-2 right-2 flex h-7 w-7 touch-none cursor-se-resize items-center justify-center rounded-full border border-transparent bg-black/55 text-white/80 transition hover:border-white/25 hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "z-20",

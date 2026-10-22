@@ -2,6 +2,7 @@ import { isError, tryAsync } from "errore";
 import { type ChangeEvent, useCallback, useEffect, useMemo } from "react";
 import type { ErrorOr } from "#src/core/interfaces";
 import { ImageDecodeError, ImageReadError, ImageSelectError } from "../errors";
+import { useLocalizeImageEntry, useT } from "../i18n";
 import {
   formatBytes,
   formatImageType,
@@ -36,20 +37,31 @@ export const useImageLibrary = ({
     hydrateUploads();
   }, [hydrateUploads]);
 
+  const localizeEntry = useLocalizeImageEntry();
+  const translate = useT();
+
   const entries = useMemo(
-    () => [...howItWorksImages, ...curatedImages, ...uploads],
-    [curatedImages, howItWorksImages, uploads],
+    () => [...howItWorksImages, ...curatedImages, ...uploads].map(localizeEntry),
+    [curatedImages, howItWorksImages, uploads, localizeEntry],
   );
 
   const currentImage = useMemo(() => {
     const selectedEntry = entries.find((entry) => entry.id === selectedImageId);
     const fallbackEntry = curatedImages[0] ?? howItWorksImages[0] ?? uploads[0];
-    const entry = selectedEntry ?? fallbackEntry;
+    const entry = selectedEntry ?? (fallbackEntry ? localizeEntry(fallbackEntry) : undefined);
     return {
       id: entry?.id ?? "curated-default",
-      title: entry?.title ?? "Curated image",
+      title: entry?.title ?? translate("image.fallbackTitle"),
     };
-  }, [selectedImageId, entries, curatedImages, howItWorksImages, uploads]);
+  }, [
+    selectedImageId,
+    entries,
+    curatedImages,
+    howItWorksImages,
+    uploads,
+    localizeEntry,
+    translate,
+  ]);
 
   const handleImageFile = useCallback(
     async (file: File): Promise<ErrorOr<undefined>> => {

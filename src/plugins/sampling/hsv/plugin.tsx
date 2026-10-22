@@ -14,6 +14,8 @@ import {
   hsvSamplingPluginId,
 } from "./config";
 import { HSVImageSampler } from "./HSVImageSampler";
+// Registers the plugin's translations under its id.
+import "./i18n";
 import { drawImageToCanvas, resizeCanvasToContainer } from "./imageDrawing";
 import { getDefaultImageId, resolveImageSourceById } from "./lib/imageSourceResolver";
 import { hsvSamplingRefs } from "./refs";

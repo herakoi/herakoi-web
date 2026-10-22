@@ -9,6 +9,7 @@ import { defineSonificationPlugin } from "#src/core/plugin";
 import { PianoSamplerSettingsPanel } from "./components/SettingsPanel";
 import { PianoSamplerSonificationPanel } from "./components/SonificationPanel";
 import { defaultPianoSamplerConfig, type PianoSamplerConfig, pianoSamplerPluginId } from "./config";
+import "./i18n";
 import { PianoSamplerSonifier } from "./PianoSamplerSonifier";
 import { usePianoSamplerAudioStore } from "./store";
 

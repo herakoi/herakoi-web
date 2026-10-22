@@ -12,6 +12,7 @@ import {
   pointerDetectionPluginId,
 } from "./config";
 import { PointerOverlayNotMountedError } from "./errors";
+import "./i18n";
 import { PointerPointDetector } from "./PointerPointDetector";
 import { pointerDetectionRefs } from "./refs";
 import { bindPointerUi } from "./uiPointer";

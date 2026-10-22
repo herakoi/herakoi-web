@@ -7,6 +7,9 @@ export type CuratedImageEntry = {
   kind: "curated";
 };
 
+/** Leading label of a curated image's meta; translated at render time. */
+export const curatedMetaPrefix = "Curated";
+
 const formatCuratedTitle = (filename: string) =>
   filename
     .replace(/\.[^.]+$/, "")
@@ -29,7 +32,7 @@ export const curatedImages: CuratedImageEntry[] = Object.entries(curatedImageImp
     return {
       id: `curated-${filename.replace(/\.[^.]+$/, "")}`,
       title: formatCuratedTitle(filename),
-      meta: `Curated - ${formatCuratedType(filename)}`,
+      meta: `${curatedMetaPrefix} - ${formatCuratedType(filename)}`,
       src,
       previewSrc: src,
       kind: "curated" as const,
