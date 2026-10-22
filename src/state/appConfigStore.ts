@@ -12,6 +12,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { Locale } from "#src/core/i18n";
 import { engineConfig } from "#src/engineConfig";
 import {
   type AppActivePlugins,
@@ -41,6 +42,8 @@ export interface UiPreferences {
   baseUiOpacity: number;
   /** Whether to dim the logo mark when hands detected */
   dimLogoMark: boolean;
+  /** Language chosen by the user; when unset the browser's language decides. */
+  language?: Locale;
 }
 
 /**
