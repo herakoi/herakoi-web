@@ -20,17 +20,17 @@ function getUserMediaErrorMessage(error: unknown): string {
     switch (errorName) {
       case "NotAllowedError":
       case "PermissionDeniedError":
-        return "La camera richiede i permessi. Verifica le impostazioni del browser e riprova.";
+        return "Camera permission is required. Check your browser settings and try again.";
       case "NotFoundError":
-        return "Nessuna camera trovata. Verifica che una camera sia collegata.";
+        return "No camera found. Check that a camera is connected.";
       case "NotReadableError":
-        return "La camera è già in uso da un'altra app. Chiudila e riprova.";
+        return "The camera is already in use by another app. Close it and try again.";
       case "SecurityError":
-        return "L'accesso alla camera è bloccato per motivi di sicurezza.";
+        return "Camera access is blocked for security reasons.";
       case "OverconstrainedError":
-        return "Le impostazioni richieste non sono supportate dalla tua camera.";
+        return "Your camera does not support the requested settings.";
       case "TypeError":
-        return "Camera non disponibile.";
+        return "Camera unavailable.";
     }
   }
 
@@ -40,7 +40,7 @@ function getUserMediaErrorMessage(error: unknown): string {
   }
 
   // Last resort fallback
-  return "Errore durante l'accesso alla camera. Riprova.";
+  return "Could not access the camera. Try again.";
 }
 
 function isPlayInterruptedByNewLoad(error: unknown): boolean {
