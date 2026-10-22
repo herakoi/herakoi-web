@@ -82,19 +82,23 @@ export const SettingsPanel = <K extends string>({
                   onValueChange={(nextValue) => setOpenSection(nextValue as K)}
                   className="flex h-full flex-col"
                 >
-                  <TabsList className="grid w-full grid-cols-4 gap-1 rounded-full border border-white/10 bg-black/25 p-1">
+                  {/* Only the active tab shows its name, so labels of any length fit. */}
+                  <TabsList className="flex w-full gap-1 rounded-full border border-white/10 bg-black/25 p-1">
                     {sections.map((section) => (
                       <TabsTrigger
                         key={section.key}
                         value={section.key}
-                        className="flex items-center justify-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        title={section.label}
+                        className="group flex min-w-0 flex-auto items-center justify-center gap-1.5 rounded-full data-[state=inactive]:w-10 data-[state=inactive]:flex-none border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {section.icon ? (
                           <span className="flex h-3 w-3 items-center justify-center text-white/70">
                             {section.icon}
                           </span>
                         ) : null}
-                        <span className="truncate">{section.label}</span>
+                        <span className="truncate group-data-[state=inactive]:sr-only">
+                          {section.label}
+                        </span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
