@@ -1,3 +1,4 @@
+import { AudioWaveform } from "lucide-react";
 import type {
   PluginRuntimeContext,
   PluginUISlots,
@@ -26,6 +27,7 @@ export const plugin: SonificationPluginDefinition<
 > = defineSonificationPlugin({
   id: oscillatorSonificationPluginId,
   displayName: "Web Audio Oscillator",
+  icon: AudioWaveform,
   ui,
   config: {
     defaultConfig: defaultOscillatorConfig,

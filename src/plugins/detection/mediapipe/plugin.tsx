@@ -1,3 +1,4 @@
+import { Hand } from "lucide-react";
 import type { DetectedPoint } from "#src/core/interfaces";
 import type {
   DetectionPluginDefinition,
@@ -27,6 +28,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
   defineDetectionPlugin({
     id: mediaPipeDetectionPluginId,
     displayName: "MediaPipe Hands",
+    icon: Hand,
     ui,
     config: {
       defaultConfig: defaultMediaPipeConfig,

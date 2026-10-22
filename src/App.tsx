@@ -1,16 +1,28 @@
-import { Maximize, Minimize, SlidersHorizontal } from "lucide-react";
+import { Maximize, Minimize } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
+import { ModeToggle, type ModeToggleOption } from "./components/ModeToggle";
 import { NotificationArea } from "./components/NotificationArea";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { engineConfig } from "./engineConfig";
-import { usePluginUi } from "./hooks/plugin";
+import { usePluginSwitch, usePluginUi } from "./hooks/plugin";
 import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
 import { PluginNotification } from "./shared/components/notifications/PluginNotification";
 import { useUiPreferences } from "./state/appConfigStore";
+
+/** Plugins that declare an icon appear in the quick mode switch, named as in Settings. */
+const toModeOptions = (
+  plugins: ReadonlyArray<{ id: string; displayName: string; icon?: ModeToggleOption["icon"] }>,
+): ModeToggleOption[] =>
+  plugins.flatMap(({ id, displayName, icon }) =>
+    icon ? [{ pluginId: id, label: displayName, icon }] : [],
+  );
+
+const detectionModes = toModeOptions(engineConfig.detection);
+const sonificationModes = toModeOptions(engineConfig.sonification);
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -45,9 +57,11 @@ const App = () => {
     PluginNotificationComponents,
   } = usePluginUi({
     config: engineConfig,
-    startTransport,
     stopTransport,
   });
+
+  const switchDetection = usePluginSwitch("detection", { stopTransport });
+  const switchSonification = usePluginSwitch("sonification", { stopTransport });
 
   const isRunning = transportStatus.status === "running";
   const isInitializing = engineStatus === "initializing";
@@ -62,8 +76,6 @@ const App = () => {
     message: string;
     icon: typeof Maximize | typeof Minimize;
   } | null>(null);
-  const [showFullscreenHint, setShowFullscreenHint] = useState(fullscreenAvailable);
-  const [showPluginSwitchHint, setShowPluginSwitchHint] = useState(true);
   const fullscreenNoticeTimeoutRef = useRef<number | null>(null);
   const fullscreenSyncReadyRef = useRef(false);
   const previousFullscreenRef = useRef(false);
@@ -126,7 +138,6 @@ const App = () => {
   const toggleFullscreen = () => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenEnabled) return;
-    setShowFullscreenHint(false);
     if (document.fullscreenElement) {
       void document.exitFullscreen().catch(() => {});
       return;
@@ -184,7 +195,13 @@ const App = () => {
           className="h-full w-full touch-none"
           role="img"
           aria-label="Herakoi audio-visualizer output"
+          aria-describedby={fullscreenAvailable ? "herakoi-canvas-hint" : undefined}
         />
+        {fullscreenAvailable ? (
+          <span id="herakoi-canvas-hint" className="sr-only">
+            Double-click to toggle fullscreen.
+          </span>
+        ) : null}
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
         <canvas
           ref={imageOverlayRef}
@@ -205,20 +222,6 @@ const App = () => {
       </div>
 
       <NotificationArea>
-        {showFullscreenHint && !isFullscreen && !fullscreenNotice ? (
-          <PluginNotification
-            message="Tip: double-click the canvas or use the fullscreen button in controls."
-            icon={Maximize}
-            onDismiss={() => setShowFullscreenHint(false)}
-          />
-        ) : null}
-        {showPluginSwitchHint ? (
-          <PluginNotification
-            message="Tip: open Settings, then use the Plugin selector at the top of each tab to switch plugin."
-            icon={SlidersHorizontal}
-            onDismiss={() => setShowPluginSwitchHint(false)}
-          />
-        ) : null}
         {fullscreenNotice ? (
           <PluginNotification message={fullscreenNotice.message} icon={fullscreenNotice.icon} />
         ) : null}
@@ -265,12 +268,35 @@ const App = () => {
         </div>
       </header>
 
+      {/* Below sm the bottom edge belongs to the dock panel, so the toggle moves to a left rail. */}
+      <div
+        className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 transition-opacity sm:bottom-4 sm:left-1/2 sm:top-auto sm:-translate-x-1/2 sm:translate-y-0"
+        style={uiFadeStyle}
+      >
+        <ModeToggle
+          slot="detection"
+          label="Detection mode"
+          options={detectionModes}
+          onSelect={switchDetection}
+          className="max-sm:flex-col"
+        />
+      </div>
+
       <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
-      {SonificationPanel ? (
-        <div className="transition-opacity" style={uiFadeStyle}>
-          <SonificationPanel />
-        </div>
-      ) : null}
+      {/* On short viewports the expanded volume panel only fits beside the mode toggle. */}
+      <div
+        className="pointer-events-none fixed right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 transition-opacity sm:right-4 [@media(max-height:480px)]:has-[[data-expanded]]:flex-row"
+        style={uiFadeStyle}
+      >
+        <ModeToggle
+          slot="sonification"
+          label="Sonification mode"
+          options={sonificationModes}
+          onSelect={switchSonification}
+          orientation="vertical"
+        />
+        {SonificationPanel ? <SonificationPanel /> : null}
+      </div>
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (

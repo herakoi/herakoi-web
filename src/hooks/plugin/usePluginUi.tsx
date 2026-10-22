@@ -9,7 +9,6 @@ import { usePluginToolbar } from "./usePluginToolbar";
 
 type UsePluginUiParams = {
   config: EngineConfig;
-  startTransport: () => Promise<unknown>;
   stopTransport: () => void;
 };
 
@@ -22,11 +21,7 @@ type UsePluginUiReturn = {
   PluginNotificationComponents: Array<{ id: string; Notifications: ComponentType }>;
 };
 
-export const usePluginUi = ({
-  config,
-  startTransport,
-  stopTransport,
-}: UsePluginUiParams): UsePluginUiReturn => {
+export const usePluginUi = ({ config, stopTransport }: UsePluginUiParams): UsePluginUiReturn => {
   // Get active plugin IDs from store
   const [activeDetectionId] = useActivePlugin("detection");
   const [activeSamplingId] = useActivePlugin("sampling");
@@ -36,7 +31,6 @@ export const usePluginUi = ({
   // Build settings panel sections
   const sections = usePluginSections({
     config,
-    startTransport,
     stopTransport,
   });
 

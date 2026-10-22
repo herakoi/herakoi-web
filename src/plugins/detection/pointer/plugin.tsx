@@ -1,3 +1,4 @@
+import { MousePointer2 } from "lucide-react";
 import type {
   DetectionPluginDefinition,
   PluginRuntimeContext,
@@ -25,6 +26,8 @@ export const plugin: DetectionPluginDefinition<
 > = defineDetectionPlugin({
   id: pointerDetectionPluginId,
   displayName: "Mouse / Touch",
+  icon: MousePointer2,
+  preferredInput: "touch",
   ui,
   config: {
     defaultConfig: defaultPointerDetectionConfig,

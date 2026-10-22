@@ -27,8 +27,6 @@ export interface HSVRuntimeState {
   coverModeActive: boolean;
   /** Whether cover image editing interactions are unlocked. */
   panInteractionEnabled: boolean;
-  /** Incremented each time cover mode is activated to retrigger guidance notifications. */
-  coverModeActivationToken: number;
   /** User uploaded images cached for the HSV image library */
   uploads: ImageEntry[];
   /** Whether upload cache has been hydrated from localStorage */
@@ -96,7 +94,6 @@ const defaultState: HSVRuntimeState = {
   viewportMode: { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
   coverModeActive: false,
   panInteractionEnabled: false,
-  coverModeActivationToken: 0,
   uploads: [],
   uploadsHydrated: false,
   imageLibraryStatus: { status: "ok" },
@@ -108,11 +105,7 @@ export const useHSVRuntimeStore = create<HSVRuntimeState & HSVRuntimeActions>((s
   setViewportMode: (mode) => set({ viewportMode: mode }),
   setCoverModeActive: (active) => set({ coverModeActive: active }),
   setPanInteractionEnabled: (enabled) => set({ panInteractionEnabled: enabled }),
-  notifyCoverModeActivated: () =>
-    set((state) => ({
-      coverModeActive: true,
-      coverModeActivationToken: state.coverModeActivationToken + 1,
-    })),
+  notifyCoverModeActivated: () => set({ coverModeActive: true }),
   setImageLibraryOk: () => set({ imageLibraryStatus: { status: "ok" } }),
   setImageLibraryError: (error) => set({ imageLibraryStatus: { status: "error", error } }),
   hydrateUploads: () => {

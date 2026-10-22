@@ -18,6 +18,7 @@ import type {
   EngineHandlesStatus,
   EngineSnapshot,
 } from "./engineHandles.types";
+import { hasSameEnginePluginIds } from "./engineHandles.types";
 import { runEngineInitTransaction } from "./engineInitTransaction";
 
 type Refs = {
@@ -195,9 +196,17 @@ export const useEngineHandles = (params: {
     };
   }, []);
 
+  // Until the store's selection is committed, the handles belong to the previous plugins:
+  // reporting "ready" in that window would let auto-start run them while they are disposed.
+  const selectionCommitted = hasSameEnginePluginIds(snapshotRef.current.ids, {
+    detectionPluginId: activeDetectionPluginId,
+    samplingPluginId: activeSamplingPluginId,
+    sonificationPluginId: activeSonificationPluginId,
+  });
+
   return {
     handles,
-    status,
+    status: status === "ready" && !selectionCommitted ? "initializing" : status,
     restartEngine,
   };
 };

@@ -5,7 +5,6 @@ import type {
   SamplingPluginDefinition,
 } from "#src/core/plugin";
 import { defineSamplingPlugin } from "#src/core/plugin";
-import { HSVNotifications } from "./components/Notifications";
 import { HSVSettingsPanel } from "./components/SettingsPanel";
 import { HSVToolbarItems } from "./components/ToolbarItems";
 import {
@@ -23,7 +22,6 @@ import { useHSVRuntimeStore } from "./runtimeStore";
 const ui: PluginUISlots<HSVSamplingConfig> = {
   SettingsPanel: HSVSettingsPanel,
   ToolbarItems: HSVToolbarItems,
-  Notifications: HSVNotifications,
 };
 
 /**

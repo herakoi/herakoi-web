@@ -204,4 +204,68 @@ describe("useEngineHandles", () => {
     expect(sonifierDisposeA).not.toHaveBeenCalled();
     expect(detectorDisposeB).not.toHaveBeenCalled();
   });
+
+  it("reports initializing in the same render the plugin selection changes", async () => {
+    const makeHandles = () => ({
+      detectorHandle: {
+        detector: { initialize: vi.fn(), start: vi.fn(), stop: vi.fn(), points: vi.fn() },
+        [Symbol.dispose]: vi.fn(),
+      },
+      samplerHandle: { sampler: { sampleAt: vi.fn() }, [Symbol.dispose]: vi.fn() },
+      sonifierHandle: {
+        sonifier: {
+          initialize: vi.fn(),
+          processSamples: vi.fn(),
+          stop: vi.fn(),
+          configure: vi.fn(),
+        },
+        [Symbol.dispose]: vi.fn(),
+      },
+    });
+    const handlesA = makeHandles();
+
+    runEngineInitTransactionMock.mockImplementation(({ selection }) => {
+      // The second selection never finishes, so only the switch render is observed.
+      if (selection.detection === "detection/b") return new Promise(() => {});
+      return Promise.resolve({
+        ids: {
+          detectionPluginId: "detection/a",
+          samplingPluginId: "sampling/a",
+          sonificationPluginId: "sonification/a",
+        },
+        handles: handlesA,
+      });
+    });
+
+    const config = {
+      detection: [],
+      sampling: [],
+      sonification: [],
+      visualization: [],
+    } satisfies EngineConfig;
+
+    useAppConfigStore.getState().setActivePlugin("detection", "detection/a" as never);
+    useAppConfigStore.getState().setActivePlugin("sampling", "sampling/a" as never);
+    useAppConfigStore.getState().setActivePlugin("sonification", "sonification/a" as never);
+
+    const renders: HarnessApi[] = [];
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(<HookHarness config={config} onReady={(api) => renders.push(api)} />);
+    });
+    await vi.waitFor(() => {
+      expect(renders.at(-1)?.status).toBe("ready");
+    });
+
+    const rendersBeforeSwitch = renders.length;
+    await act(async () => {
+      useAppConfigStore.getState().setActivePlugin("detection", "detection/b" as never);
+    });
+
+    // A "ready" status here would let auto-start run the transport on handles about to be disposed.
+    expect(renders[rendersBeforeSwitch]?.status).toBe("initializing");
+  });
 });

@@ -1,3 +1,4 @@
+import { Piano } from "lucide-react";
 import type {
   PluginRuntimeContext,
   PluginUISlots,
@@ -20,6 +21,7 @@ export const plugin: SonificationPluginDefinition<typeof pianoSamplerPluginId, P
   defineSonificationPlugin({
     id: pianoSamplerPluginId,
     displayName: "Piano Sampler",
+    icon: Piano,
     ui,
     config: {
       defaultConfig: defaultPianoSamplerConfig,

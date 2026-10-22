@@ -2,8 +2,8 @@
  * @vitest-environment happy-dom
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { pluginConfigDefaults } from "#src/pluginConfigRegistry";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getDefaultActivePlugins, pluginConfigDefaults } from "#src/pluginConfigRegistry";
 import { useAppConfigStore } from "./appConfigStore";
 import { APP_CONFIG_KEY } from "./persistenceKeys";
 
@@ -11,6 +11,82 @@ describe("appConfigStore", () => {
   beforeEach(() => {
     // Reset store to defaults before each test
     useAppConfigStore.getState().resetAll();
+  });
+
+  describe("mobile detection defaults", () => {
+    const mockMobile = (matches: boolean) => {
+      vi.spyOn(window, "matchMedia").mockReturnValue({ matches } as MediaQueryList);
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      localStorage.removeItem(APP_CONFIG_KEY);
+    });
+
+    it("defaults to touch on mobile and hand tracking on desktop", () => {
+      mockMobile(true);
+      expect(getDefaultActivePlugins().detection).toBe("detection/pointer");
+      vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as MediaQueryList);
+      expect(getDefaultActivePlugins().detection).toBe("detection/mediapipe");
+    });
+
+    it("migrates older mobile settings to touch without losing other preferences", async () => {
+      mockMobile(true);
+      localStorage.setItem(
+        APP_CONFIG_KEY,
+        JSON.stringify({
+          version: 0,
+          state: {
+            activePlugins: {
+              ...useAppConfigStore.getState().activePlugins,
+              detection: "detection/mediapipe",
+              sonification: "sonification/piano-sampler",
+            },
+            uiPreferences: { baseUiOpacity: 0.7, dimLogoMark: true },
+          },
+        }),
+      );
+      await useAppConfigStore.persist.rehydrate();
+      const state = useAppConfigStore.getState();
+      expect(state.activePlugins.detection).toBe("detection/pointer");
+      expect(state.activePlugins.sonification).toBe("sonification/piano-sampler");
+      expect(state.uiPreferences.baseUiOpacity).toBe(0.7);
+
+      state.setActivePlugin("detection", "detection/mediapipe");
+      await useAppConfigStore.persist.rehydrate();
+      expect(useAppConfigStore.getState().activePlugins.detection).toBe("detection/mediapipe");
+    });
+
+    it("applies the touch default only when migrating from version 0", () => {
+      mockMobile(true);
+      const { migrate } = useAppConfigStore.persist.getOptions();
+      const persisted = {
+        activePlugins: {
+          ...useAppConfigStore.getState().activePlugins,
+          detection: "detection/mediapipe",
+        },
+      };
+      const migrated = migrate?.(persisted, 1) as { activePlugins: { detection: string } };
+      expect(migrated.activePlugins.detection).toBe("detection/mediapipe");
+    });
+
+    it("preserves an existing desktop detection choice during migration", async () => {
+      mockMobile(false);
+      localStorage.setItem(
+        APP_CONFIG_KEY,
+        JSON.stringify({
+          version: 0,
+          state: {
+            activePlugins: {
+              ...useAppConfigStore.getState().activePlugins,
+              detection: "detection/pointer",
+            },
+          },
+        }),
+      );
+      await useAppConfigStore.persist.rehydrate();
+      expect(useAppConfigStore.getState().activePlugins.detection).toBe("detection/pointer");
+    });
   });
 
   describe("initial state", () => {

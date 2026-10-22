@@ -1,5 +1,5 @@
-import { ChevronDown, Image as ImageIcon, Lock, LockOpen, Trash2, Upload } from "lucide-react";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChevronDown, Image as ImageIcon, Move, Trash2, Upload } from "lucide-react";
+import { type ChangeEvent, useEffect, useId, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import {
   Popover,
@@ -16,11 +16,15 @@ import { useImageLibrary } from "../hooks/useImageLibrary";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 
+const moveImageInstructions =
+  "Desktop: drag to pan, wheel to zoom, Shift+wheel to rotate. Mobile: drag with one finger, pinch to zoom/rotate.";
+
 export const HSVToolbarItems = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<HSVSamplingConfig>) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const moveHintId = useId();
   const [importDragActive, setImportDragActive] = useState(false);
   const [importActive, setImportActive] = useState(false);
 
@@ -72,7 +76,7 @@ export const HSVToolbarItems = ({
           <button
             type="button"
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "hidden h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex",
               baseButtonClass,
               importActive && "border-white/40 bg-white/10 text-white",
             )}
@@ -107,13 +111,22 @@ export const HSVToolbarItems = ({
               isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
               !isCoverMode && "opacity-50",
             )}
-            aria-label={isPanEnabled ? "Lock image editing" : "Unlock image editing"}
-            aria-pressed={isPanEnabled}
-            disabled={!isCoverMode}
-            onClick={() => setPanInteractionEnabled(!isPanEnabled)}
+            aria-label="Move image"
+            aria-pressed={isCoverMode && isPanEnabled}
+            // aria-disabled keeps the button focusable so its hint explains why it is unavailable.
+            aria-disabled={!isCoverMode}
+            aria-describedby={moveHintId}
+            onClick={() => {
+              if (isCoverMode) setPanInteractionEnabled(!isPanEnabled);
+            }}
           >
-            {isPanEnabled ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            <Move className="h-4 w-4" />
           </button>
+          <span id={moveHintId} className="sr-only">
+            {isCoverMode
+              ? moveImageInstructions
+              : "Available when the image fills the screen (cover mode)."}
+          </span>
           {coverMode && (
             <Popover>
               <PopoverTrigger asChild>

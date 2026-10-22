@@ -19,6 +19,9 @@ import type { ErrorOr, ImageSampler, PointDetector, Sonifier } from "#src/core/i
 // Shared UI slot types
 // ──────────────────────────────────────────────────
 
+/** Icon shown for a plugin in the shell's quick mode switch. */
+export type PluginIcon = ComponentType<{ className?: string }>;
+
 /** Props the shell passes directly to the DockPanel wrapper. */
 export type ShellDockPanelProps = {
   /** Whether the engine is currently running */
@@ -118,6 +121,10 @@ export interface DetectionPlugin<
   readonly kind: "detection";
   readonly id: TPluginId;
   readonly displayName: string;
+  /** Icon for the quick mode switch; plugins without one only appear in Settings. */
+  readonly icon?: PluginIcon;
+  /** Input the plugin suits best; touch-first devices default to a "touch" detector. */
+  readonly preferredInput?: "touch";
   /** UI components this plugin contributes */
   readonly ui: PluginUISlots<TConfig>;
   /** Default config and configuration metadata for this plugin. */
@@ -194,6 +201,8 @@ export interface SonificationPlugin<
   readonly kind: "sonification";
   readonly id: TPluginId;
   readonly displayName: string;
+  /** Icon for the quick mode switch; plugins without one only appear in Settings. */
+  readonly icon?: PluginIcon;
   readonly ui: PluginUISlots<TConfig>;
   /** Default config and configuration metadata for this plugin. */
   readonly config: PluginConfigSpec<TConfig>;

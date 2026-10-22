@@ -1,60 +1,36 @@
 import { Eye, Image, Pointer, Volume2 } from "lucide-react";
-import { useCallback, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { EngineConfig } from "#src/core/plugin";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
-import type { ActivePlugins } from "../../state/appConfigStore";
 import { useActivePlugin, usePluginConfig } from "../../state/appConfigStore";
 import { buildPluginSection } from "./buildPluginSection";
+import { usePluginSwitch } from "./usePluginSwitch";
 
 type UsePluginSectionsParams = {
   config: EngineConfig;
-  startTransport: () => Promise<unknown>;
   stopTransport: () => void;
 };
 
 export const usePluginSections = ({
   config,
-  startTransport,
   stopTransport,
 }: UsePluginSectionsParams): SettingsPanelSection[] => {
   // 1. Subscribe to active plugin IDs and setters from store
-  const [activeDetectionId, setActiveDetectionId] = useActivePlugin("detection");
-  const [activeSamplingId, setActiveSamplingId] = useActivePlugin("sampling");
-  const [activeSonificationId, setActiveSonificationId] = useActivePlugin("sonification");
+  const [activeDetectionId] = useActivePlugin("detection");
+  const [activeSamplingId] = useActivePlugin("sampling");
+  const [activeSonificationId] = useActivePlugin("sonification");
 
   // 2. Get plugin configs at top level (hooks must be called unconditionally)
   const [sonificationConfig, setSonificationConfig] = usePluginConfig(activeSonificationId);
   const [samplingConfig, setSamplingConfig] = usePluginConfig(activeSamplingId);
   const [detectionConfig, setDetectionConfig] = usePluginConfig(activeDetectionId);
 
-  // 3. Create individual plugin switch handlers (stop transport → switch plugin → re-init paused)
-  const handleSonificationSwitch = useCallback(
-    (id: string) => {
-      stopTransport();
-      setActiveSonificationId(id as ActivePlugins["sonification"]);
-      void startTransport();
-    },
-    [startTransport, stopTransport, setActiveSonificationId],
-  );
-
-  const handleSamplingSwitch = useCallback(
-    (id: string) => {
-      stopTransport();
-      setActiveSamplingId(id as ActivePlugins["sampling"]);
-      void startTransport();
-    },
-    [startTransport, stopTransport, setActiveSamplingId],
-  );
-
-  const handleDetectionSwitch = useCallback(
-    (id: string) => {
-      stopTransport();
-      setActiveDetectionId(id as ActivePlugins["detection"]);
-      void startTransport();
-    },
-    [startTransport, stopTransport, setActiveDetectionId],
-  );
+  // 3. Create individual plugin switch handlers (stop transport → switch plugin → auto-start)
+  const transport = { stopTransport };
+  const handleSonificationSwitch = usePluginSwitch("sonification", transport);
+  const handleSamplingSwitch = usePluginSwitch("sampling", transport);
+  const handleDetectionSwitch = usePluginSwitch("detection", transport);
 
   // 4. Create refs to hold latest config values (standardized ref pattern for all dynamic plugin UI)
   const sonificationConfigRef = useRef({
