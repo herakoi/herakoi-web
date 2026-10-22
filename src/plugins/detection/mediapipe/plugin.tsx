@@ -13,6 +13,7 @@ import { defaultMediaPipeConfig, type MediaPipeConfig, mediaPipeDetectionPluginI
 import { useDeviceStore } from "./deviceStore";
 import { bindDeviceSync } from "./deviceSync";
 import { MediaPipeVideoNotMountedError } from "./errors";
+import "./i18n";
 import { MediaPipePointDetector } from "./MediaPipePointDetector";
 import type { HandOverlayStyle } from "./overlay";
 import { mediaPipeRefs } from "./refs";

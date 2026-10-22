@@ -1,0 +1,73 @@
+import { defineMessages } from "#src/core/i18n";
+import { createTranslation, useErrorText as useNamespaceErrorText } from "#src/shared/i18n";
+import { mediaPipeDetectionPluginId } from "./config";
+
+export const messages = defineMessages({
+  en: {
+    displayName: "MediaPipe Hands",
+    "settings.trackedHands": "Tracked hands",
+    "settings.trackedHandsCount": "Tracked hands ({{hands}})",
+    "settings.mirrorCamera": "Mirror camera",
+    "camera.active": "Active camera",
+    "camera.default": "Default camera",
+    "camera.startToSelect": "Start to select camera",
+    "camera.placeholder": "Camera",
+    "camera.refresh": "Refresh camera",
+    "camera.enable": "Enable camera",
+    "camera.disable": "Disable camera",
+    "camera.front": "Front",
+    "camera.rear": "Rear",
+    "camera.feed": "Camera feed",
+    "pip.show": "Show picture in picture",
+    "pip.hide": "Hide picture in picture",
+    "pip.close": "Hide picture-in-picture",
+    "pip.move": "Move picture-in-picture window",
+    "pip.resize": "Resize picture-in-picture",
+    "mirror.enable": "Enable mirror",
+    "mirror.disable": "Disable mirror",
+    "hands.cycle": "Cycle max hands",
+    "hands.max": "Max hands: {{hands}}",
+    "engine.start": "Start engine",
+    "engine.stop": "Stop engine",
+    "notification.handPrompt": "Move your index finger in front of the camera to play",
+    "errors.CameraStartError": "Camera start failed.",
+    "errors.CameraRestartError": "Camera restart failed.",
+    "errors.DeviceEnumerationError": "Unable to enumerate camera devices.",
+  },
+  it: {
+    displayName: "MediaPipe Hands",
+    "settings.trackedHands": "Mani tracciate",
+    "settings.trackedHandsCount": "Mani tracciate ({{hands}})",
+    "settings.mirrorCamera": "Immagine speculare",
+    "camera.active": "Fotocamera attiva",
+    "camera.default": "Fotocamera predefinita",
+    "camera.startToSelect": "Avvia per scegliere la fotocamera",
+    "camera.placeholder": "Fotocamera",
+    "camera.refresh": "Aggiorna fotocamera",
+    "camera.enable": "Attiva fotocamera",
+    "camera.disable": "Disattiva fotocamera",
+    "camera.front": "Frontale",
+    "camera.rear": "Posteriore",
+    "camera.feed": "Video della fotocamera",
+    "pip.show": "Mostra riquadro video",
+    "pip.hide": "Nascondi riquadro video",
+    "pip.close": "Chiudi riquadro video",
+    "pip.move": "Sposta riquadro video",
+    "pip.resize": "Ridimensiona riquadro video",
+    "mirror.enable": "Attiva immagine speculare",
+    "mirror.disable": "Disattiva immagine speculare",
+    "hands.cycle": "Cambia numero massimo di mani",
+    "hands.max": "Massimo di mani: {{hands}}",
+    "engine.start": "Avvia",
+    "engine.stop": "Ferma",
+    "notification.handPrompt": "Muovi il dito indice davanti alla fotocamera per suonare",
+    "errors.CameraStartError": "Impossibile avviare la fotocamera.",
+    "errors.CameraRestartError": "Impossibile riavviare la fotocamera.",
+    "errors.DeviceEnumerationError": "Impossibile elencare le fotocamere disponibili.",
+  },
+});
+
+export const { t, useT } = createTranslation(mediaPipeDetectionPluginId, messages);
+
+/** Translated text for a camera error shown in the UI, falling back to its English message. */
+export const useErrorText = () => useNamespaceErrorText(mediaPipeDetectionPluginId);

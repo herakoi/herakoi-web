@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { commonT } from "#src/shared/i18n/common";
 
 export type AudioOutputDevice = {
   deviceId: string;
@@ -60,7 +61,7 @@ const enumerateAudioOutputs = async (): Promise<EnumeratedAudioOutputs> => {
   const devices = allOutputs
     .filter((device) => Boolean(device.deviceId.trim()))
     .map((device, index) => {
-      const rawLabel = device.label || `Audio output ${index + 1}`;
+      const rawLabel = device.label || commonT("audioOutput.fallbackName", { number: index + 1 });
       const cleanLabel = rawLabel.replace(/^default\s*-\s*/i, "").trim();
       return {
         deviceId: device.deviceId.trim(),
@@ -76,7 +77,7 @@ const enumerateAudioOutputs = async (): Promise<EnumeratedAudioOutputs> => {
   if (devices.length === 0 && allOutputs.length > 0) {
     devices.push({
       deviceId: defaultPseudo?.deviceId?.trim() || "default",
-      label: defaultPseudo?.label?.trim() || "System default",
+      label: defaultPseudo?.label?.trim() || commonT("audioOutput.systemDefault"),
     });
   }
 

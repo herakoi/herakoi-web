@@ -140,7 +140,7 @@ describe("NativeCamera", () => {
 
       expect(result).toBeInstanceOf(Error);
       expect(result?.message).toBe(
-        "La camera richiede i permessi. Verifica le impostazioni del browser e riprova.",
+        "Camera permission is required. Check your browser settings and try again.",
       );
     });
 
@@ -156,9 +156,7 @@ describe("NativeCamera", () => {
       const result = await camera.start();
 
       expect(result).toBeInstanceOf(Error);
-      expect(result?.message).toBe(
-        "Nessuna camera trovata. Verifica che una camera sia collegata.",
-      );
+      expect(result?.message).toBe("No camera found. Check that a camera is connected.");
     });
 
     it("should return Error with user-friendly message for NotReadableError", async () => {
@@ -173,7 +171,9 @@ describe("NativeCamera", () => {
       const result = await camera.start();
 
       expect(result).toBeInstanceOf(Error);
-      expect(result?.message).toBe("La camera è già in uso da un'altra app. Chiudila e riprova.");
+      expect(result?.message).toBe(
+        "The camera is already in use by another app. Close it and try again.",
+      );
     });
 
     it("should return Error with user-friendly message for SecurityError", async () => {
@@ -188,7 +188,7 @@ describe("NativeCamera", () => {
       const result = await camera.start();
 
       expect(result).toBeInstanceOf(Error);
-      expect(result?.message).toBe("L'accesso alla camera è bloccato per motivi di sicurezza.");
+      expect(result?.message).toBe("Camera access is blocked for security reasons.");
     });
 
     it("should return Error with user-friendly message for OverconstrainedError", async () => {
@@ -206,9 +206,7 @@ describe("NativeCamera", () => {
       const result = await camera.start();
 
       expect(result).toBeInstanceOf(Error);
-      expect(result?.message).toBe(
-        "Le impostazioni richieste non sono supportate dalla tua camera.",
-      );
+      expect(result?.message).toBe("Your camera does not support the requested settings.");
     });
 
     it("should return Error with user-friendly message for TypeError", async () => {
@@ -223,7 +221,7 @@ describe("NativeCamera", () => {
       const result = await camera.start();
 
       expect(result).toBeInstanceOf(Error);
-      expect(result?.message).toBe("Camera non disponibile.");
+      expect(result?.message).toBe("Camera unavailable.");
     });
 
     it("should return Error with original message for unknown errors", async () => {

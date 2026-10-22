@@ -1,5 +1,6 @@
 import { CircleHelp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useShellT } from "#src/i18n/shell";
 import { Button } from "#src/shared/components/ui/button";
 import { CardContent } from "#src/shared/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
@@ -26,6 +27,7 @@ export const SettingsPanel = <K extends string>({
   style,
   sections,
 }: SettingsPanelProps<K>) => {
+  const t = useShellT();
   const defaultKey = useMemo(() => {
     return sections[0]?.key ?? null;
   }, [sections]);
@@ -61,10 +63,10 @@ export const SettingsPanel = <K extends string>({
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 open && "border-white/40 bg-white/10 text-white",
               )}
-              aria-label="Toggle settings panel"
+              aria-label={t("settings.toggle")}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">{t("settings.button")}</span>
             </Button>
           </PopoverTrigger>
           {defaultKey && value ? (
@@ -80,19 +82,23 @@ export const SettingsPanel = <K extends string>({
                   onValueChange={(nextValue) => setOpenSection(nextValue as K)}
                   className="flex h-full flex-col"
                 >
-                  <TabsList className="grid w-full grid-cols-4 gap-1 rounded-full border border-white/10 bg-black/25 p-1">
+                  {/* Only the active tab shows its name, so labels of any length fit. */}
+                  <TabsList className="flex w-full gap-1 rounded-full border border-white/10 bg-black/25 p-1">
                     {sections.map((section) => (
                       <TabsTrigger
                         key={section.key}
                         value={section.key}
-                        className="flex items-center justify-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        title={section.label}
+                        className="group flex min-w-0 flex-auto items-center justify-center gap-1.5 rounded-full data-[state=inactive]:w-10 data-[state=inactive]:flex-none border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {section.icon ? (
                           <span className="flex h-3 w-3 items-center justify-center text-white/70">
                             {section.icon}
                           </span>
                         ) : null}
-                        <span className="truncate">{section.label}</span>
+                        <span className="truncate group-data-[state=inactive]:sr-only">
+                          {section.label}
+                        </span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -117,7 +123,7 @@ export const SettingsPanel = <K extends string>({
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 helpOpen && "border-white/40 bg-white/10 text-white",
               )}
-              aria-label="Open help panel"
+              aria-label={t("settings.help")}
             >
               <CircleHelp className="h-4 w-4" />
             </Button>

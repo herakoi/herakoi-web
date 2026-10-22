@@ -8,21 +8,23 @@ import {
   PopoverTrigger,
 } from "#src/shared/components/ui/popover";
 import { Slider } from "#src/shared/components/ui/slider";
+import { useErrorText } from "#src/shared/i18n";
 import { cn } from "#src/shared/utils/cn";
-import type { HSVSamplingConfig } from "../config";
+import { type HSVSamplingConfig, hsvSamplingPluginId } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
+import { useLocalizeImageEntry, useT } from "../i18n";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
-
-const moveImageInstructions =
-  "Desktop: drag to pan, wheel to zoom, Shift+wheel to rotate. Mobile: drag with one finger, pinch to zoom/rotate.";
 
 export const HSVToolbarItems = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<HSVSamplingConfig>) => {
+  const t = useT();
+  const errorText = useErrorText(hsvSamplingPluginId);
+  const localizeEntry = useLocalizeImageEntry();
   const inputRef = useRef<HTMLInputElement>(null);
   const moveHintId = useId();
   const [importDragActive, setImportDragActive] = useState(false);
@@ -80,7 +82,7 @@ export const HSVToolbarItems = ({
               baseButtonClass,
               importActive && "border-white/40 bg-white/10 text-white",
             )}
-            aria-label="Import image"
+            aria-label={t("toolbar.importImage")}
             onClick={handleImportClick}
           >
             <Upload className="h-4 w-4" />
@@ -94,7 +96,7 @@ export const HSVToolbarItems = ({
                 "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
               )}
               title={currentImage.title}
-              aria-label={`Select image: ${currentImage.title}`}
+              aria-label={t("toolbar.selectImage", { title: currentImage.title })}
             >
               <ImageIcon className="h-4 w-4" />
               <span className="hidden truncate sm:inline sm:max-w-[140px] md:max-w-[220px]">
@@ -111,7 +113,7 @@ export const HSVToolbarItems = ({
               isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
               !isCoverMode && "opacity-50",
             )}
-            aria-label="Move image"
+            aria-label={t("toolbar.moveImage")}
             aria-pressed={isCoverMode && isPanEnabled}
             // aria-disabled keeps the button focusable so its hint explains why it is unavailable.
             aria-disabled={!isCoverMode}
@@ -123,9 +125,7 @@ export const HSVToolbarItems = ({
             <Move className="h-4 w-4" />
           </button>
           <span id={moveHintId} className="sr-only">
-            {isCoverMode
-              ? moveImageInstructions
-              : "Available when the image fills the screen (cover mode)."}
+            {isCoverMode ? t("toolbar.moveImageInstructions") : t("toolbar.moveImageUnavailable")}
           </span>
           {coverMode && (
             <Popover>
@@ -138,7 +138,7 @@ export const HSVToolbarItems = ({
                     "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
                     "text-xs font-semibold tabular-nums",
                   )}
-                  aria-label={`Zoom: ${coverMode.zoom.toFixed(1)}x`}
+                  aria-label={t("toolbar.zoomButton", { zoom: coverMode.zoom.toFixed(1) })}
                 >
                   {coverMode.zoom.toFixed(1)}x
                 </button>
@@ -151,7 +151,7 @@ export const HSVToolbarItems = ({
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Zoom</span>
+                    <span>{t("toolbar.zoom")}</span>
                     <span className="font-semibold tabular-nums text-foreground">
                       {coverMode.zoom.toFixed(1)}x
                     </span>
@@ -161,7 +161,7 @@ export const HSVToolbarItems = ({
                     max={10}
                     step={0.1}
                     value={[coverMode.zoom]}
-                    aria-label="Zoom level"
+                    aria-label={t("toolbar.zoomLevel")}
                     onValueChange={([z]) => {
                       if (z === undefined) return;
                       setViewportMode({ ...coverMode, zoom: z });
@@ -172,7 +172,7 @@ export const HSVToolbarItems = ({
                     <span>10x</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Rotation</span>
+                    <span>{t("toolbar.rotation")}</span>
                     <span className="font-semibold tabular-nums text-foreground">
                       {Math.round(coverMode.rotation ?? 0)}°
                     </span>
@@ -182,7 +182,7 @@ export const HSVToolbarItems = ({
                     max={180}
                     step={1}
                     value={[coverMode.rotation ?? 0]}
-                    aria-label="Rotation angle"
+                    aria-label={t("toolbar.rotationAngle")}
                     onValueChange={([rotation]) => {
                       if (rotation === undefined) return;
                       setViewportMode({ ...coverMode, rotation });
@@ -206,7 +206,7 @@ export const HSVToolbarItems = ({
         <div className="space-y-3">
           {imageLibraryStatus.status === "error" ? (
             <p className="rounded-lg border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-              {imageLibraryStatus.error.message}
+              {errorText(imageLibraryStatus.error)}
             </p>
           ) : null}
           <div className="space-y-1.5">
@@ -237,8 +237,8 @@ export const HSVToolbarItems = ({
                 <Upload className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Drop image here</p>
-                <p className="text-xs text-muted-foreground">or click to browse</p>
+                <p className="text-sm font-medium text-foreground">{t("upload.dropHere")}</p>
+                <p className="text-xs text-muted-foreground">{t("upload.orBrowse")}</p>
               </div>
             </button>
           </div>
@@ -247,7 +247,7 @@ export const HSVToolbarItems = ({
             {howItWorksImages.map((entry) => (
               <ImageRow
                 key={entry.id}
-                entry={entry}
+                entry={localizeEntry(entry)}
                 isActive={currentImage.id === entry.id}
                 onSelect={() => void handleSelectImage(entry)}
               />
@@ -258,7 +258,7 @@ export const HSVToolbarItems = ({
             {curatedImages.map((entry) => (
               <ImageRow
                 key={entry.id}
-                entry={entry}
+                entry={localizeEntry(entry)}
                 isActive={currentImage.id === entry.id}
                 onSelect={() => void handleSelectImage(entry)}
               />
@@ -268,7 +268,7 @@ export const HSVToolbarItems = ({
           <div className="space-y-1.5">
             {uploads.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                No cached uploads yet.
+                {t("toolbar.noUploads")}
               </p>
             ) : (
               uploads.map((entry) => (
@@ -282,7 +282,7 @@ export const HSVToolbarItems = ({
                   <button
                     type="button"
                     className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    aria-label={`Remove ${entry.title}`}
+                    aria-label={t("toolbar.removeUpload", { title: entry.title })}
                     onClick={(event) => {
                       event.stopPropagation();
                       handleDeleteUpload(entry);
@@ -301,7 +301,7 @@ export const HSVToolbarItems = ({
         type="file"
         accept="image/*"
         className="hidden"
-        aria-label="Choose image file"
+        aria-label={t("upload.chooseFile")}
         onChange={handleImageInput}
       />
     </Popover>

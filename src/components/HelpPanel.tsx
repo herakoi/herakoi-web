@@ -1,25 +1,22 @@
+import { useShellT } from "#src/i18n/shell";
+
 export const HelpPanelContent = () => {
+  const t = useShellT();
   return (
     <div className="space-y-4 text-sm">
       <div className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          How it works
+          {t("help.howItWorks")}
         </h3>
-        <p className="text-sm text-foreground">
-          Grant camera permission so hand tracking can start. Keep your hands in view of the camera
-          to drive the sound.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Each detected fingertip samples the current image. Hue maps to pitch (frequency) and value
-          maps to loudness (gain).
-        </p>
+        <p className="text-sm text-foreground">{t("help.camera")}</p>
+        <p className="text-sm text-muted-foreground">{t("help.mapping")}</p>
       </div>
       <div className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          About us
+          {t("help.aboutUs")}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Herakoi explores image sonification through hand-guided sampling. Read the paper at{" "}
+          {t("help.aboutPaper")}{" "}
           <a
             className="text-primary underline underline-offset-2"
             href="https://arxiv.org/abs/2412.09152"
@@ -28,7 +25,7 @@ export const HelpPanelContent = () => {
           >
             arXiv:2412.09152
           </a>{" "}
-          and see the open-source code on{" "}
+          {t("help.aboutCode")}{" "}
           <a
             className="text-primary underline underline-offset-2"
             href="https://github.com/herakoi/herakoi-web"
@@ -37,7 +34,7 @@ export const HelpPanelContent = () => {
           >
             GitHub
           </a>
-          . Contributions are welcome.
+          {t("help.aboutContribute")}
         </p>
       </div>
     </div>

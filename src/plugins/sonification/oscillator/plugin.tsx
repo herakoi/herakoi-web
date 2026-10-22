@@ -13,6 +13,7 @@ import {
   type OscillatorConfig,
   oscillatorSonificationPluginId,
 } from "./config";
+import "./i18n";
 import { OscillatorSonifier } from "./OscillatorSonifier";
 import { useOscillatorAudioStore } from "./store";
 

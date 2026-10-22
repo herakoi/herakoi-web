@@ -11,11 +11,13 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { Switch } from "#src/shared/components/ui/switch";
+import { useErrorText } from "#src/shared/i18n";
 import { cn } from "#src/shared/utils/cn";
-import type { HSVSamplingConfig } from "../config";
+import { type HSVSamplingConfig, hsvSamplingPluginId } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
 import { useImageLibrary } from "../hooks/useImageLibrary";
+import { useT } from "../i18n";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
 
@@ -23,6 +25,8 @@ export const HSVSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<HSVSamplingConfig>) => {
+  const t = useT();
+  const errorText = useErrorText(hsvSamplingPluginId);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -57,8 +61,8 @@ export const HSVSettingsPanel = ({
           void handleSelectImage(entry);
         }}
       >
-        <SelectTrigger id="active-image" aria-label="Active image">
-          <SelectValue placeholder="Active image" />
+        <SelectTrigger id="active-image" aria-label={t("settings.activeImage")}>
+          <SelectValue placeholder={t("settings.activeImage")} />
         </SelectTrigger>
         <SelectContent>
           {entries.map((entry: ImageEntry) => (
@@ -70,7 +74,7 @@ export const HSVSettingsPanel = ({
       </Select>
       <div className="flex items-center justify-between gap-3">
         <Label className="text-sm font-medium" htmlFor="pan-toggle">
-          Enable pan gesture
+          {t("settings.enablePan")}
         </Label>
         <Switch
           id="pan-toggle"
@@ -81,7 +85,7 @@ export const HSVSettingsPanel = ({
       </div>
       <button
         type="button"
-        aria-label="Upload image: drop here or click to browse"
+        aria-label={t("upload.dropOrBrowse")}
         className={cn(
           "flex w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground transition",
           dragActive
@@ -103,20 +107,20 @@ export const HSVSettingsPanel = ({
         }}
       >
         <Upload className="h-4 w-4" />
-        <div className="text-sm font-medium text-foreground">Drop image here</div>
-        <div className="text-xs text-muted-foreground">or click to browse</div>
+        <div className="text-sm font-medium text-foreground">{t("upload.dropHere")}</div>
+        <div className="text-xs text-muted-foreground">{t("upload.orBrowse")}</div>
       </button>
       <Input
         ref={inputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        aria-label="Choose image file"
+        aria-label={t("upload.chooseFile")}
         onChange={handleFile}
       />
       {imageLibraryStatus.status === "error" ? (
         <p className="text-xs text-red-300" role="alert">
-          {imageLibraryStatus.error.message}
+          {errorText(imageLibraryStatus.error)}
         </p>
       ) : null}
     </div>

@@ -2,8 +2,11 @@ import { AlertCircle, Pointer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PluginNotification } from "#src/shared/components/notifications/PluginNotification";
 import { useDeviceStore } from "../deviceStore";
+import { useErrorText, useT } from "../i18n";
 
 export const MediaPipeNotifications = () => {
+  const t = useT();
+  const errorText = useErrorText();
   const hasHands = useDeviceStore((s) => s.hasHands);
   const cameraStatus = useDeviceStore((s) => s.cameraStatus);
   const [dismissed, setDismissed] = useState(false);
@@ -16,7 +19,7 @@ export const MediaPipeNotifications = () => {
   if (cameraStatus.status === "error") {
     return (
       <PluginNotification
-        message={cameraStatus.error.message}
+        message={errorText(cameraStatus.error)}
         icon={AlertCircle}
         politeness="assertive"
       />
@@ -26,7 +29,7 @@ export const MediaPipeNotifications = () => {
   if (hasHands === false && !dismissed) {
     return (
       <PluginNotification
-        message="Move your index finger in front of the camera to play"
+        message={t("notification.handPrompt")}
         icon={Pointer}
         politeness="polite"
         onDismiss={() => setDismissed(true)}

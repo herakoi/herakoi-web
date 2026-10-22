@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import "./globals.css";
+import { startLocaleSync } from "./i18n";
+
+startLocaleSync();
 
 const rootElement = document.getElementById("root");
 

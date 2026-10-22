@@ -4,6 +4,7 @@ import { Floating } from "#src/shared/components/Floating";
 import type { MediaPipeConfig } from "../config";
 import { useDeviceStore } from "../deviceStore";
 import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
+import { useT } from "../i18n";
 import { DockPanelControls } from "./DockPanelControls";
 import { DockPanelPiPActions } from "./DockPanelPiPActions";
 import { DockPanelPiPSurface } from "./DockPanelPiPSurface";
@@ -17,6 +18,7 @@ export const MediaPipeDockPanel = ({
   config,
   setConfig,
 }: DockPanelProps<MediaPipeConfig>) => {
+  const t = useT();
   const { maxHands } = config;
   const devices = useDeviceStore((s) => s.devices);
   const deviceId = useDeviceStore((s) => s.deviceId);
@@ -62,7 +64,7 @@ export const MediaPipeDockPanel = ({
         padding={4}
         forbiddenGap={12}
         forbiddenRefs={[controlsRef]}
-        moveHandleAriaLabel="Move picture-in-picture window"
+        moveHandleAriaLabel={t("pip.move")}
       >
         {({
           isResizing,
@@ -81,7 +83,7 @@ export const MediaPipeDockPanel = ({
           >
             <button
               type="button"
-              aria-label="Move picture-in-picture window"
+              aria-label={t("pip.move")}
               className="absolute inset-0 z-10 touch-none cursor-move border-none bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
               onPointerDown={onMovePointerDown}
               onKeyDown={onMoveKeyDown}

@@ -9,6 +9,7 @@ import {
 } from "#src/shared/components/ui/select";
 import { cn } from "#src/shared/utils/cn";
 import { useDeviceStore } from "../deviceStore";
+import { type t as translate, useErrorText, useT } from "../i18n";
 import type { DeviceInfo } from "../NativeCamera";
 
 type DockPanelControlsProps = {
@@ -22,9 +23,9 @@ type DockPanelControlsProps = {
   onDeviceChange: (deviceId: string) => void;
 };
 
-function deviceLabel(device: DeviceInfo): string {
-  if (device.facingMode === "user") return "Front";
-  if (device.facingMode === "environment") return "Rear";
+function deviceLabel(device: DeviceInfo, t: typeof translate): string {
+  if (device.facingMode === "user") return t("camera.front");
+  if (device.facingMode === "environment") return t("camera.rear");
   return device.label;
 }
 
@@ -38,6 +39,8 @@ export const DockPanelControls = ({
   onToggleCamera,
   onDeviceChange,
 }: DockPanelControlsProps) => {
+  const t = useT();
+  const errorText = useErrorText();
   const cameraStatus = useDeviceStore((s) => s.cameraStatus);
   const cameraBaseClass = "border-border/50 bg-black/50 text-muted-foreground";
   const cameraHoverClass = "hover:bg-black/70 hover:text-foreground";
@@ -48,7 +51,7 @@ export const DockPanelControls = ({
     "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white";
 
   const activeDevice = devices.find((d) => d.deviceId === deviceId) ?? devices[0] ?? null;
-  const activePlaceholder = activeDevice ? deviceLabel(activeDevice) : "Camera";
+  const activePlaceholder = activeDevice ? deviceLabel(activeDevice, t) : t("camera.placeholder");
 
   return (
     <div className="flex flex-col gap-1">
@@ -62,7 +65,7 @@ export const DockPanelControls = ({
             cameraEnabled && cameraActiveClass,
           )}
           aria-pressed={cameraEnabled}
-          aria-label={cameraEnabled ? "Disable camera" : "Enable camera"}
+          aria-label={cameraEnabled ? t("camera.disable") : t("camera.enable")}
           onClick={onToggleCamera}
         >
           {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
@@ -76,7 +79,7 @@ export const DockPanelControls = ({
             pipOpen && cameraActiveClass,
           )}
           aria-pressed={pipOpen}
-          aria-label={pipOpen ? "Hide picture in picture" : "Show picture in picture"}
+          aria-label={pipOpen ? t("pip.hide") : t("pip.show")}
           onClick={onTogglePip}
         >
           <Camera className="h-4 w-4" />
@@ -84,7 +87,7 @@ export const DockPanelControls = ({
         {devices.length > 0 ? (
           <Select value={deviceId} onValueChange={onDeviceChange}>
             <SelectTrigger
-              aria-label="Active camera"
+              aria-label={t("camera.active")}
               className={cn(
                 "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 selectBaseClass,
@@ -99,7 +102,7 @@ export const DockPanelControls = ({
             <SelectContent>
               {devices.map((d) => (
                 <SelectItem key={d.deviceId} value={d.deviceId}>
-                  {deviceLabel(d)}
+                  {deviceLabel(d, t)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -107,7 +110,7 @@ export const DockPanelControls = ({
         ) : (
           <Select disabled>
             <SelectTrigger
-              aria-label="Active camera"
+              aria-label={t("camera.active")}
               className={cn(
                 "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 selectBaseClass,
@@ -130,7 +133,7 @@ export const DockPanelControls = ({
               cameraBaseClass,
               cameraHoverClass,
             )}
-            aria-label="Refresh camera"
+            aria-label={t("camera.refresh")}
             onClick={() => void restartCamera()}
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -139,7 +142,7 @@ export const DockPanelControls = ({
       </div>
       {cameraStatus.status === "error" && (
         <p className="text-xs text-red-300" role="alert">
-          {cameraStatus.error.message}
+          {errorText(cameraStatus.error)}
         </p>
       )}
     </div>

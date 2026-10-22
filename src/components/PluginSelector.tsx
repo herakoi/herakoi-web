@@ -1,3 +1,5 @@
+import { useId } from "react";
+import { useShellT } from "#src/i18n/shell";
 import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
@@ -6,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#src/shared/components/ui/select";
+import { usePluginName } from "#src/shared/i18n";
 
 type Plugin = {
   id: string;
@@ -28,30 +31,33 @@ type PluginSelectorProps = {
  * plugins with transport left stopped.
  */
 export const PluginSelector = ({ label, plugins, activeId, onSelect }: PluginSelectorProps) => {
+  const t = useShellT();
+  const selectorId = useId();
+  const pluginName = usePluginName();
   const hasMultiplePlugins = plugins.length > 1;
 
   return (
     <div className="flex items-center gap-3 pb-3 mb-4 border-b border-border/40">
-      <Label htmlFor={`plugin-selector-${label}`} className="text-sm text-muted-foreground">
-        Plugin:
+      <Label htmlFor={selectorId} className="text-sm text-muted-foreground">
+        {t("pluginSelector.label")}
       </Label>
       <Select value={activeId} onValueChange={onSelect}>
         <SelectTrigger
-          id={`plugin-selector-${label}`}
-          aria-label={`${label} plugin`}
+          id={selectorId}
+          aria-label={t("pluginSelector.trigger", { slot: label })}
           className="h-8 w-[200px]"
         >
-          <SelectValue placeholder={`Select ${label} plugin`} />
+          <SelectValue placeholder={t("pluginSelector.placeholder", { slot: label })} />
         </SelectTrigger>
         <SelectContent position="popper">
           {plugins.map((plugin) => (
             <SelectItem key={plugin.id} value={plugin.id}>
-              {plugin.displayName}
+              {pluginName(plugin)}
             </SelectItem>
           ))}
           {!hasMultiplePlugins && (
             <SelectItem value="_coming-soon" disabled>
-              More coming soon...
+              {t("pluginSelector.comingSoon")}
             </SelectItem>
           )}
         </SelectContent>

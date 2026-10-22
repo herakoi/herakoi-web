@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from "react";
+import { useT } from "../i18n";
 
 type DockPanelPiPSurfaceProps = {
   videoRef: RefObject<HTMLVideoElement>;
@@ -19,6 +20,7 @@ export const DockPanelPiPSurface = ({
   aspectRatio,
   children,
 }: DockPanelPiPSurfaceProps) => {
+  const t = useT();
   return (
     <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur">
       <div className="group relative select-none" style={{ aspectRatio }}>
@@ -27,7 +29,7 @@ export const DockPanelPiPSurface = ({
           autoPlay
           muted
           playsInline
-          aria-label="Camera feed"
+          aria-label={t("camera.feed")}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
           style={mirror && videoReady ? { transform: "scaleX(-1)" } : undefined}
         />

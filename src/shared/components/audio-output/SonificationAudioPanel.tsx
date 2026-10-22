@@ -1,6 +1,7 @@
 import { ChevronUp, Volume2, VolumeX } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { useMediaQuery } from "#src/shared/hooks/useMediaQuery";
+import { useCommonT } from "#src/shared/i18n/common";
 import { cn } from "#src/shared/utils/cn";
 
 /** Narrow or short viewports, where the open panel would crowd the canvas. */
@@ -20,16 +21,14 @@ type SonificationAudioPanelProps = {
  * On compact viewports it collapses to a volume button that expands in place.
  */
 export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPanelProps) => {
+  const t = useCommonT();
   const compact = useMediaQuery(COMPACT_QUERY);
   const [expanded, setExpanded] = useState(false);
   const controlsId = useId();
 
   if (!compact) {
     return (
-      <aside
-        className={cn(asideClass, "h-[248px] gap-3 py-3")}
-        aria-label="Sonification audio controls"
-      >
+      <aside className={cn(asideClass, "h-[248px] gap-3 py-3")} aria-label={t("volume.panel")}>
         {children}
       </aside>
     );
@@ -41,13 +40,13 @@ export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPan
   return (
     <aside
       className={cn(asideClass, "gap-1 p-1")}
-      aria-label="Sonification audio controls"
+      aria-label={t("volume.panel")}
       // Lets the shell rail switch layout while the controls are open.
       data-expanded={expanded || undefined}
     >
       <button
         type="button"
-        aria-label="Volume controls"
+        aria-label={t("volume.controls")}
         aria-expanded={expanded}
         aria-controls={controlsId}
         onClick={() => setExpanded(!expanded)}

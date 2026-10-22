@@ -2,6 +2,7 @@ import { VolumeX } from "lucide-react";
 import { Button } from "#src/shared/components/ui/button";
 import { Label } from "#src/shared/components/ui/label";
 import { Slider } from "#src/shared/components/ui/slider";
+import { useCommonT } from "#src/shared/i18n/common";
 import { cn } from "#src/shared/utils/cn";
 
 type VolumeMuteRailProps = {
@@ -19,12 +20,13 @@ export const VolumeMuteRail = ({
   onMutedChange,
   className,
 }: VolumeMuteRailProps) => {
+  const t = useCommonT();
   const volumePercent = Math.round(volume * 100);
 
   return (
     <div className={cn("flex h-full flex-col items-center", className)}>
       <div className="flex flex-1 flex-col items-center justify-center">
-        <Label className="sr-only">Master volume</Label>
+        <Label className="sr-only">{t("volume.master")}</Label>
         {/* Shorter on low viewports so the expanded compact panel clears the header. */}
         <div className="h-[150px] [@media(max-height:480px)]:h-[80px]">
           <Slider
@@ -33,8 +35,8 @@ export const VolumeMuteRail = ({
             max={100}
             step={1}
             value={[volumePercent]}
-            aria-label="Master volume"
-            thumbLabels={["Master volume"]}
+            aria-label={t("volume.master")}
+            thumbLabels={[t("volume.master")]}
             onValueChange={([value]) => onVolumeChange(value / 100)}
           />
         </div>
@@ -50,7 +52,7 @@ export const VolumeMuteRail = ({
           muted && "border-white/40 text-white",
         )}
         aria-pressed={muted}
-        aria-label="Mute sonification"
+        aria-label={t("volume.mute")}
       >
         <VolumeX className="h-4 w-4" />
       </Button>
