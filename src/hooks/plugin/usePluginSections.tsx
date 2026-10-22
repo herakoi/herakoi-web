@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import type { EngineConfig } from "#src/core/plugin";
 import { VisualizerPanel } from "../../components/panels/VisualizerPanel";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
+import { useShellT } from "../../i18n/shell";
 import { useActivePlugin, usePluginConfig } from "../../state/appConfigStore";
 import { buildPluginSection } from "./buildPluginSection";
 import { usePluginSwitch } from "./usePluginSwitch";
@@ -17,6 +18,7 @@ export const usePluginSections = ({
   stopTransport,
 }: UsePluginSectionsParams): SettingsPanelSection[] => {
   // 1. Subscribe to active plugin IDs and setters from store
+  const t = useShellT();
   const [activeDetectionId] = useActivePlugin("detection");
   const [activeSamplingId] = useActivePlugin("sampling");
   const [activeSonificationId] = useActivePlugin("sonification");
@@ -66,17 +68,17 @@ export const usePluginSections = ({
       buildPluginSection({
         tab: {
           key: "audio",
-          label: "Audio",
+          label: t("settings.tab.audio"),
           icon: <Volume2 className="h-3.5 w-3.5" />,
         },
-        label: "Sonification",
+        label: t("settings.slot.sonification"),
         pluginArray: config.sonification,
         activeId: activeSonificationId,
         // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to contravariance in setConfig function parameter
         configRef: sonificationConfigRef as any,
         onSwitchPlugin: handleSonificationSwitch,
       }),
-    [config.sonification, activeSonificationId, handleSonificationSwitch],
+    [config.sonification, activeSonificationId, handleSonificationSwitch, t],
   );
 
   const samplingSection = useMemo(
@@ -84,17 +86,17 @@ export const usePluginSections = ({
       buildPluginSection({
         tab: {
           key: "sample",
-          label: "Sample",
+          label: t("settings.tab.sample"),
           icon: <Image className="h-3.5 w-3.5" />,
         },
-        label: "Sampling",
+        label: t("settings.slot.sampling"),
         pluginArray: config.sampling,
         activeId: activeSamplingId,
         // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to contravariance in setConfig function parameter
         configRef: samplingConfigRef as any,
         onSwitchPlugin: handleSamplingSwitch,
       }),
-    [config.sampling, activeSamplingId, handleSamplingSwitch],
+    [config.sampling, activeSamplingId, handleSamplingSwitch, t],
   );
 
   const detectionSection = useMemo(
@@ -102,17 +104,17 @@ export const usePluginSections = ({
       buildPluginSection({
         tab: {
           key: "input",
-          label: "Input",
+          label: t("settings.tab.input"),
           icon: <Pointer className="h-3.5 w-3.5" />,
         },
-        label: "Detection",
+        label: t("settings.slot.detection"),
         pluginArray: config.detection,
         activeId: activeDetectionId,
         // biome-ignore lint/suspicious/noExplicitAny: Type assertion needed due to contravariance in setConfig function parameter
         configRef: detectionConfigRef as any,
         onSwitchPlugin: handleDetectionSwitch,
       }),
-    [config.detection, activeDetectionId, handleDetectionSwitch],
+    [config.detection, activeDetectionId, handleDetectionSwitch, t],
   );
 
   // Visualizer section (custom logic for non-plugin-selector UI)
@@ -121,11 +123,11 @@ export const usePluginSections = ({
 
     return {
       key: "visualizer",
-      label: "Visualizer",
+      label: t("settings.tab.visualizer"),
       icon: <Eye className="h-3.5 w-3.5" />,
       render: () => <VisualizerPanel visualizers={config.visualization} />,
     };
-  }, [config.visualization]);
+  }, [config.visualization, t]);
 
   // 6. Combine sections with minimal dependencies
   const sections = useMemo(() => {

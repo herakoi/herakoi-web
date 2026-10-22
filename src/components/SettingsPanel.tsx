@@ -1,5 +1,6 @@
 import { CircleHelp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useShellT } from "#src/i18n/shell";
 import { Button } from "#src/shared/components/ui/button";
 import { CardContent } from "#src/shared/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
@@ -26,6 +27,7 @@ export const SettingsPanel = <K extends string>({
   style,
   sections,
 }: SettingsPanelProps<K>) => {
+  const t = useShellT();
   const defaultKey = useMemo(() => {
     return sections[0]?.key ?? null;
   }, [sections]);
@@ -61,10 +63,10 @@ export const SettingsPanel = <K extends string>({
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 open && "border-white/40 bg-white/10 text-white",
               )}
-              aria-label="Toggle settings panel"
+              aria-label={t("settings.toggle")}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">{t("settings.button")}</span>
             </Button>
           </PopoverTrigger>
           {defaultKey && value ? (
@@ -117,7 +119,7 @@ export const SettingsPanel = <K extends string>({
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 helpOpen && "border-white/40 bg-white/10 text-white",
               )}
-              aria-label="Open help panel"
+              aria-label={t("settings.help")}
             >
               <CircleHelp className="h-4 w-4" />
             </Button>

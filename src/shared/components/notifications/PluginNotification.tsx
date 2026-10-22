@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { ScreenReaderAnnouncer } from "#src/components/ScreenReaderAnnouncer";
+import { useCommonT } from "#src/shared/i18n/common";
 
 export type PluginNotificationProps = {
   message: string;
@@ -21,6 +22,7 @@ export const PluginNotification = ({
   onDismiss,
   children,
 }: PluginNotificationProps) => {
+  const t = useCommonT();
   return (
     <>
       <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/45 px-6 py-3 backdrop-blur">
@@ -36,7 +38,7 @@ export const PluginNotification = ({
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="Dismiss notification"
+            aria-label={t("notification.dismiss")}
             className="pointer-events-auto -mr-2 ml-1 shrink-0 rounded-full p-1 text-white/40 transition-colors hover:text-white/80"
           >
             <X className="h-3.5 w-3.5" />

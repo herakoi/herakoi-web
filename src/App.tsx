@@ -1,5 +1,5 @@
 import { Maximize, Minimize } from "lucide-react";
-import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
@@ -10,19 +10,21 @@ import { engineConfig } from "./engineConfig";
 import { usePluginSwitch, usePluginUi } from "./hooks/plugin";
 import { useIdleDimmer, useUiDimFade } from "./hooks/ui";
 import { useSonificationEngine } from "./hooks/useSonificationEngine";
+import { shellT, useShellT } from "./i18n/shell";
 import { PluginNotification } from "./shared/components/notifications/PluginNotification";
+import { usePluginName } from "./shared/i18n";
 import { useUiPreferences } from "./state/appConfigStore";
+
+type ModePlugin = { id: string; displayName: string; icon?: ModeToggleOption["icon"] };
 
 /** Plugins that declare an icon appear in the quick mode switch, named as in Settings. */
 const toModeOptions = (
-  plugins: ReadonlyArray<{ id: string; displayName: string; icon?: ModeToggleOption["icon"] }>,
+  plugins: ReadonlyArray<ModePlugin>,
+  pluginName: (plugin: ModePlugin) => string,
 ): ModeToggleOption[] =>
-  plugins.flatMap(({ id, displayName, icon }) =>
-    icon ? [{ pluginId: id, label: displayName, icon }] : [],
+  plugins.flatMap((plugin) =>
+    plugin.icon ? [{ pluginId: plugin.id, label: pluginName(plugin), icon: plugin.icon }] : [],
   );
-
-const detectionModes = toModeOptions(engineConfig.detection);
-const sonificationModes = toModeOptions(engineConfig.sonification);
 
 const App = () => {
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,6 +62,16 @@ const App = () => {
     stopTransport,
   });
 
+  const t = useShellT();
+  const pluginName = usePluginName();
+  const detectionModes = useMemo(
+    () => toModeOptions(engineConfig.detection, pluginName),
+    [pluginName],
+  );
+  const sonificationModes = useMemo(
+    () => toModeOptions(engineConfig.sonification, pluginName),
+    [pluginName],
+  );
   const switchDetection = usePluginSwitch("detection", { stopTransport });
   const switchSonification = usePluginSwitch("sonification", { stopTransport });
 
@@ -110,11 +122,11 @@ const App = () => {
       showFullscreenNotice(
         nextFullscreen
           ? {
-              message: "Fullscreen enabled. Double-click anywhere to toggle.",
+              message: shellT("app.fullscreenOn"),
               icon: Maximize,
             }
           : {
-              message: "Fullscreen disabled.",
+              message: shellT("app.fullscreenOff"),
               icon: Minimize,
             },
       );
@@ -185,7 +197,7 @@ const App = () => {
         href="#herakoi-main-canvas"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring"
       >
-        Skip to main content
+        {t("app.skipToContent")}
       </a>
       <div className="absolute inset-0">
         <canvas
@@ -194,12 +206,12 @@ const App = () => {
           tabIndex={-1}
           className="h-full w-full touch-none"
           role="img"
-          aria-label="Herakoi audio-visualizer output"
+          aria-label={t("app.canvas")}
           aria-describedby={fullscreenAvailable ? "herakoi-canvas-hint" : undefined}
         />
         {fullscreenAvailable ? (
           <span id="herakoi-canvas-hint" className="sr-only">
-            Double-click to toggle fullscreen.
+            {t("app.canvasHint")}
           </span>
         ) : null}
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
@@ -275,7 +287,7 @@ const App = () => {
       >
         <ModeToggle
           slot="detection"
-          label="Detection mode"
+          label={t("modeToggle.detection")}
           options={detectionModes}
           onSelect={switchDetection}
           className="max-sm:flex-col"
@@ -290,7 +302,7 @@ const App = () => {
       >
         <ModeToggle
           slot="sonification"
-          label="Sonification mode"
+          label={t("modeToggle.sonification")}
           options={sonificationModes}
           onSelect={switchSonification}
           orientation="vertical"

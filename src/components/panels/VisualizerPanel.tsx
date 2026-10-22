@@ -1,4 +1,6 @@
+import { localeNames, supportedLocales } from "#src/core/i18n";
 import type { VisualizationPlugin } from "#src/core/plugin";
+import { useShellT } from "#src/i18n/shell";
 import { Button } from "#src/shared/components/ui/button";
 import { Label } from "#src/shared/components/ui/label";
 import {
@@ -10,6 +12,7 @@ import {
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
+import { isLocale, useLocale, usePluginName } from "#src/shared/i18n";
 import { useActivePlugin, useAppConfigStore, useUiPreferences } from "../../state/appConfigStore";
 
 type VisualizerPanelProps = {
@@ -17,6 +20,9 @@ type VisualizerPanelProps = {
 };
 
 export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
+  const t = useShellT();
+  const pluginName = usePluginName();
+  const locale = useLocale();
   const [activeVisualizerId, setActiveVisualizerId] = useActivePlugin("visualization");
   const [uiPrefs, setUiPrefs] = useUiPreferences();
   const resetAll = useAppConfigStore((s) => s.resetAll);
@@ -32,7 +38,7 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
     <div className="space-y-4">
       {/* Visualizer selector */}
       <div className="space-y-2">
-        <Label>Active Visualizer</Label>
+        <Label>{t("preferences.visualizer")}</Label>
         <Select
           value={activeVisualizerId ?? "none"}
           onValueChange={(value) => {
@@ -40,13 +46,13 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
           }}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select visualizer" />
+            <SelectValue placeholder={t("preferences.visualizerPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">None</SelectItem>
+            <SelectItem value="none">{t("preferences.visualizerNone")}</SelectItem>
             {visualizers.map((plugin) => (
               <SelectItem key={plugin.id} value={plugin.id}>
-                {plugin.displayName}
+                {pluginName(plugin)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -63,24 +69,44 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
 
       {/* Preferences (moved from separate tab) */}
       <div className="space-y-4 border-t pt-4">
-        <h3 className="text-sm font-medium">Preferences</h3>
+        <h3 className="text-sm font-medium">{t("preferences.title")}</h3>
+        <div className="space-y-2">
+          <Label htmlFor="language-select">{t("preferences.language")}</Label>
+          <Select
+            value={locale}
+            onValueChange={(value) => {
+              if (isLocale(value)) setUiPrefs({ language: value });
+            }}
+          >
+            <SelectTrigger id="language-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {supportedLocales.map((code) => (
+                <SelectItem key={code} value={code} lang={code}>
+                  {localeNames[code]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button variant="outline" onClick={handleResetDefaults}>
-          Restore Defaults
+          {t("preferences.restoreDefaults")}
         </Button>
         <div className="space-y-2">
-          <Label>UI opacity ({opacityPercent}%)</Label>
+          <Label>{t("preferences.opacity", { percent: opacityPercent })}</Label>
           <Slider
             min={0}
             max={100}
             step={5}
             value={[opacityPercent]}
-            aria-label="UI opacity level"
+            aria-label={t("preferences.opacityLevel")}
             onValueChange={([value]) => setUiPrefs({ baseUiOpacity: value / 100 })}
           />
         </div>
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm font-medium" htmlFor="dim-logo-mark">
-            Dim logo mark on idle
+            {t("preferences.dimLogo")}
           </Label>
           <Switch
             id="dim-logo-mark"

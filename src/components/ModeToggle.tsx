@@ -1,4 +1,5 @@
 import { type ComponentType, useId, useState } from "react";
+import { useShellT } from "#src/i18n/shell";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
 import { cn } from "#src/shared/utils/cn";
 import { useActivePlugin } from "#src/state/appConfigStore";
@@ -39,13 +40,14 @@ export const ModeToggle = ({
   orientation = "horizontal",
   className,
 }: ModeToggleProps) => {
+  const t = useShellT();
   const [activeId] = useActivePlugin(slot);
   const [announcement, setAnnouncement] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const hintId = useId();
   const hint = (
     <span id={hintId} className="sr-only">
-      Switches the active {slot} plugin. More options are in Settings.
+      {t(slot === "detection" ? "modeToggle.detectionHint" : "modeToggle.sonificationHint")}
     </span>
   );
 

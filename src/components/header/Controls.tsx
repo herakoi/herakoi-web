@@ -1,5 +1,6 @@
 import { Loader2, Maximize, Minimize, Play, Square } from "lucide-react";
 import type { RefObject } from "react";
+import { useShellT } from "#src/i18n/shell";
 import { cn } from "#src/shared/utils/cn";
 
 type ControlsProps = {
@@ -23,6 +24,7 @@ export const Controls = ({
   onToggleFullscreen,
   transportButtonRef,
 }: ControlsProps) => {
+  const t = useShellT();
   return (
     <>
       <button
@@ -32,7 +34,7 @@ export const Controls = ({
           "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
           isFullscreen && "border-white/40 bg-white/10 text-white",
         )}
-        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        aria-label={isFullscreen ? t("header.exitFullscreen") : t("header.enterFullscreen")}
         onClick={onToggleFullscreen}
         disabled={!fullscreenAvailable}
       >
@@ -46,7 +48,7 @@ export const Controls = ({
             ? "border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20"
             : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",
         )}
-        aria-label={isActive ? "Stop engine" : "Start engine"}
+        aria-label={isActive ? t("header.stopEngine") : t("header.startEngine")}
         onClick={isActive ? onStop : onStart}
         disabled={isInitializing}
         ref={transportButtonRef}

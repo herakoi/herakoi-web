@@ -1,5 +1,6 @@
 import { Component, createRef, type ErrorInfo, type ReactNode, type RefObject } from "react";
 import { BrandMark } from "#src/components/header/BrandMark";
+import { shellT } from "#src/i18n/shell";
 import { clearHerakoiLocalStorage } from "#src/state/storageReset";
 
 type AppErrorBoundaryProps = {
@@ -21,7 +22,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   };
 
   public static getDerivedStateFromError(error: unknown): AppErrorBoundaryState {
-    const errorMessage = error instanceof Error ? error.message : "Unknown runtime error";
+    const errorMessage = error instanceof Error ? error.message : shellT("crash.unknownError");
     return { hasError: true, errorMessage };
   }
 
@@ -56,11 +57,8 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
               role="alert"
               aria-live="assertive"
             >
-              <h1 className="text-lg font-semibold">Errore di configurazione</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                L&apos;app si è bloccata durante il caricamento. Potrebbe esserci uno stato locale
-                non più compatibile con l&apos;ultima versione.
-              </p>
+              <h1 className="text-lg font-semibold">{shellT("crash.title")}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">{shellT("crash.body")}</p>
               {this.state.errorMessage ? (
                 <p className="mt-3 rounded-md border border-border/70 bg-muted/40 px-3 py-2 font-mono text-xs text-muted-foreground">
                   {this.state.errorMessage}
@@ -72,14 +70,14 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
                   onClick={this.handleResetStorage}
                   className="inline-flex items-center rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition hover:opacity-90"
                 >
-                  Reset local storage e ricarica
+                  {shellT("crash.resetAndReload")}
                 </button>
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
                   className="inline-flex items-center rounded-md border border-border/70 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/40"
                 >
-                  Ricarica senza reset
+                  {shellT("crash.reload")}
                 </button>
               </div>
             </article>
