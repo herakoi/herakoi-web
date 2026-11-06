@@ -35,7 +35,7 @@
 
 .caption {
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   opacity: 75%;
 }
 

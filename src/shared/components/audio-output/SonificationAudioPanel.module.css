@@ -74,3 +74,8 @@
     height: 156px;
   }
 }
+
+/* The panel stays mounted while collapsed; hidden has to beat the flex display above. */
+.controls[hidden] {
+  display: none;
+}

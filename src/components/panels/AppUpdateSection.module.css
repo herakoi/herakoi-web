@@ -4,7 +4,7 @@
 
 .version {
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   color: var(--color-muted-foreground);
 }
 
@@ -19,6 +19,6 @@
 
 .status {
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   color: var(--color-muted-foreground);
 }

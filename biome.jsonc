@@ -35,14 +35,6 @@
       "a11y": {
         // The one jsx-a11y recommended rule that Biome does not enable by default.
         "noNoninteractiveElementInteractions": "error"
-      },
-      "suspicious": {
-        "noUnknownAtRules": {
-          "level": "error",
-          "options": {
-            "ignore": ["tailwind", "apply"]
-          }
-        }
       }
     }
   },
@@ -70,7 +62,7 @@
   ],
   "css": {
     "parser": {
-      "tailwindDirectives": true
+      "cssModules": true
     }
   }
 }

@@ -41,7 +41,7 @@
 }
 
 .start {
-  composes: button;
+  composes: round button;
   border-color: color-mix(in oklab, var(--color-success-500) 40%, transparent);
   background-color: color-mix(in oklab, var(--color-success-500) 10%, transparent);
   color: var(--color-success-200);
@@ -55,7 +55,7 @@
 }
 
 .stop {
-  composes: button;
+  composes: round button;
   border-color: color-mix(in oklab, var(--color-danger-500) 40%, transparent);
   background-color: color-mix(in oklab, var(--color-danger-500) 10%, transparent);
   color: var(--color-danger-200);

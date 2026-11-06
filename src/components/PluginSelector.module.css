@@ -10,7 +10,7 @@
 }
 
 .label {
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   color: var(--color-muted-foreground);
 }
 

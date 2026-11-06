@@ -6,7 +6,7 @@
     white-space: nowrap;
     border-radius: var(--radius-md);
     font-size: 0.875rem;
-    line-height: calc(1.25 / 0.875);
+    line-height: var(--text-sm--line-height);
     font-weight: 500;
     box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation, 0 0 #0000);
     transition-property: var(--transition-colors);

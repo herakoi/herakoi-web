@@ -52,14 +52,14 @@
 
 .title {
   font-size: 1.125rem;
-  line-height: calc(1.75 / 1.125);
+  line-height: var(--text-lg--line-height);
   font-weight: 600;
 }
 
 .body {
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   color: var(--color-muted-foreground);
 }
 
@@ -73,7 +73,7 @@
   padding: 0.5rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   color: var(--color-muted-foreground);
 }
 
@@ -90,7 +90,7 @@
   border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   font-weight: 500;
   transition-property: var(--transition-common);
   transition-timing-function: var(--transition-ease);

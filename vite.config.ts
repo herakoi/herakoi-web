@@ -1,5 +1,4 @@
 import { execSync } from "node:child_process";
-import tailwindcss from "@tailwindcss/vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -31,13 +30,14 @@ const themeColor = "#141110";
 
 export default defineConfig({
   base,
+  // Lightning CSS compiles the CSS Modules and the global stylesheet.
+  css: { transformer: "lightningcss" },
   define: {
     __APP_VERSION__: JSON.stringify(buildVersion.version),
     __APP_COMMIT__: JSON.stringify(buildVersion.commit),
   },
   plugins: [
     mediaPipeEsmExports(),
-    tailwindcss(),
     react(),
     ...(https ? [basicSsl()] : []),
     VitePWA({

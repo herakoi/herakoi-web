@@ -22,7 +22,7 @@
 .message {
   font-family: var(--font-sans);
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   font-weight: 500;
   letter-spacing: 0.025em;
   color: rgb(255 255 255 / 80%);

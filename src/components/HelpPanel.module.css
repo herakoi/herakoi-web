@@ -1,7 +1,7 @@
 .panel {
   composes: stack4 from "#src/shared/styles/utilities.module.css";
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
 }
 
 .section {
@@ -10,7 +10,7 @@
 
 .heading {
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   font-weight: 600;
   letter-spacing: 0.025em;
   text-transform: uppercase;
@@ -19,7 +19,7 @@
 
 .text {
   font-size: 0.875rem;
-  line-height: calc(1.25 / 0.875);
+  line-height: var(--text-sm--line-height);
   color: var(--color-muted-foreground);
 }
 

@@ -32,7 +32,7 @@
   width: 2.25rem;
   padding: 0;
   font-size: 0.75rem;
-  line-height: calc(1 / 0.75);
+  line-height: var(--text-xs--line-height);
   font-weight: 600;
   letter-spacing: 0.025em;
   text-transform: uppercase;
