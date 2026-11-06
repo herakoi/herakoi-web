@@ -1,0 +1,33 @@
+.dock {
+  position: fixed;
+  bottom: 0.75rem;
+  left: 0.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.moveHandle {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  touch-action: none;
+  cursor: move;
+  border-style: none;
+  background-color: transparent;
+  padding: 0;
+}
+
+.moveHandle:focus-visible {
+  box-shadow:
+    inset 0 0 0 2px var(--color-background),
+    inset 0 0 0 4px var(--color-ring);
+}
+
+@media (width >= 40rem) {
+  .dock {
+    bottom: 1rem;
+    left: 1rem;
+  }
+}

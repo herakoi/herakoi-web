@@ -5,6 +5,7 @@ import type { MediaPipeConfig } from "../config";
 import { useDeviceStore } from "../deviceStore";
 import { useMediaPipeDockBindings } from "../hooks/useMediaPipeDockBindings";
 import { useT } from "../i18n";
+import styles from "./DockPanel.module.css";
 import { DockPanelControls } from "./DockPanelControls";
 import { DockPanelPiPActions } from "./DockPanelPiPActions";
 import { DockPanelPiPSurface } from "./DockPanelPiPSurface";
@@ -43,7 +44,7 @@ export const MediaPipeDockPanel = ({
   const isActive = isRunning || isInitializing;
 
   return (
-    <div className="fixed bottom-3 left-2 z-10 flex flex-col gap-2 sm:bottom-4 sm:left-4">
+    <div className={styles.dock}>
       <div ref={controlsRef}>
         <DockPanelControls
           pipOpen={pipOpen}
@@ -84,7 +85,7 @@ export const MediaPipeDockPanel = ({
             <button
               type="button"
               aria-label={t("pip.move")}
-              className="absolute inset-0 z-10 touch-none cursor-move border-none bg-transparent p-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              className={styles.moveHandle}
               onPointerDown={onMovePointerDown}
               onKeyDown={onMoveKeyDown}
             />

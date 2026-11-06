@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { useT } from "../i18n";
+import styles from "./DockPanelPiPSurface.module.css";
 
 type DockPanelPiPSurfaceProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -22,23 +23,19 @@ export const DockPanelPiPSurface = ({
 }: DockPanelPiPSurfaceProps) => {
   const t = useT();
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur-sm">
-      <div className="group relative select-none" style={{ aspectRatio }}>
+    <div className={styles.surface}>
+      <div className={styles.frame} data-pip-surface style={{ aspectRatio }}>
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
           aria-label={t("camera.feed")}
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80"
+          className={styles.video}
           style={mirror && videoReady ? { transform: "scaleX(-1)" } : undefined}
         />
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
-        <canvas
-          ref={overlayRef}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden="true"
-        />
+        <canvas ref={overlayRef} className={styles.overlay} aria-hidden="true" />
         {children}
       </div>
     </div>

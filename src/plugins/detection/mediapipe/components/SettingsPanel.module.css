@@ -1,0 +1,39 @@
+.panel {
+  composes: stack4 from "#src/shared/styles/utilities.module.css";
+}
+
+.field {
+  composes: stack2 from "#src/shared/styles/utilities.module.css";
+}
+
+.deviceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.deviceSelect {
+  flex: 1;
+}
+
+.refresh {
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+}
+
+.refreshIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toggleLabel {
+  line-height: calc(1.25 / 0.875);
+}
