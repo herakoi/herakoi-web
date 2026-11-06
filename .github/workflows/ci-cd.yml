@@ -159,6 +159,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # The app reads its version from the latest git tag, so the build needs history and tags.
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

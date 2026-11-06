@@ -14,6 +14,7 @@ import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
 import { isLocale, useLocale, usePluginName } from "#src/shared/i18n";
 import { useActivePlugin, useAppConfigStore, useUiPreferences } from "../../state/appConfigStore";
+import { AppUpdateSection } from "./AppUpdateSection";
 
 type VisualizerPanelProps = {
   visualizers: readonly VisualizationPlugin[];
@@ -114,6 +115,7 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
             onCheckedChange={(checked) => setUiPrefs({ dimLogoMark: checked })}
           />
         </div>
+        <AppUpdateSection />
       </div>
     </div>
   );
