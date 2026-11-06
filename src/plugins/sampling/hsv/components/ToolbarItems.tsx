@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { ChevronDown, Image as ImageIcon, Move, Trash2, Upload } from "lucide-react";
 import { type ChangeEvent, useEffect, useId, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
@@ -9,7 +10,7 @@ import {
 } from "#src/shared/components/ui/popover";
 import { Slider } from "#src/shared/components/ui/slider";
 import { useErrorText } from "#src/shared/i18n";
-import { cn } from "#src/shared/utils/cn";
+import glass from "#src/shared/styles/glass.module.css";
 import { type HSVSamplingConfig, hsvSamplingPluginId } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
@@ -17,6 +18,7 @@ import { useImageLibrary } from "../hooks/useImageLibrary";
 import { useLocalizeImageEntry, useT } from "../i18n";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
+import styles from "./ToolbarItems.module.css";
 
 export const HSVToolbarItems = ({
   config,
@@ -65,8 +67,6 @@ export const HSVToolbarItems = ({
     event.target.value = "";
   };
 
-  const baseButtonClass =
-    "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground";
   const isCoverMode = viewportMode.kind === "cover";
   const isPanEnabled = panInteractionEnabled;
   const coverMode = viewportMode.kind === "cover" ? viewportMode : null;
@@ -74,44 +74,34 @@ export const HSVToolbarItems = ({
   return (
     <Popover>
       <PopoverAnchor asChild>
-        <div className="relative flex items-center gap-1.5 sm:gap-2">
+        <div className={styles.toolbar}>
           <button
             type="button"
-            className={cn(
-              "hidden h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex",
-              baseButtonClass,
-              importActive && "border-white/40 bg-white/10 text-white",
-            )}
+            className={clsx(styles.importButton, glass.button, importActive && glass.active)}
             aria-label={t("toolbar.importImage")}
             onClick={handleImportClick}
           >
-            <Upload className="h-4 w-4" />
+            <Upload className={styles.icon} />
           </button>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className={cn(
-                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                "border-border/50 bg-black/50 text-foreground/80 hover:bg-black/70 hover:text-foreground",
-                "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
-              )}
+              className={styles.imageTrigger}
               title={currentImage.title}
               aria-label={t("toolbar.selectImage", { title: currentImage.title })}
             >
-              <ImageIcon className="h-4 w-4" />
-              <span className="hidden truncate sm:inline sm:max-w-[140px] md:max-w-[220px]">
-                {currentImage.title}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              <ImageIcon className={styles.icon} />
+              <span className={styles.imageTitle}>{currentImage.title}</span>
+              <ChevronDown className={styles.chevron} />
             </button>
           </PopoverTrigger>
           <button
             type="button"
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              baseButtonClass,
-              isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-xs",
-              !isCoverMode && "opacity-50",
+            className={clsx(
+              styles.moveButton,
+              glass.button,
+              isPanEnabled && isCoverMode && [glass.active, styles.panActive],
+              !isCoverMode && styles.unavailable,
             )}
             aria-label={t("toolbar.moveImage")}
             aria-pressed={isCoverMode && isPanEnabled}
@@ -122,9 +112,9 @@ export const HSVToolbarItems = ({
               if (isCoverMode) setPanInteractionEnabled(!isPanEnabled);
             }}
           >
-            <Move className="h-4 w-4" />
+            <Move className={styles.icon} />
           </button>
-          <span id={moveHintId} className="sr-only">
+          <span id={moveHintId} className={styles.hint}>
             {isCoverMode ? t("toolbar.moveImageInstructions") : t("toolbar.moveImageUnavailable")}
           </span>
           {coverMode && (
@@ -132,12 +122,7 @@ export const HSVToolbarItems = ({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className={cn(
-                    "flex h-9 w-14 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    "border-border/50 bg-black/50 text-foreground/80 hover:bg-black/70 hover:text-foreground",
-                    "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
-                    "text-xs font-semibold tabular-nums",
-                  )}
+                  className={styles.zoomTrigger}
                   aria-label={t("toolbar.zoomButton", { zoom: coverMode.zoom.toFixed(1) })}
                 >
                   {coverMode.zoom.toFixed(1)}x
@@ -147,14 +132,12 @@ export const HSVToolbarItems = ({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="w-52 border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur-sm"
+                className={styles.zoomPopover}
               >
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className={styles.zoomControls}>
+                  <div className={styles.readout}>
                     <span>{t("toolbar.zoom")}</span>
-                    <span className="font-semibold tabular-nums text-foreground">
-                      {coverMode.zoom.toFixed(1)}x
-                    </span>
+                    <span className={styles.readoutValue}>{coverMode.zoom.toFixed(1)}x</span>
                   </div>
                   <Slider
                     min={0.2}
@@ -167,13 +150,13 @@ export const HSVToolbarItems = ({
                       setViewportMode({ ...coverMode, zoom: z });
                     }}
                   />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <div className={styles.range}>
                     <span>0.2x</span>
                     <span>10x</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className={styles.readout}>
                     <span>{t("toolbar.rotation")}</span>
-                    <span className="font-semibold tabular-nums text-foreground">
+                    <span className={styles.readoutValue}>
                       {Math.round(coverMode.rotation ?? 0)}°
                     </span>
                   </div>
@@ -188,7 +171,7 @@ export const HSVToolbarItems = ({
                       setViewportMode({ ...coverMode, rotation });
                     }}
                   />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <div className={styles.range}>
                     <span>-180°</span>
                     <span>180°</span>
                   </div>
@@ -198,26 +181,15 @@ export const HSVToolbarItems = ({
           )}
         </div>
       </PopoverAnchor>
-      <PopoverContent
-        align="center"
-        sideOffset={10}
-        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur-sm sm:w-[360px] [scrollbar-gutter:stable]"
-      >
-        <div className="space-y-3">
+      <PopoverContent align="center" sideOffset={10} className={styles.library}>
+        <div className={styles.libraryContent}>
           {imageLibraryStatus.status === "error" ? (
-            <p className="rounded-lg border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-              {errorText(imageLibraryStatus.error)}
-            </p>
+            <p className={styles.error}>{errorText(imageLibraryStatus.error)}</p>
           ) : null}
-          <div className="space-y-1.5">
+          <div className={styles.group}>
             <button
               type="button"
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                importDragActive
-                  ? "border-white/40 bg-white/5 text-foreground"
-                  : "border-border/60 text-muted-foreground hover:border-white/25 hover:bg-white/5",
-              )}
+              className={clsx(styles.dropzone, importDragActive && styles.dropActive)}
               onClick={handleImportClick}
               onDragEnter={() => setImportDragActive(true)}
               onDragOver={(event) => {
@@ -233,17 +205,17 @@ export const HSVToolbarItems = ({
                 await handleImageFile(file);
               }}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted/40">
-                <Upload className="h-4 w-4" />
+              <div className={styles.dropIcon}>
+                <Upload className={styles.icon} />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">{t("upload.dropHere")}</p>
-                <p className="text-xs text-muted-foreground">{t("upload.orBrowse")}</p>
+                <p className={styles.entryTitle}>{t("upload.dropHere")}</p>
+                <p className={styles.entryMeta}>{t("upload.orBrowse")}</p>
               </div>
             </button>
           </div>
 
-          <div className="space-y-1.5">
+          <div className={styles.group}>
             {howItWorksImages.map((entry) => (
               <ImageRow
                 key={entry.id}
@@ -254,7 +226,7 @@ export const HSVToolbarItems = ({
             ))}
           </div>
 
-          <div className="space-y-1.5">
+          <div className={styles.group}>
             {curatedImages.map((entry) => (
               <ImageRow
                 key={entry.id}
@@ -265,30 +237,28 @@ export const HSVToolbarItems = ({
             ))}
           </div>
 
-          <div className="space-y-1.5">
+          <div className={styles.group}>
             {uploads.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                {t("toolbar.noUploads")}
-              </p>
+              <p className={styles.empty}>{t("toolbar.noUploads")}</p>
             ) : (
               uploads.map((entry) => (
-                <div key={entry.id} className="relative">
+                <div key={entry.id} className={styles.upload}>
                   <ImageRow
                     entry={entry}
                     isActive={currentImage.id === entry.id}
                     onSelect={() => void handleSelectImage(entry)}
-                    className="pr-10"
+                    className={styles.withDelete}
                   />
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className={styles.delete}
                     aria-label={t("toolbar.removeUpload", { title: entry.title })}
                     onClick={(event) => {
                       event.stopPropagation();
                       handleDeleteUpload(entry);
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className={styles.smallIcon} />
                   </button>
                 </div>
               ))
@@ -300,7 +270,7 @@ export const HSVToolbarItems = ({
         ref={inputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={styles.fileInput}
         aria-label={t("upload.chooseFile")}
         onChange={handleImageInput}
       />
@@ -322,24 +292,13 @@ const ImageRow = ({
   <button
     type="button"
     aria-current={isActive ? "true" : undefined}
-    className={cn(
-      "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-      isActive
-        ? "border-white/35 bg-white/5"
-        : "border-transparent hover:border-white/20 hover:bg-white/5",
-      className,
-    )}
+    className={clsx(styles.image, isActive && styles.current, className)}
     onClick={onSelect}
   >
-    <img
-      src={entry.previewSrc}
-      alt={entry.title}
-      className="h-10 w-10 rounded-md object-cover"
-      loading="lazy"
-    />
+    <img src={entry.previewSrc} alt={entry.title} className={styles.thumbnail} loading="lazy" />
     <div>
-      <p className="text-sm font-medium text-foreground">{entry.title}</p>
-      <p className="text-xs text-muted-foreground">{entry.meta}</p>
+      <p className={styles.entryTitle}>{entry.title}</p>
+      <p className={styles.entryMeta}>{entry.meta}</p>
     </div>
   </button>
 );
