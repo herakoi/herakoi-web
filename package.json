@@ -52,6 +52,7 @@
     "globals": "^17.14.0",
     "happy-dom": "^21.0.4",
     "lefthook": "^2.2.2",
+    "playwright": "^1.65.0",
     "postcss": "^8.5.32",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
