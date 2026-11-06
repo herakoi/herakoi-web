@@ -1,12 +1,5 @@
 import { isError } from "errore";
-import {
-  type MutableRefObject,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { EngineConfig, VisualizerFrameData } from "#src/core/plugin";
 import { initializeAnalyserForVisualizer } from "#src/lib/engine/visualizerFrame";
 import { useAppConfigStore } from "#src/state/appConfigStore";
@@ -22,8 +15,8 @@ import { hasSameEnginePluginIds } from "./engineHandles.types";
 import { runEngineInitTransaction } from "./engineInitTransaction";
 
 type Refs = {
-  imageCanvasRef: RefObject<HTMLCanvasElement>;
-  imageOverlayRef: RefObject<HTMLCanvasElement>;
+  imageCanvasRef: RefObject<HTMLCanvasElement | null>;
+  imageOverlayRef: RefObject<HTMLCanvasElement | null>;
 };
 
 export type { EngineHandles, EngineHandlesStatus } from "./engineHandles.types";
@@ -31,8 +24,8 @@ export type { EngineHandles, EngineHandlesStatus } from "./engineHandles.types";
 export const useEngineHandles = (params: {
   config: EngineConfig;
   refs: Refs;
-  analyserRef: MutableRefObject<AnalyserNode | null>;
-  visualizerFrameDataRef: MutableRefObject<VisualizerFrameData>;
+  analyserRef: RefObject<AnalyserNode | null>;
+  visualizerFrameDataRef: RefObject<VisualizerFrameData>;
 }) => {
   const { config, refs, analyserRef, visualizerFrameDataRef } = params;
   const { imageCanvasRef, imageOverlayRef } = refs;

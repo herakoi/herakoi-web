@@ -9,7 +9,7 @@ export const resizeCanvasToContainer = (canvas: HTMLCanvasElement) => {
   canvas.height = height;
 };
 
-export const resizeCanvasRefToContainer = (canvasRef: RefObject<HTMLCanvasElement>) => {
+export const resizeCanvasRefToContainer = (canvasRef: RefObject<HTMLCanvasElement | null>) => {
   if (!canvasRef.current) return;
   resizeCanvasToContainer(canvasRef.current);
 };

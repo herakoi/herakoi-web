@@ -1,7 +1,7 @@
 # ADR 005: Dual Linting Setup for Accessibility (Biome + ESLint)
 
 ## Status
-Accepted – 6 February 2026
+Superseded by ADR 008 (6 November 2026). Accepted – 6 February 2026.
 
 ## Context
 Herakoi uses Biome as its primary linter and formatter, handling general code quality checks, formatting, and most linting rules. On January 20, 2026, ESLint was added to the project specifically for accessibility (a11y) linting using `eslint-plugin-jsx-a11y`. This creates a deliberate dual linting setup where:

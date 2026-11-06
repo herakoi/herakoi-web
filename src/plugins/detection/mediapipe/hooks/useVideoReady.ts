@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useState } from "react";
 
-export const useVideoReady = (videoRef: RefObject<HTMLVideoElement>) => {
+export const useVideoReady = (videoRef: RefObject<HTMLVideoElement | null>) => {
   const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {

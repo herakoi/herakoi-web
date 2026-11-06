@@ -39,7 +39,7 @@ type FloatingProps = {
   forbiddenGap?: number;
   keyboardStep?: number;
   keyboardStepShift?: number;
-  forbiddenRefs?: Array<RefObject<HTMLElement>>;
+  forbiddenRefs?: Array<RefObject<HTMLElement | null>>;
   moveHandleAriaLabel?: string;
   onChange?: (next: FloatingLayout) => void;
   children: (props: FloatingRenderProps) => React.ReactNode;

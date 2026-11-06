@@ -78,7 +78,7 @@ export const HSVToolbarItems = ({
           <button
             type="button"
             className={cn(
-              "hidden h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex",
+              "hidden h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex",
               baseButtonClass,
               importActive && "border-white/40 bg-white/10 text-white",
             )}
@@ -91,7 +91,7 @@ export const HSVToolbarItems = ({
             <button
               type="button"
               className={cn(
-                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 "border-border/50 bg-black/50 text-foreground/80 hover:bg-black/70 hover:text-foreground",
                 "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
               )}
@@ -108,9 +108,9 @@ export const HSVToolbarItems = ({
           <button
             type="button"
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               baseButtonClass,
-              isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-sm",
+              isPanEnabled && isCoverMode && "border-white/40 bg-white/10 text-white shadow-xs",
               !isCoverMode && "opacity-50",
             )}
             aria-label={t("toolbar.moveImage")}
@@ -133,7 +133,7 @@ export const HSVToolbarItems = ({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-9 w-14 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    "flex h-9 w-14 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     "border-border/50 bg-black/50 text-foreground/80 hover:bg-black/70 hover:text-foreground",
                     "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white",
                     "text-xs font-semibold tabular-nums",
@@ -147,7 +147,7 @@ export const HSVToolbarItems = ({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="w-52 border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur"
+                className="w-52 border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur-sm"
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -201,7 +201,7 @@ export const HSVToolbarItems = ({
       <PopoverContent
         align="center"
         sideOffset={10}
-        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur sm:w-[360px] [scrollbar-gutter:stable]"
+        className="max-h-[calc(var(--radix-popper-available-height)-1rem)] w-[calc(100vw-1rem)] overflow-y-auto border border-border/60 bg-card/90 p-3 text-card-foreground shadow-card backdrop-blur-sm sm:w-[360px] [scrollbar-gutter:stable]"
       >
         <div className="space-y-3">
           {imageLibraryStatus.status === "error" ? (
@@ -213,7 +213,7 @@ export const HSVToolbarItems = ({
             <button
               type="button"
               className={cn(
-                "flex w-full items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "flex w-full items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 importDragActive
                   ? "border-white/40 bg-white/5 text-foreground"
                   : "border-border/60 text-muted-foreground hover:border-white/25 hover:bg-white/5",
@@ -281,7 +281,7 @@ export const HSVToolbarItems = ({
                   />
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-white/25 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label={t("toolbar.removeUpload", { title: entry.title })}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -323,7 +323,7 @@ const ImageRow = ({
     type="button"
     aria-current={isActive ? "true" : undefined}
     className={cn(
-      "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       isActive
         ? "border-white/35 bg-white/5"
         : "border-transparent hover:border-white/20 hover:bg-white/5",

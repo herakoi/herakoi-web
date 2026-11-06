@@ -59,7 +59,7 @@ export const DockPanelControls = ({
         <Button
           variant="ghost"
           className={cn(
-            "h-9 w-9 rounded-full border p-0 backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "h-9 w-9 rounded-full border p-0 backdrop-blur-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             cameraBaseClass,
             cameraHoverClass,
             cameraEnabled && cameraActiveClass,
@@ -73,7 +73,7 @@ export const DockPanelControls = ({
         <Button
           variant="ghost"
           className={cn(
-            "h-9 w-9 rounded-full border p-0 backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "h-9 w-9 rounded-full border p-0 backdrop-blur-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             cameraBaseClass,
             cameraHoverClass,
             pipOpen && cameraActiveClass,
@@ -89,7 +89,7 @@ export const DockPanelControls = ({
             <SelectTrigger
               aria-label={t("camera.active")}
               className={cn(
-                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm sm:w-[150px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 selectBaseClass,
                 selectHoverClass,
                 selectOpenClass,
@@ -112,7 +112,7 @@ export const DockPanelControls = ({
             <SelectTrigger
               aria-label={t("camera.active")}
               className={cn(
-                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur sm:w-[150px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm sm:w-[150px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 selectBaseClass,
                 selectHoverClass,
                 selectOpenClass,
@@ -129,7 +129,7 @@ export const DockPanelControls = ({
           <Button
             variant="ghost"
             className={cn(
-              "h-9 w-9 rounded-full border p-0 backdrop-blur",
+              "h-9 w-9 rounded-full border p-0 backdrop-blur-sm",
               cameraBaseClass,
               cameraHoverClass,
             )}

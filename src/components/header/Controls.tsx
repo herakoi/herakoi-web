@@ -11,7 +11,7 @@ type ControlsProps = {
   isFullscreen: boolean;
   fullscreenAvailable: boolean;
   onToggleFullscreen: () => void;
-  transportButtonRef: RefObject<HTMLButtonElement>;
+  transportButtonRef: RefObject<HTMLButtonElement | null>;
 };
 
 export const Controls = ({
@@ -30,7 +30,7 @@ export const Controls = ({
       <button
         type="button"
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
           isFullscreen && "border-white/40 bg-white/10 text-white",
         )}
@@ -43,7 +43,7 @@ export const Controls = ({
       <button
         type="button"
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           isActive
             ? "border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20"
             : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",

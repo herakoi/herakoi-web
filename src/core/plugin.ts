@@ -103,7 +103,7 @@ export type DetectorHandle = {
    * Optional method to receive canvas refs from the shell.
    * Called before postInitialize so plugins can register refs internally.
    */
-  setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement> }) => void;
+  setCanvasRefs?: (refs: { imageOverlay?: RefObject<HTMLCanvasElement | null> }) => void;
   /**
    * Returns the video/sensor source dimensions used for coordinate mapping.
    * Points emitted by this detector are normalized to this source space.
@@ -154,7 +154,7 @@ export type SamplerHandle = {
    * Optional method to receive canvas refs from the shell.
    * Called before postInitialize so plugins can register refs internally.
    */
-  setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement> }) => void;
+  setCanvasRefs?: (refs: { imageCanvas: RefObject<HTMLCanvasElement | null> }) => void;
   /**
    * Returns the currently visible image rect on the canvas in pixels.
    * Used by the engine for bounds-checking before sampling.

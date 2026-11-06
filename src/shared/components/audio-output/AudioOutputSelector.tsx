@@ -152,7 +152,7 @@ export const AudioOutputSelector = ({
         side="left"
         align="start"
         sideOffset={10}
-        className="w-64 border border-border/60 bg-card/95 p-3 text-card-foreground backdrop-blur"
+        className="w-64 border border-border/60 bg-card/95 p-3 text-card-foreground backdrop-blur-sm"
       >
         {selector}
       </PopoverContent>

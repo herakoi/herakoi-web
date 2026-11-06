@@ -8,13 +8,13 @@
 import type { RefObject } from "react";
 
 type HSVSamplingRefs = {
-  imageCanvas: RefObject<HTMLCanvasElement> | null;
+  imageCanvas: RefObject<HTMLCanvasElement | null> | null;
 };
 
 export const hsvSamplingRefs: HSVSamplingRefs = {
   imageCanvas: null,
 };
 
-export function registerImageCanvasRef(ref: RefObject<HTMLCanvasElement>) {
+export function registerImageCanvasRef(ref: RefObject<HTMLCanvasElement | null>) {
   hsvSamplingRefs.imageCanvas = ref;
 }

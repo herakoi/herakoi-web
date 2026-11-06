@@ -2,8 +2,8 @@ import type { ReactNode, RefObject } from "react";
 import { useT } from "../i18n";
 
 type DockPanelPiPSurfaceProps = {
-  videoRef: RefObject<HTMLVideoElement>;
-  overlayRef: RefObject<HTMLCanvasElement>;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  overlayRef: RefObject<HTMLCanvasElement | null>;
   isRunning: boolean;
   mirror: boolean;
   videoReady: boolean;
@@ -22,7 +22,7 @@ export const DockPanelPiPSurface = ({
 }: DockPanelPiPSurfaceProps) => {
   const t = useT();
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur">
+    <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur-sm">
       <div className="group relative select-none" style={{ aspectRatio }}>
         <video
           ref={videoRef}

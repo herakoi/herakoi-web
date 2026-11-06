@@ -1,12 +1,5 @@
 import { isError } from "errore";
-import {
-  type MutableRefObject,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type {
   DetectorHandle,
   SamplerHandle,
@@ -24,8 +17,8 @@ export type TransportStatus =
   | { status: "error"; error: Error };
 
 export const useTransportLoop = (params: {
-  imageOverlayRef: RefObject<HTMLCanvasElement>;
-  visualizerFrameDataRef: MutableRefObject<VisualizerFrameData>;
+  imageOverlayRef: RefObject<HTMLCanvasElement | null>;
+  visualizerFrameDataRef: RefObject<VisualizerFrameData>;
   detectorHandle: DetectorHandle | null;
   samplerHandle: SamplerHandle | null;
   sonifierHandle: SonifierHandle | null;
