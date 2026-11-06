@@ -191,11 +191,11 @@ Control what screen readers perceive:
 
 ### Automated Testing
 
-**ESLint jsx-a11y Plugin:**
-- Configured in `.eslintrc.cjs` to catch common a11y issues
-- Runs via `pnpm lint:a11y`
+**Biome a11y rules:**
+- The `a11y` rule group in `biome.jsonc` catches common a11y issues
+- Runs via `pnpm lint` and in CI
 - Enforces rules for alt text, ARIA usage, keyboard handlers, semantic HTML
-- See ADR 005 for rationale on dual-linting approach (Biome + ESLint)
+- See ADR 008 for the rule set
 
 **Limitations of automated testing:**
 - Cannot verify focus order makes sense

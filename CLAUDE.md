@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm dev          # Vite dev server (http://localhost:5173)
 pnpm dev:https    # HTTPS dev server (required for camera on mobile)
 pnpm build        # Production build → dist/
-pnpm lint         # biome check + eslint a11y + typecheck (all three)
+pnpm lint         # biome check (including a11y rules) + typecheck
 pnpm lint:biome:fix  # Auto-fix Biome issues (run before committing manually)
 pnpm typecheck    # TypeScript only (tsc --noEmit)
 pnpm test         # Full Vitest suite (--pool=threads)
@@ -72,8 +72,7 @@ import { cn } from "#src/shared/utils/cn"        // → src/shared/utils/cn.ts
 
 ### Linting & Pre-commit
 
-- **Biome** handles formatting and most linting (2-space indent, 100-char lines, double quotes).
-- **ESLint** handles only accessibility rules (`eslint-plugin-jsx-a11y`) — documented in ADR 005.
+- **Biome** handles formatting and linting, accessibility rules included (2-space indent, 100-char lines, double quotes) — a11y rule set in ADR 008.
 - **Lefthook** runs on `pre-commit`: (1) biome fix, (2) biome lint + typecheck in parallel, (3) `vitest --changed`. If biome fix changes files, the commit aborts so you can review and re-stage.
 - Use `pnpm commit` (Commitizen) to author conventional commit messages; Commitlint validates at `commit-msg`.
 

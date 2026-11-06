@@ -189,6 +189,7 @@ const App = () => {
   }, [autoStartEnabled, engineStatus, restartEngine]);
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: double-click for fullscreen is a pointer shortcut; the header has a fullscreen button and the canvas hint announces the gesture.
     <main
       className="relative min-h-screen touch-none overscroll-none overflow-hidden bg-background text-foreground"
       onDoubleClick={handleShellDoubleClick}
