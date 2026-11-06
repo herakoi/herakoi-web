@@ -4,8 +4,18 @@ import App from "./App";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import "./globals.css";
 import { startLocaleSync } from "./i18n";
+import { setServiceWorkerRegistration } from "./lib/pwa";
 
 startLocaleSync();
+
+if ("serviceWorker" in navigator) {
+  import("virtual:pwa-register").then(({ registerSW }) =>
+    registerSW({
+      immediate: true,
+      onRegisteredSW: (_url, registration) => setServiceWorkerRegistration(registration),
+    }),
+  );
+}
 
 const rootElement = document.getElementById("root");
 

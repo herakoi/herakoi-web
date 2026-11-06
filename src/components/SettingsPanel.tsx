@@ -74,7 +74,7 @@ export const SettingsPanel = <K extends string>({
               align="end"
               side="top"
               sideOffset={8}
-              className="max-h-[min(80vh,500px)] w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur sm:w-[400px]"
+              className="max-h-[min(80vh,500px)] overflow-y-auto w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur sm:w-[400px]"
             >
               <CardContent className="flex flex-col gap-3 pt-4">
                 <Tabs
