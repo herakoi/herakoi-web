@@ -1,0 +1,13 @@
+@layer ui {
+  /* A block with a 24px line keeps the spacing labels had as inline text in a 24px line. */
+  .label {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    font-weight: 500;
+  }
+
+  .requiredMark {
+    color: var(--color-destructive);
+  }
+}

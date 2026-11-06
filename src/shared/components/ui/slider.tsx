@@ -1,6 +1,7 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
+import { clsx } from "clsx";
 import * as React from "react";
-import { cn } from "#src/shared/utils/cn";
+import styles from "./slider.module.css";
 
 type SliderProps = React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & {
   /**
@@ -28,24 +29,17 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
     return (
       <SliderPrimitive.Root
         ref={ref}
-        className={cn(
-          "relative flex w-full touch-none select-none items-center data-[orientation=vertical]:h-full data-[orientation=vertical]:w-6 data-[orientation=vertical]:justify-center",
-          className,
-        )}
+        className={clsx(styles.root, className)}
         value={value}
         defaultValue={defaultValue}
         aria-label={ariaLabel}
         {...props}
       >
-        <SliderPrimitive.Track className="relative overflow-hidden rounded-full bg-muted data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:grow data-[orientation=vertical]:mx-auto data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5">
-          <SliderPrimitive.Range className="absolute bg-primary data-[orientation=horizontal]:h-full data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full" />
+        <SliderPrimitive.Track className={styles.track}>
+          <SliderPrimitive.Range className={styles.range} />
         </SliderPrimitive.Track>
         {labels.map((label) => (
-          <SliderPrimitive.Thumb
-            key={label}
-            aria-label={label}
-            className="block h-4 w-4 rounded-full border border-primary bg-background ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-          />
+          <SliderPrimitive.Thumb key={label} aria-label={label} className={styles.thumb} />
         ))}
       </SliderPrimitive.Root>
     );

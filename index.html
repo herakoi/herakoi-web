@@ -11,6 +11,11 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141110" />
+    <!-- Cascade layer order, declared before any stylesheet loads: shared ui components sit below
+         the components that compose them. -->
+    <style>
+      @layer reset, theme, base, ui, components, utilities;
+    </style>
   </head>
   <body class="dark">
     <div id="root"></div>

@@ -1,0 +1,20 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 40%, transparent);
+}
+
+.label {
+  line-height: calc(1.25 / 0.875);
+  color: var(--color-muted-foreground);
+}
+
+.trigger {
+  height: 2rem;
+  width: 200px;
+}

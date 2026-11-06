@@ -1,0 +1,24 @@
+.area {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding-inline: 1rem;
+  padding-top: 5rem;
+  transition-property: opacity;
+  transition-timing-function: var(--transition-ease);
+  transition-duration: 700ms;
+}
+
+@media (width >= 40rem) {
+  .area {
+    z-index: 1;
+    justify-content: center;
+    padding-top: 0;
+  }
+}

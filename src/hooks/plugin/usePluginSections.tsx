@@ -69,7 +69,7 @@ export const usePluginSections = ({
         tab: {
           key: "audio",
           label: t("settings.tab.audio"),
-          icon: <Volume2 className="h-3.5 w-3.5" />,
+          icon: <Volume2 />,
         },
         label: t("settings.slot.sonification"),
         pluginArray: config.sonification,
@@ -87,7 +87,7 @@ export const usePluginSections = ({
         tab: {
           key: "sample",
           label: t("settings.tab.sample"),
-          icon: <Image className="h-3.5 w-3.5" />,
+          icon: <Image />,
         },
         label: t("settings.slot.sampling"),
         pluginArray: config.sampling,
@@ -105,7 +105,7 @@ export const usePluginSections = ({
         tab: {
           key: "input",
           label: t("settings.tab.input"),
-          icon: <Pointer className="h-3.5 w-3.5" />,
+          icon: <Pointer />,
         },
         label: t("settings.slot.detection"),
         pluginArray: config.detection,
@@ -124,7 +124,7 @@ export const usePluginSections = ({
     return {
       key: "visualizer",
       label: t("settings.tab.visualizer"),
-      icon: <Eye className="h-3.5 w-3.5" />,
+      icon: <Eye />,
       render: () => <VisualizerPanel visualizers={config.visualization} />,
     };
   }, [config.visualization, t]);

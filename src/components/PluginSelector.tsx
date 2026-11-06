@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { usePluginName } from "#src/shared/i18n";
+import styles from "./PluginSelector.module.css";
 
 type Plugin = {
   id: string;
@@ -37,15 +38,15 @@ export const PluginSelector = ({ label, plugins, activeId, onSelect }: PluginSel
   const hasMultiplePlugins = plugins.length > 1;
 
   return (
-    <div className="flex items-center gap-3 pb-3 mb-4 border-b border-border/40">
-      <Label htmlFor={selectorId} className="text-sm text-muted-foreground">
+    <div className={styles.row}>
+      <Label htmlFor={selectorId} className={styles.label}>
         {t("pluginSelector.label")}
       </Label>
       <Select value={activeId} onValueChange={onSelect}>
         <SelectTrigger
           id={selectorId}
           aria-label={t("pluginSelector.trigger", { slot: label })}
-          className="h-8 w-[200px]"
+          className={styles.trigger}
         >
           <SelectValue placeholder={t("pluginSelector.placeholder", { slot: label })} />
         </SelectTrigger>
