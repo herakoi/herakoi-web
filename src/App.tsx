@@ -1,5 +1,6 @@
 import { Maximize, Minimize } from "lucide-react";
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import styles from "./App.module.css";
 import { EngineStatusAnnouncer } from "./components/EngineStatusAnnouncer";
 import { BrandMark } from "./components/header/BrandMark";
 import { Controls } from "./components/header/Controls";
@@ -190,40 +191,29 @@ const App = () => {
 
   return (
     // biome-ignore lint/a11y/noNoninteractiveElementInteractions: double-click for fullscreen is a pointer shortcut; the header has a fullscreen button and the canvas hint announces the gesture.
-    <main
-      className="relative min-h-screen touch-none overscroll-none overflow-hidden bg-background text-foreground"
-      onDoubleClick={handleShellDoubleClick}
-    >
-      <a
-        href="#herakoi-main-canvas"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring"
-      >
+    <main className={styles.main} onDoubleClick={handleShellDoubleClick}>
+      <a href="#herakoi-main-canvas" className={styles.skipLink}>
         {t("app.skipToContent")}
       </a>
-      <div className="absolute inset-0">
+      <div className={styles.canvasLayer}>
         <canvas
           ref={imageCanvasRef}
           id="herakoi-main-canvas"
           tabIndex={-1}
-          className="h-full w-full touch-none"
+          className={styles.canvas}
           role="img"
           aria-label={t("app.canvas")}
           aria-describedby={fullscreenAvailable ? "herakoi-canvas-hint" : undefined}
         />
         {fullscreenAvailable ? (
-          <span id="herakoi-canvas-hint" className="sr-only">
+          <span id="herakoi-canvas-hint" className={styles.hint}>
             {t("app.canvasHint")}
           </span>
         ) : null}
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: Overlay canvas is decorative and not interactive */}
-        <canvas
-          ref={imageOverlayRef}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden="true"
-        />
-        {/* cos è sto div?? */}
+        <canvas ref={imageOverlayRef} className={styles.overlay} aria-hidden="true" />
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/20 via-black/10 to-black/55"
+          className={styles.gradient}
           style={{
             opacity: uiDimmed ? 0 : 1,
             transitionProperty: "opacity",
@@ -243,8 +233,8 @@ const App = () => {
         ))}
       </NotificationArea>
 
-      <header className="pointer-events-none absolute left-2 right-2 top-3 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:left-1 sm:right-4 sm:top-4 sm:gap-2">
-        <div className="justify-self-start">
+      <header className={styles.header}>
+        <div className={styles.headerStart}>
           <BrandMark
             analyserRef={analyser}
             dimLogoMark={dimLogoMark}
@@ -252,16 +242,10 @@ const App = () => {
             logoRef={logoRef}
           />
         </div>
-        <div
-          className="pointer-events-auto flex items-center justify-center transition-opacity"
-          style={uiFadeStyle}
-        >
+        <div className={styles.toolbar} style={uiFadeStyle}>
           {SamplingToolbar && <SamplingToolbar />}
         </div>
-        <div
-          className="pointer-events-auto flex items-center justify-self-end gap-1.5 transition-opacity sm:gap-2"
-          style={uiFadeStyle}
-        >
+        <div className={styles.headerEnd} style={uiFadeStyle}>
           <Controls
             isActive={isActive}
             isInitializing={isInitializing}
@@ -281,26 +265,18 @@ const App = () => {
         </div>
       </header>
 
-      {/* Below sm the bottom edge belongs to the dock panel, so the toggle moves to a left rail. */}
-      <div
-        className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 transition-opacity sm:bottom-4 sm:left-1/2 sm:top-auto sm:-translate-x-1/2 sm:translate-y-0"
-        style={uiFadeStyle}
-      >
+      <div className={styles.detectionRail} style={uiFadeStyle}>
         <ModeToggle
           slot="detection"
           label={t("modeToggle.detection")}
           options={detectionModes}
           onSelect={switchDetection}
-          className="max-sm:flex-col"
+          orientation="responsive"
         />
       </div>
 
-      <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
-      {/* On short viewports the expanded volume panel only fits beside the mode toggle. */}
-      <div
-        className="pointer-events-none fixed right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 transition-opacity sm:right-4 [@media(max-height:480px)]:has-data-expanded:flex-row"
-        style={uiFadeStyle}
-      >
+      <SettingsPanel sections={sections} className={styles.fade} style={uiFadeStyle} />
+      <div className={styles.sonificationRail} style={uiFadeStyle}>
         <ModeToggle
           slot="sonification"
           label={t("modeToggle.sonification")}
@@ -313,7 +289,7 @@ const App = () => {
 
       {/* Render detection plugin's dock panel (if it has one) */}
       {DockPanel ? (
-        <div className="transition-opacity" style={uiFadeStyle}>
+        <div className={styles.fade} style={uiFadeStyle}>
           <DockPanel
             isRunning={isRunning}
             isInitializing={isInitializing}

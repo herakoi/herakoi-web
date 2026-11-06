@@ -1,0 +1,130 @@
+.main {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.gradient {
+  composes: gradient from "#src/App.module.css";
+}
+
+.header {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  top: 0.75rem;
+  z-index: 10;
+}
+
+.headerStart {
+  justify-self: flex-start;
+}
+
+.section {
+  position: relative;
+  z-index: 10;
+  margin-inline: auto;
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 72rem;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1rem;
+}
+
+.card {
+  --elevation: var(--shadow-card);
+  width: 100%;
+  max-width: 36rem;
+  border-radius: var(--radius-xl);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+  background-color: color-mix(in oklab, var(--color-card) 95%, transparent);
+  padding: 1.5rem;
+  box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.title {
+  font-size: 1.125rem;
+  line-height: calc(1.75 / 1.125);
+  font-weight: 600;
+}
+
+.body {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  color: var(--color-muted-foreground);
+}
+
+.error {
+  margin-top: 0.75rem;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+  background-color: color-mix(in oklab, var(--color-muted) 40%, transparent);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: calc(1 / 0.75);
+  color: var(--color-muted-foreground);
+}
+
+.actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: calc(1.25 / 0.875);
+  font-weight: 500;
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+.primary {
+  composes: action;
+  background-color: var(--color-foreground);
+  color: var(--color-background);
+}
+
+.secondary {
+  composes: action;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+  color: var(--color-foreground);
+}
+
+@media (hover: hover) {
+  .primary:hover {
+    opacity: 90%;
+  }
+
+  .secondary:hover {
+    background-color: color-mix(in oklab, var(--color-muted) 40%, transparent);
+  }
+}
+
+@media (width >= 40rem) {
+  .header {
+    left: 0.25rem;
+    right: 1rem;
+    top: 1rem;
+  }
+}
