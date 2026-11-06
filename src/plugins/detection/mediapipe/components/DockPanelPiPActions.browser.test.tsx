@@ -27,6 +27,16 @@ const baseSurfaceProps = {
   aspectRatio: 16 / 9,
 };
 
+/** Resolve any CSS color (rgba, oklab, color-mix…) to sRGB channels, alpha 0–255. */
+function toRgba(color: string): [number, number, number, number] {
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) throw new Error("No 2D canvas context");
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return [r, g, b, a];
+}
+
 function renderActions(props: Partial<typeof baseProps>) {
   render(
     <DockPanelPiPSurface {...baseSurfaceProps} mirror={props.mirror ?? baseProps.mirror}>
@@ -52,18 +62,20 @@ describe("DockPanelPiPActions — mirror button visual state", () => {
     renderActions({ mirror: false });
     const btn = page.getByRole("button", { name: "Enable mirror" });
     await expect.element(btn).toBeInTheDocument();
-    const bg = getComputedStyle(btn.element()).backgroundColor;
-    // bg-black/55 → rgba(0, 0, 0, ~0.55)
-    expect(bg).toMatch(/^rgba\(0,\s*0,\s*0,/);
+    const [r, g, b, a] = toRgba(getComputedStyle(btn.element()).backgroundColor);
+    // bg-black/55: black at about 55% opacity
+    expect([r, g, b]).toEqual([0, 0, 0]);
+    expect(a).toBeGreaterThan(100);
   });
 
   test("mirror=true: button background is light (semi-transparent white)", async () => {
     renderActions({ mirror: true });
     const btn = page.getByRole("button", { name: "Disable mirror" });
     await expect.element(btn).toBeInTheDocument();
-    const bg = getComputedStyle(btn.element()).backgroundColor;
-    // bg-white/85 → rgba(255, 255, 255, ~0.85)
-    expect(bg).toMatch(/^rgba\(255,\s*255,\s*255,/);
+    const [r, g, b, a] = toRgba(getComputedStyle(btn.element()).backgroundColor);
+    // bg-white/85: white at about 85% opacity
+    expect(Math.min(r, g, b)).toBeGreaterThan(250);
+    expect(a).toBeGreaterThan(180);
   });
 });
 
@@ -124,7 +136,7 @@ describe("DockPanelPiPActions — clickable inside Floating with move-handle ove
           onResizeKeyDown,
           isResizing,
         }) => (
-          // isolation:isolate replicates the stacking context created by backdrop-blur in DockPanel.
+          // isolation:isolate replicates the stacking context created by backdrop-blur-sm in DockPanel.
           // The move handle lives in the same stacking context with z-10, while action
           // buttons are z-20 and should remain clickable.
           <div style={{ position: "relative", isolation: "isolate", height: 200 }}>

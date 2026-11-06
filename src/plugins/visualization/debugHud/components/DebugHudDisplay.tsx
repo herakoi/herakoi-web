@@ -51,7 +51,7 @@ export const DebugHudDisplay = ({ frameDataRef }: VisualizerDisplayProps) => {
 
   return (
     <div
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(500px,45vw)] max-h-[min(320px,50vh)] overflow-y-auto overflow-x-hidden p-3 bg-black/75 text-[#32cd32] font-mono text-xs leading-relaxed z-[9999] pointer-events-none"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(500px,45vw)] max-h-[min(320px,50vh)] overflow-y-auto overflow-x-hidden p-3 bg-black/75 text-[#32cd32] font-mono text-xs leading-relaxed z-9999 pointer-events-none"
       style={{ wordBreak: "normal", whiteSpace: "normal" }}
     >
       {/* Detection Section */}

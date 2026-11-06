@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import tailwindcss from "@tailwindcss/vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -67,6 +68,7 @@ export default defineConfig({
   },
   plugins: [
     mediaPipeEsmExports(),
+    tailwindcss(),
     react(),
     ...(https ? [basicSsl()] : []),
     VitePWA({

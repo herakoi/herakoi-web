@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
@@ -19,7 +20,8 @@ export default defineConfig({
         },
       },
       {
-        plugins: [react()],
+        // Browser tests check computed styles, so Tailwind must process the CSS.
+        plugins: [tailwindcss(), react()],
         test: {
           name: "browser",
           include: ["src/**/*.browser.{test,spec}.{ts,tsx}"],

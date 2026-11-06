@@ -26,10 +26,10 @@ type ModeToggleProps = {
 const MAX_INLINE_OPTIONS = 2;
 
 const buttonClass =
-  "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const railClass =
-  "pointer-events-auto flex items-center gap-1 rounded-full border border-border/50 bg-black/55 p-1 backdrop-blur";
+  "pointer-events-auto flex items-center gap-1 rounded-full border border-border/50 bg-black/55 p-1 backdrop-blur-sm";
 
 /** Quick switch between the plugins of one pipeline slot, synced with Settings. */
 export const ModeToggle = ({
@@ -107,7 +107,7 @@ export const ModeToggle = ({
           <PopoverContent
             side={orientation === "vertical" ? "left" : "top"}
             sideOffset={8}
-            className="w-auto min-w-44 rounded-2xl border-border/50 bg-black/80 p-1 backdrop-blur"
+            className="w-auto min-w-44 rounded-2xl border-border/50 bg-black/80 p-1 backdrop-blur-sm"
           >
             <fieldset aria-label={label} className="flex flex-col gap-1">
               {options.map((option) => renderOption(option, true))}

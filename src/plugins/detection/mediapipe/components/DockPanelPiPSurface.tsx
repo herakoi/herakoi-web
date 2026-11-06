@@ -22,7 +22,7 @@ export const DockPanelPiPSurface = ({
 }: DockPanelPiPSurfaceProps) => {
   const t = useT();
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur">
+    <div className="relative overflow-hidden rounded-lg border border-border/70 bg-black/50 shadow-card backdrop-blur-sm">
       <div className="group relative select-none" style={{ aspectRatio }}>
         <video
           ref={videoRef}

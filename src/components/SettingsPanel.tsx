@@ -57,7 +57,7 @@ export const SettingsPanel = <K extends string>({
             <Button
               variant="ghost"
               className={cn(
-                "rounded-full backdrop-blur border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "rounded-full backdrop-blur-sm border focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2",
                 "text-xs font-semibold uppercase tracking-wide",
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
@@ -74,7 +74,7 @@ export const SettingsPanel = <K extends string>({
               align="end"
               side="top"
               sideOffset={8}
-              className="max-h-[min(80vh,500px)] overflow-y-auto w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur sm:w-[400px]"
+              className="max-h-[min(80vh,500px)] overflow-y-auto w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur-sm sm:w-[400px]"
             >
               <CardContent className="flex flex-col gap-3 pt-4">
                 <Tabs
@@ -89,7 +89,7 @@ export const SettingsPanel = <K extends string>({
                         key={section.key}
                         value={section.key}
                         title={section.label}
-                        className="group flex min-w-0 flex-auto items-center justify-center gap-1.5 rounded-full data-[state=inactive]:w-10 data-[state=inactive]:flex-none border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        className="group flex min-w-0 flex-auto items-center justify-center gap-1.5 rounded-full data-[state=inactive]:w-10 data-[state=inactive]:flex-none border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {section.icon ? (
                           <span className="flex h-3 w-3 items-center justify-center text-white/70">
@@ -119,7 +119,7 @@ export const SettingsPanel = <K extends string>({
               variant="ghost"
               size="icon"
               className={cn(
-                "rounded-full border backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
                 helpOpen && "border-white/40 bg-white/10 text-white",
               )}
@@ -132,7 +132,7 @@ export const SettingsPanel = <K extends string>({
             align="end"
             side="top"
             sideOffset={8}
-            className="w-[calc(100vw-1rem)] border border-border/60 bg-card/90 p-4 text-card-foreground shadow-card backdrop-blur sm:w-[340px]"
+            className="w-[calc(100vw-1rem)] border border-border/60 bg-card/90 p-4 text-card-foreground shadow-card backdrop-blur-sm sm:w-[340px]"
           >
             <HelpPanelContent />
           </PopoverContent>

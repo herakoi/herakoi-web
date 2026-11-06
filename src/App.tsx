@@ -222,7 +222,7 @@ const App = () => {
         />
         {/* cos è sto div?? */}
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/55"
+          className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/20 via-black/10 to-black/55"
           style={{
             opacity: uiDimmed ? 0 : 1,
             transitionProperty: "opacity",
@@ -297,7 +297,7 @@ const App = () => {
       <SettingsPanel sections={sections} className="transition-opacity" style={uiFadeStyle} />
       {/* On short viewports the expanded volume panel only fits beside the mode toggle. */}
       <div
-        className="pointer-events-none fixed right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 transition-opacity sm:right-4 [@media(max-height:480px)]:has-[[data-expanded]]:flex-row"
+        className="pointer-events-none fixed right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-3 transition-opacity sm:right-4 [@media(max-height:480px)]:has-data-expanded:flex-row"
         style={uiFadeStyle}
       >
         <ModeToggle

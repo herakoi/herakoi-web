@@ -20,7 +20,7 @@ export const BrandMark = ({ analyserRef, dimLogoMark, uiFadeStyle, logoRef }: Br
     <button
       ref={logoRef}
       type="button"
-      className="pointer-events-auto flex min-w-0 items-center gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0"
+      className="pointer-events-auto flex min-w-0 items-center gap-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0"
       onClick={handleClick}
       aria-label={t("header.reload")}
     >

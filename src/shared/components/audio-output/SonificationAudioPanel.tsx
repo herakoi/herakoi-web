@@ -8,7 +8,7 @@ import { cn } from "#src/shared/utils/cn";
 const COMPACT_QUERY = "(max-width: 639px), (max-height: 480px)";
 
 const asideClass =
-  "pointer-events-auto flex w-12 flex-col items-center rounded-full border border-border/60 bg-black/55 text-card-foreground shadow-card backdrop-blur";
+  "pointer-events-auto flex w-12 flex-col items-center rounded-full border border-border/60 bg-black/55 text-card-foreground shadow-card backdrop-blur-sm";
 
 type SonificationAudioPanelProps = {
   muted: boolean;
@@ -51,7 +51,7 @@ export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPan
         aria-controls={controlsId}
         onClick={() => setExpanded(!expanded)}
         className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           expanded
             ? "bg-white/10 text-white"
             : "text-muted-foreground hover:bg-black/40 hover:text-foreground",
