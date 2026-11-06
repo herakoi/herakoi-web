@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2,
@@ -14,7 +14,8 @@
   "files": {
     // Format and lint everything by default, but skip legacy snapshots
     // that live under legacy_html/ so we can keep the historical artifacts untouched.
-    "includes": ["**", "!legacy_html"]
+    // Markdown and SVG files are written by hand and kept as they are.
+    "includes": ["**", "!legacy_html", "!**/*.md", "!**/*.svg"]
   },
   "javascript": {
     // Match the legacy demo's preference for double quotes to avoid churn.

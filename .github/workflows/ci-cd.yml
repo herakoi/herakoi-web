@@ -34,10 +34,10 @@ jobs:
           run_install: false
 
       - name: Setup Node.js
-        # We align with the repo’s Node 22 baseline and enable pnpm caching to keep reruns snappy for everyone.
+        # We read the Node version from .nvmrc and enable pnpm caching to keep reruns snappy for everyone.
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Derive pnpm store directory
@@ -172,7 +172,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Derive pnpm store directory
