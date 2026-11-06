@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
+import utilities from "#src/shared/styles/utilities.module.css";
 import type { OscillatorConfig } from "../config";
 import { useT } from "../i18n";
 import { useOscillatorAudioStore } from "../store";
@@ -23,9 +24,9 @@ export const OscillatorSettingsPanel = ({
   const t = useT();
 
   return (
-    <div className="space-y-4">
+    <div className={utilities.stack4}>
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>{t("frequencyRange.label", { min: minFreq, max: maxFreq })}</Label>
         <Slider
           min={100}
@@ -37,7 +38,7 @@ export const OscillatorSettingsPanel = ({
           onValueChange={([min, max]) => setConfig({ minFreq: min, maxFreq: max })}
         />
       </div>
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>
           {t("volumeRange.label", {
             min: Math.round(minVol * 100),
@@ -54,7 +55,7 @@ export const OscillatorSettingsPanel = ({
           onValueChange={([min, max]) => setConfig({ minVol: min / 100, maxVol: max / 100 })}
         />
       </div>
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>{t("waveform.label")}</Label>
         <Select
           value={oscillatorType}
