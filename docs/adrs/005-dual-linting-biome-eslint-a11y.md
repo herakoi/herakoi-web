@@ -55,7 +55,7 @@ Maintain a dual linting setup where:
 
 ### Negative
 - **Slight tooling complexity**: Two linters to maintain instead of one
-- **Additional dependencies**: ESLint, typescript-eslint, eslint-plugin-jsx-a11y, eslint-plugin-react, and globals packages
+- **Additional dependencies**: ESLint, typescript-eslint, eslint-plugin-jsx-a11y, and globals packages
 - **Potential rule overlap**: Future Biome a11y rules might duplicate ESLint checks (manageable by disabling Biome's a11y rules if/when they stabilize)
 
 ### Neutral

@@ -1,0 +1,4 @@
+peerDependencyRules:
+  allowedVersions:
+    # eslint-plugin-jsx-a11y 6.10 declares ESLint up to 9 but works with ESLint 10.
+    eslint-plugin-jsx-a11y>eslint: "10"
