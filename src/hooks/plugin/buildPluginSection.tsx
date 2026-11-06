@@ -1,4 +1,4 @@
-import type { ComponentType, MutableRefObject } from "react";
+import type { ComponentType, RefObject } from "react";
 import { PluginSelector } from "../../components/PluginSelector";
 import type { SettingsPanelSection } from "../../components/SettingsPanel";
 
@@ -12,7 +12,7 @@ type BuildPluginSectionParams<TPlugin> = {
   label: string;
   pluginArray: readonly TPlugin[];
   activeId: string;
-  configRef: MutableRefObject<{ config: unknown; setConfig: (updates: unknown) => void }>;
+  configRef: RefObject<{ config: unknown; setConfig: (updates: unknown) => void }>;
   onSwitchPlugin: (id: string) => void;
 };
 

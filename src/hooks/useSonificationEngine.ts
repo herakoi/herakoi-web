@@ -6,8 +6,8 @@ import { useTransportLoop } from "./engine/useTransportLoop";
 import { resizeCanvasRefToContainer } from "./ui/canvas";
 
 type Refs = {
-  imageCanvasRef: RefObject<HTMLCanvasElement>;
-  imageOverlayRef: RefObject<HTMLCanvasElement>;
+  imageCanvasRef: RefObject<HTMLCanvasElement | null>;
+  imageOverlayRef: RefObject<HTMLCanvasElement | null>;
 };
 
 export type SonificationEngineStartResult = ErrorOr<{

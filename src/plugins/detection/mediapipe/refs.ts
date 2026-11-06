@@ -11,9 +11,9 @@
 import type { RefObject } from "react";
 
 type MediaPipeRefs = {
-  video: RefObject<HTMLVideoElement> | null;
-  videoOverlay: RefObject<HTMLCanvasElement> | null;
-  imageOverlay: RefObject<HTMLCanvasElement> | null;
+  video: RefObject<HTMLVideoElement | null> | null;
+  videoOverlay: RefObject<HTMLCanvasElement | null> | null;
+  imageOverlay: RefObject<HTMLCanvasElement | null> | null;
 };
 
 export const mediaPipeRefs: MediaPipeRefs = {
@@ -22,13 +22,13 @@ export const mediaPipeRefs: MediaPipeRefs = {
   imageOverlay: null,
 };
 
-export function registerVideoRef(ref: RefObject<HTMLVideoElement>) {
+export function registerVideoRef(ref: RefObject<HTMLVideoElement | null>) {
   mediaPipeRefs.video = ref;
 }
 
 export function registerOverlayRef(
   key: "videoOverlay" | "imageOverlay",
-  ref: RefObject<HTMLCanvasElement>,
+  ref: RefObject<HTMLCanvasElement | null>,
 ) {
   mediaPipeRefs[key] = ref;
 }

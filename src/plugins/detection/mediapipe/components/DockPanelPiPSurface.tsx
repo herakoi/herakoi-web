@@ -2,8 +2,8 @@ import type { ReactNode, RefObject } from "react";
 import { useT } from "../i18n";
 
 type DockPanelPiPSurfaceProps = {
-  videoRef: RefObject<HTMLVideoElement>;
-  overlayRef: RefObject<HTMLCanvasElement>;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  overlayRef: RefObject<HTMLCanvasElement | null>;
   isRunning: boolean;
   mirror: boolean;
   videoReady: boolean;

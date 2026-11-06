@@ -8,7 +8,7 @@ const normalizeAspectRatio = (value: number | undefined): number | null => {
 };
 
 export const useVideoAspectRatio = (
-  videoRef: RefObject<HTMLVideoElement>,
+  videoRef: RefObject<HTMLVideoElement | null>,
   fallbackAspectRatio = DEFAULT_ASPECT_RATIO,
 ) => {
   const [aspectRatio, setAspectRatio] = useState(fallbackAspectRatio);

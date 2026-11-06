@@ -11,7 +11,7 @@ type ControlsProps = {
   isFullscreen: boolean;
   fullscreenAvailable: boolean;
   onToggleFullscreen: () => void;
-  transportButtonRef: RefObject<HTMLButtonElement>;
+  transportButtonRef: RefObject<HTMLButtonElement | null>;
 };
 
 export const Controls = ({

@@ -1,6 +1,6 @@
 import { type RefObject, useEffect } from "react";
 
-export const useCanvasSizeSync = (canvasRef: RefObject<HTMLCanvasElement>) => {
+export const useCanvasSizeSync = (canvasRef: RefObject<HTMLCanvasElement | null>) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;

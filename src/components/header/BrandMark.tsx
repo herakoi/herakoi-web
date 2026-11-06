@@ -6,7 +6,7 @@ type BrandMarkProps = {
   analyserRef: RefObject<AnalyserNode | null>;
   dimLogoMark: boolean;
   uiFadeStyle: CSSProperties;
-  logoRef: RefObject<HTMLButtonElement>;
+  logoRef: RefObject<HTMLButtonElement | null>;
 };
 
 export const BrandMark = ({ analyserRef, dimLogoMark, uiFadeStyle, logoRef }: BrandMarkProps) => {
