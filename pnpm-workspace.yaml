@@ -1,0 +1,5 @@
+# Dependencies whose install scripts pnpm may run. Neither script is needed: lefthook's hooks come
+# from the postinstall script in package.json, and agent-browser ships its native binary.
+allowBuilds:
+  agent-browser: false
+  lefthook: false

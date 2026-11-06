@@ -2,13 +2,10 @@
   "name": "herakoi-web",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "22",
-      "nvmInstall": true
-    }
+    "ghcr.io/devcontainers-extra/features/mise:1": {}
   },
-  "postCreateCommand": "corepack prepare pnpm@10.20.0 --activate && pnpm install",
-  "postAttachCommand": "pnpm dev -- --host 0.0.0.0 --port 5173 &",
+  "postCreateCommand": "mise trust && mise install && mise exec -- pnpm install",
+  "postAttachCommand": "mise exec -- pnpm dev --host 0.0.0.0 --port 5173 &",
   "customizations": {
     "vscode": {
       "settings": {

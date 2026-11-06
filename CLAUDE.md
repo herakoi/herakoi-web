@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+Node and pnpm versions are pinned in `mise.toml`; run `mise install` once to get them.
+
 ```bash
 pnpm dev          # Vite dev server (http://localhost:5173)
 pnpm dev:https    # HTTPS dev server (required for camera on mobile)
