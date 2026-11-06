@@ -1,14 +1,12 @@
+import { clsx } from "clsx";
 import { ChevronUp, Volume2, VolumeX } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { useMediaQuery } from "#src/shared/hooks/useMediaQuery";
 import { useCommonT } from "#src/shared/i18n/common";
-import { cn } from "#src/shared/utils/cn";
+import styles from "./SonificationAudioPanel.module.css";
 
 /** Narrow or short viewports, where the open panel would crowd the canvas. */
 const COMPACT_QUERY = "(max-width: 639px), (max-height: 480px)";
-
-const asideClass =
-  "pointer-events-auto flex w-12 flex-col items-center rounded-full border border-border/60 bg-black/55 text-card-foreground shadow-card backdrop-blur-sm";
 
 type SonificationAudioPanelProps = {
   muted: boolean;
@@ -28,7 +26,7 @@ export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPan
 
   if (!compact) {
     return (
-      <aside className={cn(asideClass, "h-[248px] gap-3 py-3")} aria-label={t("volume.panel")}>
+      <aside className={clsx(styles.panel, styles.full)} aria-label={t("volume.panel")}>
         {children}
       </aside>
     );
@@ -39,7 +37,7 @@ export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPan
 
   return (
     <aside
-      className={cn(asideClass, "gap-1 p-1")}
+      className={clsx(styles.panel, styles.compact)}
       aria-label={t("volume.panel")}
       // Lets the shell rail switch layout while the controls are open.
       data-expanded={expanded || undefined}
@@ -50,21 +48,12 @@ export const SonificationAudioPanel = ({ muted, children }: SonificationAudioPan
         aria-expanded={expanded}
         aria-controls={controlsId}
         onClick={() => setExpanded(!expanded)}
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          expanded
-            ? "bg-white/10 text-white"
-            : "text-muted-foreground hover:bg-black/40 hover:text-foreground",
-        )}
+        className={clsx(styles.toggle, expanded ? styles.expanded : styles.collapsed)}
       >
-        <ToggleIcon className="h-4 w-4" />
+        <ToggleIcon className={styles.icon} />
       </button>
       {/* Hidden rather than unmounted: the output selector keeps following device changes. */}
-      <div
-        id={controlsId}
-        hidden={!expanded}
-        className="flex h-[224px] flex-col items-center gap-3 pb-1 [@media(max-height:480px)]:h-[156px]"
-      >
+      <div id={controlsId} hidden={!expanded} className={styles.controls}>
         {children}
       </div>
     </aside>

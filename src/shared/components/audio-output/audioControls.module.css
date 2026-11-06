@@ -1,0 +1,22 @@
+/* Small round icon button used by the volume rail and the output selector. */
+.iconButton {
+  height: 2rem;
+  width: 2rem;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(255 255 255 / 15%);
+  background-color: rgb(0 0 0 / 30%);
+}
+
+@media (hover: hover) {
+  .iconButton:hover {
+    background-color: rgb(0 0 0 / 50%);
+    color: #fff;
+  }
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}

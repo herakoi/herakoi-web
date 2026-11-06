@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "#src/shared/components/ui/button";
@@ -12,7 +13,8 @@ import {
 } from "#src/shared/components/ui/select";
 import { useAudioOutputDevices } from "#src/shared/hooks/useAudioOutputDevices";
 import { useCommonT } from "#src/shared/i18n/common";
-import { cn } from "#src/shared/utils/cn";
+import styles from "./AudioOutputSelector.module.css";
+import controls from "./audioControls.module.css";
 
 type AudioOutputSelectorMode = "icon-popover" | "inline";
 
@@ -113,7 +115,7 @@ export const AudioOutputSelector = ({
   };
 
   const selector = (
-    <div className={cn("space-y-2", className)}>
+    <div className={clsx(styles.selector, className)}>
       <Label>{label ?? t("audioOutput.label")}</Label>
       <Select value={value} onValueChange={handleDeviceChange}>
         <SelectTrigger aria-label={t("audioOutput.device")} disabled={!canSelectOutput}>
@@ -141,19 +143,14 @@ export const AudioOutputSelector = ({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full border border-white/15 bg-black/30 text-white/80 hover:bg-black/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className={styles.trigger}
           aria-label={t("audioOutput.open")}
           disabled={!canSelectOutput}
         >
-          <Volume2 className="h-4 w-4" />
+          <Volume2 className={controls.icon} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        side="left"
-        align="start"
-        sideOffset={10}
-        className="w-64 border border-border/60 bg-card/95 p-3 text-card-foreground backdrop-blur-sm"
-      >
+      <PopoverContent side="left" align="start" sideOffset={10} className={styles.popover}>
         {selector}
       </PopoverContent>
     </Popover>

@@ -1,0 +1,23 @@
+.selector {
+  composes: stack2 from "#src/shared/styles/utilities.module.css";
+}
+
+.trigger {
+  composes: iconButton from "./audioControls.module.css";
+  color: rgb(255 255 255 / 80%);
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+}
+
+/* Keeps the ui popover shadow. */
+.popover {
+  width: 16rem;
+  border-color: color-mix(in oklab, var(--color-border) 60%, transparent);
+  background-color: color-mix(in oklab, var(--color-card) 95%, transparent);
+  padding: 0.75rem;
+  color: var(--color-card-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
