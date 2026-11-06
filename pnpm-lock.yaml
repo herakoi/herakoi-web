@@ -107,7 +107,7 @@ importers:
         version: 4.1.12(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
       '@vitest/browser-playwright':
         specifier: 4.1.12
-        version: 4.1.12(playwright@1.58.2)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
+        version: 4.1.12(playwright@1.65.0)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
       agent-browser:
         specifier: ^0.9.4
         version: 0.9.4(bare-buffer@3.7.1)
@@ -141,6 +141,9 @@ importers:
       lefthook:
         specifier: ^2.2.2
         version: 2.2.2
+      playwright:
+        specifier: ^1.65.0
+        version: 1.65.0
       postcss:
         specifier: ^8.5.32
         version: 8.5.32
@@ -2875,11 +2878,6 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
-  fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
-
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3782,19 +3780,14 @@ packages:
     resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
     engines: {node: '>= 6'}
 
-  playwright-core@1.58.2:
-    resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
-    engines: {node: '>=18'}
-    hasBin: true
-
   playwright-core@1.65.0:
     resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.58.2:
-    resolution: {integrity: sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A==}
-    engines: {node: '>=18'}
+  playwright@1.65.0:
+    resolution: {integrity: sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==}
+    engines: {node: '>=20'}
     hasBin: true
 
   pngjs@7.0.0:
@@ -6649,11 +6642,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/browser-playwright@4.1.12(playwright@1.58.2)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)':
+  '@vitest/browser-playwright@4.1.12(playwright@1.65.0)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)':
     dependencies:
       '@vitest/browser': 4.1.12(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
       '@vitest/mocker': 4.1.12(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))
-      playwright: 1.58.2
+      playwright: 1.65.0
       tinyrainbow: 3.2.0
       vitest: 4.1.12(@types/node@26.6.6)(@vitest/browser-playwright@4.1.12)(happy-dom@20.14.6)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))
     transitivePeerDependencies:
@@ -7917,9 +7910,6 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
-  fsevents@2.3.2:
-    optional: true
-
   fsevents@2.3.3:
     optional: true
 
@@ -8817,15 +8807,11 @@ snapshots:
 
   pirates@4.0.7: {}
 
-  playwright-core@1.58.2: {}
-
   playwright-core@1.65.0: {}
 
-  playwright@1.58.2:
+  playwright@1.65.0:
     dependencies:
-      playwright-core: 1.58.2
-    optionalDependencies:
-      fsevents: 2.3.2
+      playwright-core: 1.65.0
 
   pngjs@7.0.0: {}
 
@@ -9731,7 +9717,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.6
-      '@vitest/browser-playwright': 4.1.12(playwright@1.58.2)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
+      '@vitest/browser-playwright': 4.1.12(playwright@1.65.0)(vite@7.3.7(@types/node@26.6.6)(jiti@1.21.7)(terser@5.51.2))(vitest@4.1.12)
       happy-dom: 20.14.6
     transitivePeerDependencies:
       - msw
