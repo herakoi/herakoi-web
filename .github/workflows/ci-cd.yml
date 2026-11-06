@@ -34,10 +34,10 @@ jobs:
           run_install: false
 
       - name: Setup Node.js
-        # We align with the repo’s Node 22 baseline and enable pnpm caching to keep reruns snappy for everyone.
+        # We read the Node version from .nvmrc and enable pnpm caching to keep reruns snappy for everyone.
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Derive pnpm store directory
@@ -58,7 +58,8 @@ jobs:
 
       - name: Install Playwright browser runtime
         # Browser-project specs require a real Chromium binary + OS deps on the CI runner.
-        run: pnpm dlx playwright@1.58.2 install --with-deps chromium
+        # The locked playwright version installs the browser the tests expect.
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Biome lint
         # We stick to lint-only mode in CI; automated fixes stay a developer responsibility.
@@ -172,7 +173,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Derive pnpm store directory

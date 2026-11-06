@@ -79,7 +79,7 @@ export const Floating = ({
     if (!forbiddenRefs) return [];
     const elements = forbiddenRefs.map((ref) => ref.current);
     return elements.flatMap((element) => {
-      if (!element || !element.isConnected) return [];
+      if (!element?.isConnected) return [];
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return [];
       return [

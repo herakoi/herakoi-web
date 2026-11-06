@@ -13,6 +13,9 @@ export default defineConfig({
           include: ["src/**/*.{test,spec}.{ts,tsx}"],
           exclude: ["src/**/*.browser.{test,spec}.{ts,tsx}", "node_modules"],
           pool: "threads",
+          // Node 26 ships its own localStorage, undefined without --localstorage-file,
+          // which hides happy-dom's. Turning it off lets tests use happy-dom's storage.
+          execArgv: ["--no-experimental-webstorage"],
         },
       },
       {
