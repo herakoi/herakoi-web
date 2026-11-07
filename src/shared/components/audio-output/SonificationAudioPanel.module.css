@@ -1,0 +1,81 @@
+.panel {
+  --elevation: var(--shadow-card);
+  pointer-events: auto;
+  display: flex;
+  width: 3rem;
+  flex-direction: column;
+  align-items: center;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 60%, transparent);
+  background-color: rgb(0 0 0 / 55%);
+  color: var(--color-card-foreground);
+  box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.full {
+  height: 248px;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+}
+
+.compact {
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.toggle {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+.collapsed {
+  color: var(--color-muted-foreground);
+}
+
+@media (hover: hover) {
+  .collapsed:hover {
+    background-color: rgb(0 0 0 / 40%);
+    color: var(--color-foreground);
+  }
+}
+
+.expanded {
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.controls {
+  display: flex;
+  height: 224px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
+@media (max-height: 480px) {
+  .controls {
+    height: 156px;
+  }
+}
+
+/* The panel stays mounted while collapsed; hidden has to beat the flex display above. */
+.controls[hidden] {
+  display: none;
+}

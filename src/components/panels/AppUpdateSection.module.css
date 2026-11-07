@@ -1,0 +1,24 @@
+.section {
+  composes: stack2 from "#src/shared/styles/utilities.module.css";
+}
+
+.version {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--color-muted-foreground);
+}
+
+.button {
+  gap: 0.5rem;
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.status {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--color-muted-foreground);
+}

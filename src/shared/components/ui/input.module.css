@@ -1,0 +1,32 @@
+@layer ui {
+  .input {
+    display: flex;
+    height: 2.5rem;
+    width: 100%;
+    border-radius: var(--radius-md);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--color-input);
+    background-color: var(--color-background);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: var(--text-sm--line-height);
+  }
+
+  .input::file-selector-button {
+    border-width: 0;
+    background-color: transparent;
+    font-size: 0.875rem;
+    line-height: var(--text-sm--line-height);
+    font-weight: 500;
+  }
+
+  .input::placeholder {
+    color: var(--color-muted-foreground);
+  }
+
+  .input:disabled {
+    cursor: not-allowed;
+    opacity: 50%;
+  }
+}

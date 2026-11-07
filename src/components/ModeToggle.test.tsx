@@ -33,13 +33,6 @@ describe("ModeToggle", () => {
 
   afterEach(cleanup);
 
-  it("stays clickable inside pointer-events-none containers", () => {
-    renderToggle();
-    expect(screen.getByRole("group", { name: "Detection mode" }).className).toContain(
-      "pointer-events-auto",
-    );
-  });
-
   it("describes what the toggle switches for screen readers", () => {
     renderToggle();
     const group = screen.getByRole("group", { name: "Detection mode" });

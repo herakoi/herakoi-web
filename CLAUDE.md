@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+Node and pnpm versions are pinned in `mise.toml`; run `mise install` once to get them.
+
 ```bash
 pnpm dev          # Vite dev server (http://localhost:5173)
 pnpm dev:https    # HTTPS dev server (required for camera on mobile)
@@ -44,7 +46,7 @@ The app is built around a **compile-time plugin system** with four pipeline slot
 src/
 ├── core/           # Pipeline interfaces (PointDetector, ImageSampler, Sonifier) + plugin slot types
 ├── plugins/        # All pipeline implementations (detection/mediapipe, sampling/hsv, etc.)
-├── shared/         # Components/hooks/utils shared by plugins and shell (Radix UI wrappers, cn utility)
+├── shared/         # Components/hooks/utils shared by plugins and shell (Radix UI wrappers, shared styles)
 ├── components/     # Shell UI (App.tsx, SettingsPanel, header, error boundary)
 ├── state/          # Zustand stores (appConfigStore persisted, appRuntimeStore ephemeral)
 ├── hooks/          # useSonificationEngine (pipeline orchestrator), usePluginUi, idle/dim hooks
@@ -61,13 +63,23 @@ src/
 
 Plugin configs are stored as `pluginConfigs[pluginId]` inside `appConfigStore`, typed per-plugin. Plugins read/write config through a `PluginRuntimeContext` passed by `useSonificationEngine`.
 
+### Styles
+
+Components style themselves with CSS Modules (`Component.module.css` next to `Component.tsx`), compiled by Lightning CSS; class names are joined with `clsx`. See ADR 009.
+
+- `src/styles/tokens.css` holds the design tokens (colors, radii, shadows, line heights); `src/styles/reset.css` is the base reset; `src/globals.css` imports both and adds the base layer.
+- Shared ui components (`src/shared/components/ui/`) put their rules in `@layer ui`, so a class passed by the caller always overrides them.
+- Reuse `src/shared/styles/utilities.module.css` (`srOnly`, `stack*` spacing, `spin`) and `glass.module.css` (round translucent controls).
+- An element's own shadow goes in `--elevation`; components with a shadow write `box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation)` so the focus ring composes with it.
+- `composes` lists every class it needs: Lightning CSS does not follow a class that itself composes another. Line heights written as `calc()` ratios use the tokens, because Lightning CSS rounds `calc()` in declarations.
+
 ### Import Aliases
 
 `#src/*` is defined in `package.json`'s `"imports"` field (not tsconfig paths). It resolves against `./src/`:
 
 ```ts
 import { foo } from "#src/core/interfaces"      // → src/core/interfaces.ts
-import { cn } from "#src/shared/utils/cn"        // → src/shared/utils/cn.ts
+import { Button } from "#src/shared/components/ui/button"  // → src/shared/components/ui/button.tsx
 ```
 
 ### Linting & Pre-commit

@@ -1,0 +1,76 @@
+@layer ui {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    line-height: var(--text-sm--line-height);
+    font-weight: 500;
+    box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation, 0 0 #0000);
+    transition-property: var(--transition-colors);
+    transition-timing-function: var(--transition-ease);
+    transition-duration: var(--transition-duration);
+  }
+
+  .button:disabled {
+    pointer-events: none;
+    opacity: 50%;
+  }
+
+  .variantDefault {
+    --elevation: var(--shadow-sm);
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+
+  .variantOutline {
+    --elevation: var(--shadow-outline);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--color-input);
+    background-color: var(--color-background);
+  }
+
+  .variantSecondary {
+    background-color: var(--color-secondary);
+    color: var(--color-secondary-foreground);
+  }
+
+  @media (hover: hover) {
+    .variantDefault:hover {
+      background-color: color-mix(in oklab, var(--color-primary) 90%, transparent);
+    }
+
+    .variantOutline:hover,
+    .variantGhost:hover {
+      background-color: var(--color-accent);
+      color: var(--color-accent-foreground);
+    }
+
+    .variantSecondary:hover {
+      background-color: color-mix(in oklab, var(--color-secondary) 80%, transparent);
+    }
+  }
+
+  .sizeDefault {
+    height: 2.5rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .sizeSm {
+    height: 2.25rem;
+    padding-inline: 0.75rem;
+  }
+
+  .sizeLg {
+    height: 2.75rem;
+    padding-inline: 2rem;
+  }
+
+  .sizeIcon {
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+}

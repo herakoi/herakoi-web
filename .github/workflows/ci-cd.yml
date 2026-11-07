@@ -24,28 +24,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Install pnpm
-        # We pin pnpm so CI stays in lockstep with local contributors and Lefthook’s expectations.
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.20.0
-          run_install: false
-
-      - name: Setup Node.js
-        # We read the Node version from .nvmrc and enable pnpm caching to keep reruns snappy for everyone.
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
+      - name: Install Node.js and pnpm
+        # mise installs the versions pinned in mise.toml, the same ones contributors use locally.
+        uses: jdx/mise-action@v5
 
       - name: Derive pnpm store directory
         id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
@@ -81,7 +71,7 @@ jobs:
       FORCE_DEPLOY_INPUT: ${{ github.event.inputs.force_deploy || 'false' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Compute build input hash
         id: compute-build-hash
@@ -92,7 +82,7 @@ jobs:
       # We keep one cache key named build-hash so every run knows what we last deployed without relying on hash-derived cache keys that might drift from the actual Pages state.
       - name: Restore last build hash snapshot
         id: restore-build-hash
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .build-hash
           key: build-hash
@@ -145,7 +135,7 @@ jobs:
           gh cache delete build-hash || true
 
       - name: Save build hash snapshot
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .build-hash
           key: build-hash
@@ -159,29 +149,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # The app reads its version from the latest git tag, so the build needs history and tags.
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.20.0
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
+      - name: Install Node.js and pnpm
+        # mise installs the versions pinned in mise.toml, the same ones contributors use locally.
+        uses: jdx/mise-action@v5
 
       - name: Derive pnpm store directory
         id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
@@ -195,7 +177,7 @@ jobs:
         run: pnpm build
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -213,4 +195,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

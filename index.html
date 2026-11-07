@@ -11,8 +11,13 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141110" />
+    <!-- Cascade layer order, declared before any stylesheet loads: CSS Modules load before
+         globals.css. Component styles outside a layer override all three. -->
+    <style>
+      @layer reset, base, ui;
+    </style>
   </head>
-  <body class="dark">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- 100% privacy-first analytics -->

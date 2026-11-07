@@ -1,0 +1,101 @@
+/* Small round buttons in the corners of the camera frame. */
+.action {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+  background-color: rgb(0 0 0 / 55%);
+  color: rgb(255 255 255 / 80%);
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+@media (hover: hover) {
+  .action:hover {
+    border-color: rgb(255 255 255 / 25%);
+    background-color: rgb(0 0 0 / 70%);
+  }
+}
+
+/* Light state: mirror on, or resizing; a thin dark ring until focus replaces it. */
+.on {
+  background-color: rgb(255 255 255 / 85%);
+  color: #000;
+  box-shadow: var(--focus-shadow, 0 0 0 1px rgb(0 0 0 / 20%)), var(--elevation, 0 0 #0000);
+}
+
+.close {
+  composes: action;
+  right: 0.5rem;
+  top: 0.5rem;
+}
+
+.mirror {
+  composes: action;
+  left: 0.5rem;
+  top: 0.5rem;
+  cursor: pointer;
+}
+
+.mirrorOn {
+  --elevation: var(--shadow-xs);
+}
+
+@media (hover: hover) {
+  .mirror.on:hover {
+    background-color: rgb(255 255 255 / 95%);
+  }
+
+  .resize.on:hover {
+    background-color: rgb(255 255 255 / 85%);
+    color: #000;
+  }
+}
+
+.hands {
+  composes: action;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  cursor: pointer;
+}
+
+.resize {
+  composes: action;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  touch-action: none;
+  cursor: se-resize;
+}
+
+.icon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.badge {
+  position: absolute;
+  bottom: -0.25rem;
+  right: -0.25rem;
+  display: flex;
+  height: 1rem;
+  width: 1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  background-color: rgb(255 255 255 / 90%);
+  font-size: 9px;
+  font-weight: 600;
+  color: #000;
+}
+
+.handsLabel {
+  composes: srOnly from "#src/shared/styles/utilities.module.css";
+}

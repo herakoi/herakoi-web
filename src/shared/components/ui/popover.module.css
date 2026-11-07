@@ -1,0 +1,20 @@
+@layer ui {
+  .content {
+    --elevation: var(--shadow-md);
+    z-index: 50;
+    width: 18rem;
+    border-radius: var(--radius-md);
+    border-width: 1px;
+    border-style: solid;
+    background-color: var(--color-popover);
+    padding: 1rem;
+    color: var(--color-popover-foreground);
+    box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation);
+    outline-style: none;
+
+    @media (forced-colors: active) {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { Switch } from "#src/shared/components/ui/switch";
 import { isLocale, useLocale, usePluginName } from "#src/shared/i18n";
 import { useActivePlugin, useAppConfigStore, useUiPreferences } from "../../state/appConfigStore";
 import { AppUpdateSection } from "./AppUpdateSection";
+import styles from "./VisualizerPanel.module.css";
 
 type VisualizerPanelProps = {
   visualizers: readonly VisualizationPlugin[];
@@ -36,9 +37,9 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
   const opacityPercent = Math.round(uiPrefs.baseUiOpacity * 100);
 
   return (
-    <div className="space-y-4">
+    <div className={styles.panel}>
       {/* Visualizer selector */}
-      <div className="space-y-2">
+      <div className={styles.field}>
         <Label>{t("preferences.visualizer")}</Label>
         <Select
           value={activeVisualizerId ?? "none"}
@@ -69,9 +70,9 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
         })()}
 
       {/* Preferences (moved from separate tab) */}
-      <div className="space-y-4 border-t pt-4">
-        <h3 className="text-sm font-medium">{t("preferences.title")}</h3>
-        <div className="space-y-2">
+      <div className={styles.preferences}>
+        <h3 className={styles.title}>{t("preferences.title")}</h3>
+        <div className={styles.field}>
           <Label htmlFor="language-select">{t("preferences.language")}</Label>
           <Select
             value={locale}
@@ -94,7 +95,7 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
         <Button variant="outline" onClick={handleResetDefaults}>
           {t("preferences.restoreDefaults")}
         </Button>
-        <div className="space-y-2">
+        <div className={styles.field}>
           <Label>{t("preferences.opacity", { percent: opacityPercent })}</Label>
           <Slider
             min={0}
@@ -105,8 +106,8 @@ export const VisualizerPanel = ({ visualizers }: VisualizerPanelProps) => {
             onValueChange={([value]) => setUiPrefs({ baseUiOpacity: value / 100 })}
           />
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <Label className="text-sm font-medium" htmlFor="dim-logo-mark">
+        <div className={styles.toggleRow}>
+          <Label className={styles.toggleLabel} htmlFor="dim-logo-mark">
             {t("preferences.dimLogo")}
           </Label>
           <Switch

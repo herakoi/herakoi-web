@@ -1,24 +1,22 @@
+import { clsx } from "clsx";
 import { useShellT } from "#src/i18n/shell";
+import styles from "./HelpPanel.module.css";
 
 export const HelpPanelContent = () => {
   const t = useShellT();
   return (
-    <div className="space-y-4 text-sm">
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("help.howItWorks")}
-        </h3>
-        <p className="text-sm text-foreground">{t("help.camera")}</p>
-        <p className="text-sm text-muted-foreground">{t("help.mapping")}</p>
+    <div className={styles.panel}>
+      <div className={styles.section}>
+        <h3 className={styles.heading}>{t("help.howItWorks")}</h3>
+        <p className={clsx(styles.text, styles.lead)}>{t("help.camera")}</p>
+        <p className={styles.text}>{t("help.mapping")}</p>
       </div>
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("help.aboutUs")}
-        </h3>
-        <p className="text-sm text-muted-foreground">
+      <div className={styles.section}>
+        <h3 className={styles.heading}>{t("help.aboutUs")}</h3>
+        <p className={styles.text}>
           {t("help.aboutPaper")}{" "}
           <a
-            className="text-primary underline underline-offset-2"
+            className={styles.link}
             href="https://arxiv.org/abs/2412.09152"
             target="_blank"
             rel="noreferrer"
@@ -27,7 +25,7 @@ export const HelpPanelContent = () => {
           </a>{" "}
           {t("help.aboutCode")}{" "}
           <a
-            className="text-primary underline underline-offset-2"
+            className={styles.link}
             href="https://github.com/herakoi/herakoi-web"
             target="_blank"
             rel="noreferrer"

@@ -14,6 +14,7 @@ import { Switch } from "#src/shared/components/ui/switch";
 import type { MediaPipeConfig } from "../config";
 import { useDeviceStore } from "../deviceStore";
 import { type t as translate, useT } from "../i18n";
+import styles from "./SettingsPanel.module.css";
 
 function deviceLabel(device: { label: string; facingMode?: string }, t: typeof translate): string {
   if (device.facingMode === "user") return t("camera.front");
@@ -34,8 +35,8 @@ export const MediaPipeSettingsPanel = ({
   const restartCamera = useDeviceStore((s) => s.restartCamera);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className={styles.panel}>
+      <div className={styles.field}>
         <Label htmlFor="max-hands">
           {t("settings.trackedHandsCount", { hands: config.maxHands })}
         </Label>
@@ -49,12 +50,16 @@ export const MediaPipeSettingsPanel = ({
           onValueChange={([value]) => setConfig({ maxHands: value })}
         />
       </div>
-      <div className="space-y-2">
+      <div className={styles.field}>
         <Label htmlFor="camera-device">{t("camera.active")}</Label>
-        <div className="flex items-center gap-1.5">
+        <div className={styles.deviceRow}>
           {devices.length > 0 ? (
             <Select value={deviceId} onValueChange={setDeviceId}>
-              <SelectTrigger id="camera-device" className="flex-1" aria-label={t("camera.active")}>
+              <SelectTrigger
+                id="camera-device"
+                className={styles.deviceSelect}
+                aria-label={t("camera.active")}
+              >
                 <SelectValue placeholder={t("camera.default")} />
               </SelectTrigger>
               <SelectContent position="popper">
@@ -67,7 +72,11 @@ export const MediaPipeSettingsPanel = ({
             </Select>
           ) : (
             <Select disabled>
-              <SelectTrigger id="camera-device" className="flex-1" aria-label={t("camera.active")}>
+              <SelectTrigger
+                id="camera-device"
+                className={styles.deviceSelect}
+                aria-label={t("camera.active")}
+              >
                 <SelectValue placeholder={t("camera.startToSelect")} />
               </SelectTrigger>
               <SelectContent position="popper" />
@@ -77,17 +86,17 @@ export const MediaPipeSettingsPanel = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0"
+              className={styles.refresh}
               aria-label={t("camera.refresh")}
               onClick={() => void restartCamera()}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className={styles.refreshIcon} />
             </Button>
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm font-medium" htmlFor="mirror-toggle">
+      <div className={styles.toggleRow}>
+        <Label className={styles.toggleLabel} htmlFor="mirror-toggle">
           {t("settings.mirrorCamera")}
         </Label>
         <Switch id="mirror-toggle" checked={mirror} onCheckedChange={setMirror} />

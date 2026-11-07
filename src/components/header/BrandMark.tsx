@@ -1,6 +1,7 @@
 import type { CSSProperties, RefObject } from "react";
 import { useShellT } from "#src/i18n/shell";
 import { ReactiveMark } from "../ReactiveMark";
+import styles from "./BrandMark.module.css";
 
 type BrandMarkProps = {
   analyserRef: RefObject<AnalyserNode | null>;
@@ -20,22 +21,14 @@ export const BrandMark = ({ analyserRef, dimLogoMark, uiFadeStyle, logoRef }: Br
     <button
       ref={logoRef}
       type="button"
-      className="pointer-events-auto flex min-w-0 items-center gap-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0"
+      className={styles.brand}
       onClick={handleClick}
       aria-label={t("header.reload")}
     >
-      <div className="transition-opacity" style={dimLogoMark ? uiFadeStyle : undefined}>
-        <ReactiveMark
-          analyserRef={analyserRef}
-          size={56}
-          tone="light"
-          className="relative z-0 -mr-4 origin-left scale-[1.3] opacity-95"
-        />
+      <div className={styles.markWrapper} style={dimLogoMark ? uiFadeStyle : undefined}>
+        <ReactiveMark analyserRef={analyserRef} size={56} tone="light" className={styles.mark} />
       </div>
-      <span
-        className="relative z-10 hidden font-brand text-[28px] font-normal leading-none text-white/95 transition-opacity md:inline"
-        style={uiFadeStyle}
-      >
+      <span className={styles.wordmark} style={uiFadeStyle}>
         herakoi
       </span>
     </button>

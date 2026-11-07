@@ -1,0 +1,86 @@
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Round camera buttons; glass colors come from glass.module.css. */
+.roundButton {
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  padding: 0;
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.deviceSelect {
+  height: 2.25rem;
+  width: 100px;
+  border-radius: calc(infinity * 1px);
+  border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  background-color: rgb(0 0 0 / 50%);
+  padding-inline: 0.75rem;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+@media (hover: hover) {
+  .deviceSelect:hover {
+    background-color: rgb(0 0 0 / 70%);
+    color: var(--color-foreground);
+  }
+}
+
+.deviceSelect[data-state="open"] {
+  border-color: rgb(255 255 255 / 40%);
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+.deviceName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.smallIcon {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.error {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--color-danger-300);
+}
+
+@media (width >= 40rem) {
+  .row {
+    gap: 0.5rem;
+  }
+
+  .deviceSelect {
+    width: 150px;
+  }
+}

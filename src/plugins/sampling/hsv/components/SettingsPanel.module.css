@@ -1,0 +1,79 @@
+.panel {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toggleLabel {
+  line-height: var(--text-sm--line-height);
+}
+
+.dropzone {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-lg);
+  border-width: 1px;
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--color-border) 60%, transparent);
+  padding: 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  color: var(--color-muted-foreground);
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+@media (hover: hover) {
+  .dropzone:not(.dragActive):hover {
+    border-color: rgb(255 255 255 / 20%);
+    background-color: rgb(255 255 255 / 5%);
+  }
+}
+
+.dragActive {
+  border-color: rgb(255 255 255 / 40%);
+  background-color: rgb(255 255 255 / 5%);
+  color: var(--color-foreground);
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.dropTitle {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.dropHint {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--color-muted-foreground);
+}
+
+.fileInput {
+  display: none;
+}
+
+.error {
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  color: var(--color-danger-300);
+}

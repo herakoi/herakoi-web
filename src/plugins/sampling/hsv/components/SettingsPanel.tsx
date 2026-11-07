@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { Upload } from "lucide-react";
 import { type ChangeEvent, useRef, useState } from "react";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
@@ -12,7 +13,6 @@ import {
 } from "#src/shared/components/ui/select";
 import { Switch } from "#src/shared/components/ui/switch";
 import { useErrorText } from "#src/shared/i18n";
-import { cn } from "#src/shared/utils/cn";
 import { type HSVSamplingConfig, hsvSamplingPluginId } from "../config";
 import { curatedImages } from "../data/curatedImages";
 import { howItWorksImages } from "../data/howItWorksImages";
@@ -20,6 +20,7 @@ import { useImageLibrary } from "../hooks/useImageLibrary";
 import { useT } from "../i18n";
 import { useHSVRuntimeStore } from "../runtimeStore";
 import type { ImageEntry } from "../types/image";
+import styles from "./SettingsPanel.module.css";
 
 export const HSVSettingsPanel = ({
   config,
@@ -52,7 +53,7 @@ export const HSVSettingsPanel = ({
   const isPanEnabled = panInteractionEnabled;
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className={styles.panel}>
       <Select
         value={currentImage.id}
         onValueChange={(value) => {
@@ -72,8 +73,8 @@ export const HSVSettingsPanel = ({
           ))}
         </SelectContent>
       </Select>
-      <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm font-medium" htmlFor="pan-toggle">
+      <div className={styles.toggleRow}>
+        <Label className={styles.toggleLabel} htmlFor="pan-toggle">
           {t("settings.enablePan")}
         </Label>
         <Switch
@@ -86,12 +87,7 @@ export const HSVSettingsPanel = ({
       <button
         type="button"
         aria-label={t("upload.dropOrBrowse")}
-        className={cn(
-          "flex w-full flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground transition",
-          dragActive
-            ? "border-white/40 bg-white/5 text-foreground"
-            : "border-border/60 hover:border-white/20 hover:bg-white/5",
-        )}
+        className={clsx(styles.dropzone, dragActive && styles.dragActive)}
         onClick={() => inputRef.current?.click()}
         onDragEnter={() => setDragActive(true)}
         onDragOver={(event) => {
@@ -106,20 +102,20 @@ export const HSVSettingsPanel = ({
           await handleImageFile(file);
         }}
       >
-        <Upload className="h-4 w-4" />
-        <div className="text-sm font-medium text-foreground">{t("upload.dropHere")}</div>
-        <div className="text-xs text-muted-foreground">{t("upload.orBrowse")}</div>
+        <Upload className={styles.icon} />
+        <div className={styles.dropTitle}>{t("upload.dropHere")}</div>
+        <div className={styles.dropHint}>{t("upload.orBrowse")}</div>
       </button>
       <Input
         ref={inputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={styles.fileInput}
         aria-label={t("upload.chooseFile")}
         onChange={handleFile}
       />
       {imageLibraryStatus.status === "error" ? (
-        <p className="text-xs text-red-300" role="alert">
+        <p className={styles.error} role="alert">
           {errorText(imageLibraryStatus.error)}
         </p>
       ) : null}

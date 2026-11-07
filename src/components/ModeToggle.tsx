@@ -1,8 +1,10 @@
+import { clsx } from "clsx";
 import { type ComponentType, useId, useState } from "react";
 import { useShellT } from "#src/i18n/shell";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
-import { cn } from "#src/shared/utils/cn";
+import utilities from "#src/shared/styles/utilities.module.css";
 import { useActivePlugin } from "#src/state/appConfigStore";
+import styles from "./ModeToggle.module.css";
 import { ScreenReaderAnnouncer } from "./ScreenReaderAnnouncer";
 
 export type ModeToggleOption = {
@@ -17,19 +19,12 @@ type ModeToggleProps = {
   options: ModeToggleOption[];
   /** Switches the plugin; the shell passes a handler that also restarts transport. */
   onSelect: (pluginId: string) => void;
-  orientation?: "horizontal" | "vertical";
-  /** Extra classes for the rail, e.g. responsive layout overrides. */
-  className?: string;
+  /** `responsive`: vertical below the sm breakpoint, horizontal above. */
+  orientation?: "horizontal" | "vertical" | "responsive";
 };
 
 /** Above this many options the inline switch becomes a single button that opens a picker. */
 const MAX_INLINE_OPTIONS = 2;
-
-const buttonClass =
-  "flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
-const railClass =
-  "pointer-events-auto flex items-center gap-1 rounded-full border border-border/50 bg-black/55 p-1 backdrop-blur-sm";
 
 /** Quick switch between the plugins of one pipeline slot, synced with Settings. */
 export const ModeToggle = ({
@@ -38,15 +33,20 @@ export const ModeToggle = ({
   options,
   onSelect,
   orientation = "horizontal",
-  className,
 }: ModeToggleProps) => {
   const t = useShellT();
   const [activeId] = useActivePlugin(slot);
   const [announcement, setAnnouncement] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const hintId = useId();
+  const orientationClass =
+    orientation === "vertical"
+      ? styles.vertical
+      : orientation === "responsive"
+        ? styles.responsive
+        : undefined;
   const hint = (
-    <span id={hintId} className="sr-only">
+    <span id={hintId} className={utilities.srOnly}>
       {t(slot === "detection" ? "modeToggle.detectionHint" : "modeToggle.sonificationHint")}
     </span>
   );
@@ -69,16 +69,14 @@ export const ModeToggle = ({
         aria-label={withLabel ? undefined : optionLabel}
         aria-pressed={isActive}
         onClick={() => select(option)}
-        className={cn(
-          buttonClass,
-          withLabel && "w-full justify-start gap-2 px-3",
-          isActive
-            ? "bg-white/10 text-white"
-            : "text-muted-foreground hover:bg-black/40 hover:text-foreground",
+        className={clsx(
+          styles.button,
+          withLabel && styles.withLabel,
+          isActive ? styles.active : styles.inactive,
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
-        {withLabel ? <span className="text-sm">{optionLabel}</span> : null}
+        <Icon className={styles.optionIcon} />
+        {withLabel ? <span className={styles.optionLabel}>{optionLabel}</span> : null}
       </button>
     );
   };
@@ -92,24 +90,24 @@ export const ModeToggle = ({
     return (
       <>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-          <div className={cn(railClass, className)}>
+          <div className={clsx(styles.rail, orientationClass)}>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 aria-label={`${label}: ${active.label}`}
                 aria-describedby={hintId}
-                className={cn(buttonClass, "bg-white/10 text-white")}
+                className={clsx(styles.button, styles.active)}
               >
-                <ActiveIcon className="h-4 w-4" />
+                <ActiveIcon className={styles.icon} />
               </button>
             </PopoverTrigger>
           </div>
           <PopoverContent
             side={orientation === "vertical" ? "left" : "top"}
             sideOffset={8}
-            className="w-auto min-w-44 rounded-2xl border-border/50 bg-black/80 p-1 backdrop-blur-sm"
+            className={styles.picker}
           >
-            <fieldset aria-label={label} className="flex flex-col gap-1">
+            <fieldset aria-label={label} className={styles.options}>
               {options.map((option) => renderOption(option, true))}
             </fieldset>
           </PopoverContent>
@@ -125,7 +123,7 @@ export const ModeToggle = ({
       <fieldset
         aria-label={label}
         aria-describedby={hintId}
-        className={cn(railClass, orientation === "vertical" && "flex-col", className)}
+        className={clsx(styles.rail, orientationClass)}
       >
         {options.map((option) => renderOption(option, false))}
       </fieldset>

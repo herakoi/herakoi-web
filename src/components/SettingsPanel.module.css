@@ -1,0 +1,207 @@
+.root {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 0.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Round glass buttons: settings toggle and help. */
+.roundButton {
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  background-color: rgb(0 0 0 / 50%);
+  color: var(--color-muted-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.settingsButton {
+  height: 2.25rem;
+  width: 2.25rem;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: var(--text-xs--line-height);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.helpButton {
+  transition-property: var(--transition-common);
+}
+
+@media (hover: hover) {
+  .roundButton:hover {
+    background-color: rgb(0 0 0 / 70%);
+    color: var(--color-foreground);
+  }
+}
+
+.open {
+  border-color: rgb(255 255 255 / 40%);
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.buttonLabel {
+  display: none;
+}
+
+/* The popover keeps the ui popover shadow. */
+.panel {
+  max-height: min(80vh, 500px);
+  overflow-y: auto;
+  width: calc(100vw - 1rem);
+  border-color: color-mix(in oklab, var(--color-border) 60%, transparent);
+  background-color: color-mix(in oklab, var(--color-card) 80%, transparent);
+  padding: 0;
+  color: var(--color-card-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.helpPanel {
+  width: calc(100vw - 1rem);
+  border-color: color-mix(in oklab, var(--color-border) 60%, transparent);
+  background-color: color-mix(in oklab, var(--color-card) 90%, transparent);
+  padding: 1rem;
+  color: var(--color-card-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.panelContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+}
+
+.tabs {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.tabList {
+  display: flex;
+  width: 100%;
+  gap: 0.25rem;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(255 255 255 / 10%);
+  background-color: rgb(0 0 0 / 25%);
+}
+
+/* Only the active tab shows its name, so labels of any length fit. */
+.tab {
+  display: flex;
+  min-width: 0;
+  flex: auto;
+  gap: 0.375rem;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+  padding: 0.25rem 0.5rem;
+  font-size: 9px;
+  line-height: inherit;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 60%);
+  transition-property: var(--transition-common);
+}
+
+.tab[data-state="inactive"] {
+  width: 2.5rem;
+  flex: none;
+}
+
+.tab[data-state="active"] {
+  border-color: rgb(255 255 255 / 40%);
+  background-color: rgb(255 255 255 / 25%);
+  color: #fff;
+}
+
+.tabIcon {
+  display: flex;
+  height: 0.75rem;
+  width: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  color: rgb(255 255 255 / 70%);
+}
+
+.tabLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visually hidden, still read by screen readers. */
+.tab[data-state="inactive"] .tabLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.tabContent {
+  margin-top: 1rem;
+  flex: 1;
+}
+
+@media (width >= 40rem) {
+  .root {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  .settingsButton {
+    height: auto;
+    width: auto;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .buttonLabel {
+    display: inline;
+  }
+
+  .panel {
+    width: 400px;
+  }
+
+  .helpPanel {
+    width: 340px;
+  }
+}
+
+.tabIcon > svg {
+  height: 0.875rem;
+  width: 0.875rem;
+}
