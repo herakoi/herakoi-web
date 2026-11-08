@@ -5788,17 +5788,6 @@
       "description": "Determine if the current node version supports the `--preserve-symlinks` flag."
     },
     {
-      "name": "tailwind-merge",
-      "versions": ["2.6.0"],
-      "paths": [
-        "/Users/ilmeskio/Developer/herakoi/herakoi-web/node_modules/.pnpm/tailwind-merge@2.6.0/node_modules/tailwind-merge"
-      ],
-      "license": "MIT",
-      "author": "Dany Castillo",
-      "homepage": "https://github.com/dcastil/tailwind-merge",
-      "description": "Merge Tailwind CSS classes without style conflicts"
-    },
-    {
       "name": "tailwindcss",
       "versions": ["3.4.19"],
       "paths": [
@@ -7158,17 +7147,6 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/web-platform-dx/baseline-browser-mapping#readme",
       "description": "A library for obtaining browser versions with their maximum supported Baseline feature set and Widely Available status."
-    },
-    {
-      "name": "class-variance-authority",
-      "versions": ["0.7.1"],
-      "paths": [
-        "/Users/ilmeskio/Developer/herakoi/herakoi-web/node_modules/.pnpm/class-variance-authority@0.7.1/node_modules/class-variance-authority"
-      ],
-      "license": "Apache-2.0",
-      "author": "Joe Bell",
-      "homepage": "https://github.com/joe-bell/cva#readme",
-      "description": "Class Variance Authority 🧬"
     },
     {
       "name": "crc-32",

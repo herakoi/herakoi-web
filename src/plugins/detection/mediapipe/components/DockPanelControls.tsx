@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { Camera, RefreshCw, Video, VideoOff } from "lucide-react";
 import { Button } from "#src/shared/components/ui/button";
 import {
@@ -7,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#src/shared/components/ui/select";
-import { cn } from "#src/shared/utils/cn";
+import glass from "#src/shared/styles/glass.module.css";
 import { useDeviceStore } from "../deviceStore";
 import { type t as translate, useErrorText, useT } from "../i18n";
 import type { DeviceInfo } from "../NativeCamera";
+import styles from "./DockPanelControls.module.css";
 
 type DockPanelControlsProps = {
   pipOpen: boolean;
@@ -42,60 +44,35 @@ export const DockPanelControls = ({
   const t = useT();
   const errorText = useErrorText();
   const cameraStatus = useDeviceStore((s) => s.cameraStatus);
-  const cameraBaseClass = "border-border/50 bg-black/50 text-muted-foreground";
-  const cameraHoverClass = "hover:bg-black/70 hover:text-foreground";
-  const cameraActiveClass = "border-white/40 bg-white/10 text-white";
-  const selectBaseClass = "border-border/50 bg-black/50 text-muted-foreground";
-  const selectHoverClass = "hover:bg-black/70 hover:text-foreground";
-  const selectOpenClass =
-    "data-[state=open]:border-white/40 data-[state=open]:bg-white/10 data-[state=open]:text-white";
 
   const activeDevice = devices.find((d) => d.deviceId === deviceId) ?? devices[0] ?? null;
   const activePlaceholder = activeDevice ? deviceLabel(activeDevice, t) : t("camera.placeholder");
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1.5 sm:gap-2">
+    <div className={styles.controls}>
+      <div className={styles.row}>
         <Button
           variant="ghost"
-          className={cn(
-            "h-9 w-9 rounded-full border p-0 backdrop-blur-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            cameraBaseClass,
-            cameraHoverClass,
-            cameraEnabled && cameraActiveClass,
-          )}
+          className={clsx(styles.roundButton, glass.button, cameraEnabled && glass.active)}
           aria-pressed={cameraEnabled}
           aria-label={cameraEnabled ? t("camera.disable") : t("camera.enable")}
           onClick={onToggleCamera}
         >
-          {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          {cameraEnabled ? <Video className={styles.icon} /> : <VideoOff className={styles.icon} />}
         </Button>
         <Button
           variant="ghost"
-          className={cn(
-            "h-9 w-9 rounded-full border p-0 backdrop-blur-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            cameraBaseClass,
-            cameraHoverClass,
-            pipOpen && cameraActiveClass,
-          )}
+          className={clsx(styles.roundButton, glass.button, pipOpen && glass.active)}
           aria-pressed={pipOpen}
           aria-label={pipOpen ? t("pip.hide") : t("pip.show")}
           onClick={onTogglePip}
         >
-          <Camera className="h-4 w-4" />
+          <Camera className={styles.icon} />
         </Button>
         {devices.length > 0 ? (
           <Select value={deviceId} onValueChange={onDeviceChange}>
-            <SelectTrigger
-              aria-label={t("camera.active")}
-              className={cn(
-                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm sm:w-[150px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                selectBaseClass,
-                selectHoverClass,
-                selectOpenClass,
-              )}
-            >
-              <span className="min-w-0 truncate">
+            <SelectTrigger aria-label={t("camera.active")} className={styles.deviceSelect}>
+              <span className={styles.deviceName}>
                 <SelectValue placeholder={activePlaceholder} />
               </span>
             </SelectTrigger>
@@ -109,16 +86,8 @@ export const DockPanelControls = ({
           </Select>
         ) : (
           <Select disabled>
-            <SelectTrigger
-              aria-label={t("camera.active")}
-              className={cn(
-                "h-9 w-[100px] rounded-full border px-3 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm sm:w-[150px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                selectBaseClass,
-                selectHoverClass,
-                selectOpenClass,
-              )}
-            >
-              <span className="min-w-0 truncate">
+            <SelectTrigger aria-label={t("camera.active")} className={styles.deviceSelect}>
+              <span className={styles.deviceName}>
                 <SelectValue placeholder={activePlaceholder} />
               </span>
             </SelectTrigger>
@@ -128,20 +97,16 @@ export const DockPanelControls = ({
         {restartCamera && (
           <Button
             variant="ghost"
-            className={cn(
-              "h-9 w-9 rounded-full border p-0 backdrop-blur-sm",
-              cameraBaseClass,
-              cameraHoverClass,
-            )}
+            className={clsx(styles.roundButton, glass.button)}
             aria-label={t("camera.refresh")}
             onClick={() => void restartCamera()}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className={styles.smallIcon} />
           </Button>
         )}
       </div>
       {cameraStatus.status === "error" && (
-        <p className="text-xs text-red-300" role="alert">
+        <p className={styles.error} role="alert">
           {errorText(cameraStatus.error)}
         </p>
       )}

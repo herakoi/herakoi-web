@@ -1,7 +1,10 @@
+import { clsx } from "clsx";
 import { Loader2, Maximize, Minimize, Play, Square } from "lucide-react";
 import type { RefObject } from "react";
 import { useShellT } from "#src/i18n/shell";
-import { cn } from "#src/shared/utils/cn";
+import glass from "#src/shared/styles/glass.module.css";
+import utilities from "#src/shared/styles/utilities.module.css";
+import styles from "./Controls.module.css";
 
 type ControlsProps = {
   isActive: boolean;
@@ -29,36 +32,27 @@ export const Controls = ({
     <>
       <button
         type="button"
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50",
-          isFullscreen && "border-white/40 bg-white/10 text-white",
-        )}
+        className={clsx(styles.fullscreen, glass.button, isFullscreen && glass.active)}
         aria-label={isFullscreen ? t("header.exitFullscreen") : t("header.enterFullscreen")}
         onClick={onToggleFullscreen}
         disabled={!fullscreenAvailable}
       >
-        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        {isFullscreen ? <Minimize className={styles.icon} /> : <Maximize className={styles.icon} />}
       </button>
       <button
         type="button"
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          isActive
-            ? "border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20"
-            : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20",
-        )}
+        className={clsx(styles.transport, isActive ? styles.stop : styles.start)}
         aria-label={isActive ? t("header.stopEngine") : t("header.startEngine")}
         onClick={isActive ? onStop : onStart}
         disabled={isInitializing}
         ref={transportButtonRef}
       >
         {isInitializing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className={clsx(styles.icon, utilities.spin)} />
         ) : isActive ? (
-          <Square className="h-4 w-4" />
+          <Square className={styles.icon} />
         ) : (
-          <Play className="h-4 w-4" />
+          <Play className={styles.icon} />
         )}
       </button>
     </>

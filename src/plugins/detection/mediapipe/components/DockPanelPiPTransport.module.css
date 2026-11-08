@@ -1,0 +1,99 @@
+.dimmer {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-color: rgb(0 0 0 / 35%);
+  opacity: 0%;
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+.center {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.round {
+  --elevation: var(--shadow-xs);
+  pointer-events: auto;
+  display: flex;
+  height: 3.5rem;
+  width: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: var(--focus-shadow, 0 0 #0000), var(--elevation);
+}
+
+.button {
+  composes: round;
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+.start {
+  composes: round button;
+  border-color: color-mix(in oklab, var(--color-success-500) 40%, transparent);
+  background-color: color-mix(in oklab, var(--color-success-500) 10%, transparent);
+  color: var(--color-success-200);
+}
+
+.loading {
+  composes: round;
+  border-color: color-mix(in oklab, var(--color-success-500) 30%, transparent);
+  background-color: color-mix(in oklab, var(--color-success-500) 5%, transparent);
+  color: var(--color-success-100);
+}
+
+.stop {
+  composes: round button;
+  border-color: color-mix(in oklab, var(--color-danger-500) 40%, transparent);
+  background-color: color-mix(in oklab, var(--color-danger-500) 10%, transparent);
+  color: var(--color-danger-200);
+  opacity: 0%;
+}
+
+@media (hover: hover) {
+  .start:hover {
+    background-color: color-mix(in oklab, var(--color-success-500) 20%, transparent);
+  }
+
+  .stop:hover {
+    background-color: color-mix(in oklab, var(--color-danger-500) 20%, transparent);
+  }
+
+  /* Hovering the camera frame reveals the dimmer and the stop button. */
+  :where([data-pip-surface]:hover) .dimmer,
+  :where([data-pip-surface]:hover) .stop {
+    opacity: 100%;
+  }
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 50%;
+}
+
+.stop:focus-visible {
+  opacity: 100%;
+}
+
+.icon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+/* Optical centering of the play triangle. */
+.playIcon {
+  composes: icon;
+  translate: 1px 0;
+}

@@ -1,0 +1,44 @@
+/* Visually hidden, still read by screen readers. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Vertical rhythm between children; zero specificity, so a child's own margin wins. */
+:where(.stack1 > :not(:last-child)) {
+  margin-block: 0 0.25rem;
+}
+
+:where(.stack1_5 > :not(:last-child)) {
+  margin-block: 0 0.375rem;
+}
+
+:where(.stack2 > :not(:last-child)) {
+  margin-block: 0 0.5rem;
+}
+
+:where(.stack3 > :not(:last-child)) {
+  margin-block: 0 0.75rem;
+}
+
+:where(.stack4 > :not(:last-child)) {
+  margin-block: 0 1rem;
+}
+
+/* Loading indicator rotation. */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

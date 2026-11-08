@@ -2,6 +2,7 @@ import { Component, createRef, type ErrorInfo, type ReactNode, type RefObject } 
 import { BrandMark } from "#src/components/header/BrandMark";
 import { shellT } from "#src/i18n/shell";
 import { clearHerakoiLocalStorage } from "#src/state/storageReset";
+import styles from "./AppErrorBoundary.module.css";
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -38,10 +39,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   public override render() {
     if (this.state.hasError) {
       return (
-        <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
-          <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/20 via-black/10 to-black/55" />
-          <header className="absolute left-2 right-2 top-3 z-10 sm:left-1 sm:right-4 sm:top-4">
-            <div className="justify-self-start">
+        <main className={styles.main}>
+          <div className={styles.gradient} />
+          <header className={styles.header}>
+            <div className={styles.headerStart}>
               <BrandMark
                 analyserRef={this.analyserRef}
                 dimLogoMark={false}
@@ -51,31 +52,21 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
             </div>
           </header>
 
-          <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-20">
-            <article
-              className="w-full max-w-xl rounded-xl border border-border/70 bg-card/95 p-6 shadow-card backdrop-blur-sm"
-              role="alert"
-              aria-live="assertive"
-            >
-              <h1 className="text-lg font-semibold">{shellT("crash.title")}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">{shellT("crash.body")}</p>
+          <section className={styles.section}>
+            <article className={styles.card} role="alert" aria-live="assertive">
+              <h1 className={styles.title}>{shellT("crash.title")}</h1>
+              <p className={styles.body}>{shellT("crash.body")}</p>
               {this.state.errorMessage ? (
-                <p className="mt-3 rounded-md border border-border/70 bg-muted/40 px-3 py-2 font-mono text-xs text-muted-foreground">
-                  {this.state.errorMessage}
-                </p>
+                <p className={styles.error}>{this.state.errorMessage}</p>
               ) : null}
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={this.handleResetStorage}
-                  className="inline-flex items-center rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition hover:opacity-90"
-                >
+              <div className={styles.actions}>
+                <button type="button" onClick={this.handleResetStorage} className={styles.primary}>
                   {shellT("crash.resetAndReload")}
                 </button>
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="inline-flex items-center rounded-md border border-border/70 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/40"
+                  className={styles.secondary}
                 >
                   {shellT("crash.reload")}
                 </button>

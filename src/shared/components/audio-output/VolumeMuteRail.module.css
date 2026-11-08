@@ -1,0 +1,35 @@
+.rail {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sliderArea {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Shorter on low viewports so the expanded compact panel clears the header. */
+.slider {
+  height: 150px;
+}
+
+@media (max-height: 480px) {
+  .slider {
+    height: 80px;
+  }
+}
+
+.mute {
+  composes: iconButton from "./audioControls.module.css";
+  color: rgb(255 255 255 / 70%);
+}
+
+.muted {
+  border-color: rgb(255 255 255 / 40%);
+  color: #fff;
+}

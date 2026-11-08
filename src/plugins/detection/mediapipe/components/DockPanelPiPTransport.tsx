@@ -1,5 +1,8 @@
+import { clsx } from "clsx";
 import { Loader2, Play, Square } from "lucide-react";
+import utilities from "#src/shared/styles/utilities.module.css";
 import { useT } from "../i18n";
+import styles from "./DockPanelPiPTransport.module.css";
 
 type DockPanelPiPTransportProps = {
   isRunning: boolean;
@@ -19,39 +22,37 @@ export const DockPanelPiPTransport = ({
   const t = useT();
   return (
     <>
-      {isRunning ? (
-        <div className="pointer-events-none absolute inset-0 bg-black/35 opacity-0 transition group-hover:opacity-100" />
-      ) : null}
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+      {isRunning ? <div className={styles.dimmer} /> : null}
+      <div className={styles.center}>
         {!isActive ? (
           <button
             type="button"
             aria-label={t("engine.start")}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-xs transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className={styles.start}
             onClick={(event) => {
               event.stopPropagation();
               onStart();
             }}
             disabled={isInitializing}
           >
-            <Play className="h-5 w-5 translate-x-px" />
+            <Play className={styles.playIcon} />
           </button>
         ) : isInitializing ? (
-          <div className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-100 shadow-xs">
-            <Loader2 className="h-5 w-5 animate-spin" />
+          <div className={styles.loading}>
+            <Loader2 className={clsx(styles.icon, utilities.spin)} />
           </div>
         ) : (
           <button
             type="button"
             aria-label={t("engine.stop")}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10 text-red-200 shadow-xs opacity-0 transition hover:bg-red-500/20 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className={styles.stop}
             onClick={(event) => {
               event.stopPropagation();
               onStop();
             }}
             disabled={isInitializing}
           >
-            <Square className="h-5 w-5" />
+            <Square className={styles.icon} />
           </button>
         )}
       </div>

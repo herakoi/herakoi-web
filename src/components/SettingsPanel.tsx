@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { CircleHelp, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useShellT } from "#src/i18n/shell";
@@ -5,8 +6,8 @@ import { Button } from "#src/shared/components/ui/button";
 import { CardContent } from "#src/shared/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "#src/shared/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#src/shared/components/ui/tabs";
-import { cn } from "#src/shared/utils/cn";
 import { HelpPanelContent } from "./HelpPanel";
+import styles from "./SettingsPanel.module.css";
 
 export type SettingsPanelSection<K extends string = string> = {
   key: K;
@@ -38,14 +39,8 @@ export const SettingsPanel = <K extends string>({
   const [helpOpen, setHelpOpen] = useState(false);
 
   return (
-    <div
-      className={cn(
-        "fixed bottom-3 right-2 z-10 flex flex-col items-end gap-2 sm:bottom-4 sm:right-4",
-        className,
-      )}
-      style={style}
-    >
-      <div className="flex items-center gap-2">
+    <div className={clsx(styles.root, className)} style={style}>
+      <div className={styles.row}>
         <Popover
           open={open}
           onOpenChange={(nextOpen) => {
@@ -56,54 +51,42 @@ export const SettingsPanel = <K extends string>({
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className={cn(
-                "rounded-full backdrop-blur-sm border focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                "h-9 w-9 p-0 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2",
-                "text-xs font-semibold uppercase tracking-wide",
-                "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
-                open && "border-white/40 bg-white/10 text-white",
-              )}
+              className={clsx(styles.roundButton, styles.settingsButton, open && styles.open)}
               aria-label={t("settings.toggle")}
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("settings.button")}</span>
+              <SlidersHorizontal className={styles.icon} />
+              <span className={styles.buttonLabel}>{t("settings.button")}</span>
             </Button>
           </PopoverTrigger>
           {defaultKey && value ? (
-            <PopoverContent
-              align="end"
-              side="top"
-              sideOffset={8}
-              className="max-h-[min(80vh,500px)] overflow-y-auto w-[calc(100vw-1rem)] border border-border/60 bg-card/80 p-0 text-card-foreground shadow-card backdrop-blur-sm sm:w-[400px]"
-            >
-              <CardContent className="flex flex-col gap-3 pt-4">
+            <PopoverContent align="end" side="top" sideOffset={8} className={styles.panel}>
+              <CardContent className={styles.panelContent}>
                 <Tabs
                   value={value}
                   onValueChange={(nextValue) => setOpenSection(nextValue as K)}
-                  className="flex h-full flex-col"
+                  className={styles.tabs}
                 >
-                  {/* Only the active tab shows its name, so labels of any length fit. */}
-                  <TabsList className="flex w-full gap-1 rounded-full border border-white/10 bg-black/25 p-1">
+                  <TabsList className={styles.tabList}>
                     {sections.map((section) => (
                       <TabsTrigger
                         key={section.key}
                         value={section.key}
                         title={section.label}
-                        className="group flex min-w-0 flex-auto items-center justify-center gap-1.5 rounded-full data-[state=inactive]:w-10 data-[state=inactive]:flex-none border border-transparent px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/60 transition data-[state=active]:border-white/40 data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-outline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        className={styles.tab}
                       >
                         {section.icon ? (
-                          <span className="flex h-3 w-3 items-center justify-center text-white/70">
-                            {section.icon}
-                          </span>
+                          <span className={styles.tabIcon}>{section.icon}</span>
                         ) : null}
-                        <span className="truncate group-data-[state=inactive]:sr-only">
-                          {section.label}
-                        </span>
+                        <span className={styles.tabLabel}>{section.label}</span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
                   {sections.map((section) => (
-                    <TabsContent key={section.key} value={section.key} className="mt-4 flex-1">
+                    <TabsContent
+                      key={section.key}
+                      value={section.key}
+                      className={styles.tabContent}
+                    >
                       {section.render()}
                     </TabsContent>
                   ))}
@@ -118,22 +101,13 @@ export const SettingsPanel = <K extends string>({
             <Button
               variant="ghost"
               size="icon"
-              className={cn(
-                "rounded-full border backdrop-blur-sm transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                "border-border/50 bg-black/50 text-muted-foreground hover:bg-black/70 hover:text-foreground",
-                helpOpen && "border-white/40 bg-white/10 text-white",
-              )}
+              className={clsx(styles.roundButton, styles.helpButton, helpOpen && styles.open)}
               aria-label={t("settings.help")}
             >
-              <CircleHelp className="h-4 w-4" />
+              <CircleHelp className={styles.icon} />
             </Button>
           </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            side="top"
-            sideOffset={8}
-            className="w-[calc(100vw-1rem)] border border-border/60 bg-card/90 p-4 text-card-foreground shadow-card backdrop-blur-sm sm:w-[340px]"
-          >
+          <PopoverContent align="end" side="top" sideOffset={8} className={styles.helpPanel}>
             <HelpPanelContent />
           </PopoverContent>
         </Popover>

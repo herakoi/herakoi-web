@@ -1,0 +1,94 @@
+.rail {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  background-color: rgb(0 0 0 / 55%);
+  padding: 0.25rem;
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.vertical {
+  flex-direction: column;
+}
+
+/* Vertical below the sm breakpoint, horizontal above. */
+@media (width < 40rem) {
+  .responsive {
+    flex-direction: column;
+  }
+}
+
+.button {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(infinity * 1px);
+  transition-property: var(--transition-common);
+  transition-timing-function: var(--transition-ease);
+  transition-duration: var(--transition-duration);
+}
+
+.withLabel {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding-inline: 0.75rem;
+}
+
+.active {
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+.inactive {
+  color: var(--color-muted-foreground);
+}
+
+@media (hover: hover) {
+  .inactive:hover {
+    background-color: rgb(0 0 0 / 40%);
+    color: var(--color-foreground);
+  }
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.optionIcon {
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.optionLabel {
+  font-size: 0.875rem;
+  line-height: var(--text-sm--line-height);
+}
+
+/* Picker for more than two modes; keeps the ui popover shadow. */
+.picker {
+  width: auto;
+  min-width: 11rem;
+  border-radius: var(--radius-2xl);
+  border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  background-color: rgb(0 0 0 / 80%);
+  padding: 0.25rem;
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

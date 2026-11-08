@@ -1,14 +1,17 @@
-import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
+import { mediaPipeEsmExports, mediaPipePackages } from "./tooling/mediapipeEsmExports.ts";
 
+// Projects inherit these plugins.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [mediaPipeEsmExports(), react()],
+  css: { transformer: "lightningcss" },
+  optimizeDeps: { exclude: mediaPipePackages },
   test: {
     projects: [
       {
-        plugins: [react()],
+        extends: true,
         test: {
           name: "unit",
           include: ["src/**/*.{test,spec}.{ts,tsx}"],
@@ -20,8 +23,7 @@ export default defineConfig({
         },
       },
       {
-        // Browser tests check computed styles, so Tailwind must process the CSS.
-        plugins: [tailwindcss(), react()],
+        extends: true,
         test: {
           name: "browser",
           include: ["src/**/*.browser.{test,spec}.{ts,tsx}"],

@@ -1,0 +1,25 @@
+/* Round translucent control over the image: header buttons, toolbars, panel toggles. */
+.button {
+  border-radius: calc(infinity * 1px);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  background-color: rgb(0 0 0 / 50%);
+  color: var(--color-muted-foreground);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+@media (hover: hover) {
+  .button:hover {
+    background-color: rgb(0 0 0 / 70%);
+    color: var(--color-foreground);
+  }
+}
+
+/* Pressed or open state. */
+.active {
+  border-color: rgb(255 255 255 / 40%);
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}

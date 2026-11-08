@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "#src/shared/components/ui/select";
 import { Slider } from "#src/shared/components/ui/slider";
+import utilities from "#src/shared/styles/utilities.module.css";
 import type { PianoSamplerConfig } from "../config";
 import { useT } from "../i18n";
 import { usePianoSamplerAudioStore } from "../store";
@@ -30,9 +31,9 @@ export const PianoSamplerSettingsPanel = ({
   const t = useT();
 
   return (
-    <div className="space-y-4">
+    <div className={utilities.stack4}>
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>
           {t("noteRange.label", { min: midiToNoteName(noteMin), max: midiToNoteName(noteMax) })}
         </Label>
@@ -46,7 +47,7 @@ export const PianoSamplerSettingsPanel = ({
           onValueChange={([min, max]) => setConfig({ noteMin: min, noteMax: max })}
         />
       </div>
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>{t("velocityRange.label", { min: velocityMin, max: velocityMax })}</Label>
         <Slider
           min={0}
@@ -58,7 +59,7 @@ export const PianoSamplerSettingsPanel = ({
           onValueChange={([min, max]) => setConfig({ velocityMin: min, velocityMax: max })}
         />
       </div>
-      <div className="space-y-2">
+      <div className={utilities.stack2}>
         <Label>{t("noteDuration.label")}</Label>
         <Select value={noteDuration} onValueChange={(value) => setConfig({ noteDuration: value })}>
           <SelectTrigger aria-label={t("noteDuration.label")}>

@@ -98,7 +98,6 @@ Complete machine-readable inventory: `THIRD_PARTY_LICENSES.json`.
 | bare-stream | 2.7.0 | https://github.com/holepunchto/bare-stream#readme |
 | bare-url | 2.3.2 | https://github.com/holepunchto/bare-url |
 | baseline-browser-mapping | 2.8.25 | https://github.com/web-platform-dx/baseline-browser-mapping#readme |
-| class-variance-authority | 0.7.1 | https://github.com/joe-bell/cva#readme |
 | crc-32 | 1.2.2 | https://sheetjs.com/ |
 | didyoumean | 1.2.2 | https://github.com/dcporter/didyoumean.js |
 | doctrine | 2.1.0 | https://github.com/eslint/doctrine |
@@ -759,7 +758,6 @@ Complete machine-readable inventory: `THIRD_PARTY_LICENSES.json`.
 | sucrase | 3.35.1 | https://github.com/alangpierce/sucrase#readme |
 | supports-color | 5.5.0, 7.2.0 | https://github.com/chalk/supports-color#readme |
 | supports-preserve-symlinks-flag | 1.0.0 | https://github.com/inspect-js/node-supports-preserve-symlinks-flag#readme |
-| tailwind-merge | 2.6.0 | https://github.com/dcastil/tailwind-merge |
 | tailwindcss | 3.4.19 | https://tailwindcss.com |
 | tar-fs | 3.1.1 | https://github.com/mafintosh/tar-fs |
 | tar-stream | 3.1.7 | https://github.com/mafintosh/tar-stream |
