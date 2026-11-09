@@ -10,6 +10,7 @@ import {
   detectBrowserLocale,
   setLocale,
   useErrorText,
+  useLocale,
   usePluginName,
 } from "./index";
 
@@ -67,6 +68,55 @@ describe("i18n", () => {
     render(<Greeting />);
     expect(screen.getByText("Declared name")).toBeTruthy();
     expect(screen.getByText("English message")).toBeTruthy();
+  });
+
+  it("reports the current locale and re-renders on change", () => {
+    const Locale = () => <p>locale: {useLocale()}</p>;
+    render(<Locale />);
+    expect(screen.getByText("locale: en")).toBeTruthy();
+    act(() => setLocale("it"));
+    expect(screen.getByText("locale: it")).toBeTruthy();
+  });
+
+  it("interpolates numbers and repeated names, and leaves unknown ones as written", () => {
+    const { t: translate } = createTranslation(
+      "test/interpolation",
+      defineMessages({
+        en: { score: "{{who}} has {{count}} points, {{who}}!", unknown: "Hi {{missing}}" },
+        it: { score: "{{who}} ha {{count}} punti, {{who}}!", unknown: "Ciao {{missing}}" },
+      }),
+    );
+    expect(translate("score", { who: "Ada", count: 3 })).toBe("Ada has 3 points, Ada!");
+    expect(translate("unknown")).toBe("Hi {{missing}}");
+  });
+
+  it("falls back to English for a text missing in the current locale, then to the key", () => {
+    const { t: translate } = createTranslation("test/partial", {
+      en: { onlyEnglish: "Only English" },
+      it: {} as { onlyEnglish: string },
+    });
+    act(() => setLocale("it"));
+    expect(translate("onlyEnglish")).toBe("Only English");
+    expect(translate("absent" as "onlyEnglish")).toBe("absent");
+  });
+
+  it("finds an error text in the first namespace that has it", () => {
+    createTranslation(
+      "test/other",
+      defineMessages({
+        en: { "errors.OtherError": "Other" },
+        it: { "errors.OtherError": "Altro" },
+      }),
+    );
+    class OtherError extends Error {
+      name = "OtherError";
+    }
+    const Errors = () => {
+      const errorText = useErrorText(["test/plugin", "test/other"]);
+      return <p>{errorText(new OtherError("other"))}</p>;
+    };
+    render(<Errors />);
+    expect(screen.getByText("Other")).toBeTruthy();
   });
 
   it("rejects at compile time a locale that misses an English key", () => {
