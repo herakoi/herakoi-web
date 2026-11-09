@@ -5,7 +5,6 @@ import styles from "./DockPanelPiPSurface.module.css";
 type DockPanelPiPSurfaceProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
   overlayRef: RefObject<HTMLCanvasElement | null>;
-  isRunning: boolean;
   mirror: boolean;
   videoReady: boolean;
   aspectRatio: number;
@@ -15,7 +14,6 @@ type DockPanelPiPSurfaceProps = {
 export const DockPanelPiPSurface = ({
   videoRef,
   overlayRef,
-  isRunning,
   mirror,
   videoReady,
   aspectRatio,

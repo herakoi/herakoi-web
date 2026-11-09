@@ -4,6 +4,10 @@ Herakoi is a **motion-sensing sonification experiment**: a webcam tracks your ha
 
 - **Goal:** explore sonification of still images and live camera feeds using real-time hand detection and simple audio synthesis.
 
+## Offline use
+
+Herakoi installs as an app (PWA) and then starts without a network connection. The hand-tracking engine and models (about 16 MB) and the piano samples are not downloaded at install: each is saved the first time it is used online. Hand tracking and the piano therefore work offline only after they have been used once with a connection.
+
 ## Contribution Guide
 
 ### Project Layout
