@@ -1,29 +1,63 @@
-import { createInstance } from "i18next";
-import { useCallback } from "react";
-import { initReactI18next, useTranslation } from "react-i18next";
-import { defaultLocale, type Locale, type Messages, supportedLocales } from "#src/core/i18n";
+import { useCallback, useSyncExternalStore } from "react";
+import {
+  defaultLocale,
+  type Locale,
+  type MessageCatalog,
+  type Messages,
+  supportedLocales,
+} from "#src/core/i18n";
 
 /**
- * The app's i18next instance. It starts in English with no texts; each namespace (the shell,
- * shared components, every plugin id) adds its own through `createTranslation`.
- * Keys are flat (dots are part of the key) and the namespace is always explicit.
+ * The app's texts, by locale and namespace. Each namespace (the shell, shared components, every
+ * plugin id) adds its own through `createTranslation`. Keys are flat: dots are part of the key.
  */
-export const i18n = createInstance();
+const catalogs = Object.fromEntries(supportedLocales.map((locale) => [locale, {}])) as Record<
+  Locale,
+  Record<string, MessageCatalog>
+>;
 
-void i18n.use(initReactI18next).init({
-  lng: defaultLocale,
-  fallbackLng: defaultLocale,
-  supportedLngs: [...supportedLocales],
-  resources: {},
-  keySeparator: false,
-  nsSeparator: false,
-  interpolation: { escapeValue: false },
-  initAsync: false,
-});
+let activeLocale: Locale = defaultLocale;
+const listeners = new Set<() => void>();
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
 
 type TranslationValues = Record<string, string | number>;
 
 export type Translate<TKeys extends string> = (key: TKeys, values?: TranslationValues) => string;
+
+/** Replaces each `{{name}}` with its value; a name without a value stays as written. */
+const interpolate = (text: string, values?: TranslationValues) =>
+  values
+    ? text.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (placeholder, name: string) =>
+        name in values ? String(values[name]) : placeholder,
+      )
+    : text;
+
+/**
+ * The text of `key` in `locale`: the first namespace that has it wins, and within a namespace a
+ * missing translation falls back to English. Without a match, `fallback` or the key itself.
+ */
+const translate = (
+  locale: Locale,
+  namespaces: readonly string[],
+  key: string,
+  values?: TranslationValues,
+  fallback?: string,
+) => {
+  const locales = locale === defaultLocale ? [locale] : [locale, defaultLocale];
+  for (const namespace of namespaces) {
+    for (const candidate of locales) {
+      const text = catalogs[candidate][namespace]?.[key];
+      if (text !== undefined) return interpolate(text, values);
+    }
+  }
+  return interpolate(fallback ?? key, values);
+};
 
 export const isLocale = (value: unknown): value is Locale =>
   typeof value === "string" && (supportedLocales as readonly string[]).includes(value);
@@ -40,20 +74,20 @@ export const detectBrowserLocale = (): Locale => {
 };
 
 /** The locale currently shown. */
-export const currentLocale = (): Locale =>
-  isLocale(i18n.language) ? i18n.language : defaultLocale;
+export const currentLocale = (): Locale => activeLocale;
 
 /** Show the app in `locale` and mark the document with it. */
 export const setLocale = (locale: Locale) => {
-  if (i18n.language !== locale) void i18n.changeLanguage(locale);
+  if (activeLocale !== locale) {
+    activeLocale = locale;
+    for (const listener of listeners) listener();
+  }
   if (typeof document !== "undefined") document.documentElement.lang = locale;
 };
 
 /** Re-renders the caller when the language changes and returns the current locale. */
-export const useLocale = (): Locale => {
-  useTranslation(undefined, { i18n });
-  return currentLocale();
-};
+export const useLocale = (): Locale =>
+  useSyncExternalStore(subscribe, currentLocale, currentLocale);
 
 /**
  * Register a namespace's messages and bind typed translate functions to it:
@@ -64,16 +98,17 @@ export const createTranslation = <TKeys extends string>(
   messages: Messages<TKeys>,
 ) => {
   for (const locale of supportedLocales) {
-    i18n.addResourceBundle(locale, namespace, messages[locale], true, true);
+    catalogs[locale][namespace] = { ...catalogs[locale][namespace], ...messages[locale] };
   }
+  const namespaces = [namespace];
 
-  const t: Translate<TKeys> = (key, values) => i18n.t(key, { ns: namespace, ...values });
+  const t: Translate<TKeys> = (key, values) => translate(activeLocale, namespaces, key, values);
 
   const useT = (): Translate<TKeys> => {
-    const { t: translate } = useTranslation(namespace, { i18n });
+    const locale = useLocale();
     return useCallback<Translate<TKeys>>(
-      (key, values) => translate(key, { ns: namespace, ...values }),
-      [translate, namespace],
+      (key, values) => translate(locale, namespaces, key, values),
+      [locale],
     );
   };
 
@@ -82,11 +117,11 @@ export const createTranslation = <TKeys extends string>(
 
 /** A plugin's name in the current language: its `displayName` message, or the declared name. */
 export const usePluginName = () => {
-  const { t } = useTranslation(undefined, { i18n });
+  const locale = useLocale();
   return useCallback(
     (plugin: { id: string; displayName: string }) =>
-      t("displayName", { ns: plugin.id, defaultValue: plugin.displayName }),
-    [t],
+      translate(locale, [plugin.id], "displayName", undefined, plugin.displayName),
+    [locale],
   );
 };
 
@@ -95,10 +130,16 @@ export const usePluginName = () => {
  * namespaces, or the error's own (English) message when there is no translation.
  */
 export const useErrorText = (namespaces: string | readonly string[]) => {
-  const { t } = useTranslation(undefined, { i18n });
+  const locale = useLocale();
   return useCallback(
     (error: Error) =>
-      t(`errors.${error.name}`, { ns: namespaces as string[], defaultValue: error.message }),
-    [t, namespaces],
+      translate(
+        locale,
+        typeof namespaces === "string" ? [namespaces] : namespaces,
+        `errors.${error.name}`,
+        undefined,
+        error.message,
+      ),
+    [locale, namespaces],
   );
 };
