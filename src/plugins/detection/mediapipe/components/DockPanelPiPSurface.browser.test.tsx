@@ -10,7 +10,6 @@ afterEach(cleanup);
 const baseProps = {
   videoRef: { current: null },
   overlayRef: { current: null },
-  isRunning: false,
   mirror: false,
   videoReady: true,
   aspectRatio: 16 / 9,

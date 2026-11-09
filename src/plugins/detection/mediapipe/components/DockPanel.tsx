@@ -77,7 +77,6 @@ export const MediaPipeDockPanel = ({
           <DockPanelPiPSurface
             videoRef={videoRef}
             overlayRef={overlayRef}
-            isRunning={isRunning}
             mirror={mirror}
             videoReady={videoReady}
             aspectRatio={videoAspectRatio}
