@@ -101,10 +101,9 @@ export class PianoSamplerSonifier implements Sonifier {
     }
     this.sampler?.connect(this.ensureSinkRouter().getInputNode());
 
-    // Try to resume Tone's AudioContext; will succeed after user gesture
-    await start().catch(() => {
-      // Expected to fail until user interaction
-    });
+    // Not awaited: before a user gesture Chrome keeps resume() pending instead of rejecting,
+    // and awaiting it would stall the engine before the camera starts.
+    void start().catch(() => {});
 
     // Register one-time interaction listeners so the context resumes after first gesture
     const resumeOnInteraction = () => {
