@@ -104,6 +104,37 @@ export interface ImageSample {
 }
 
 /**
+ * Describes one value a sampler puts in `ImageSample.data`, so sonifiers and their
+ * settings can offer it (e.g. "map this channel to pitch") without knowing the sampler.
+ *
+ * Values outside [min, max] are clamped by consumers. A channel missing from a sample
+ * means "no data at this point" (e.g. a blank pixel).
+ */
+export interface SampleChannel {
+  /** Key in `ImageSample.data`. */
+  key: string;
+  /** Name shown to the user. */
+  label: string;
+  min: number;
+  max: number;
+  /**
+   * Key of a companion value the sampler adds where this channel has no data: the
+   * distance to the nearest point with data, as a fraction of the image's longer side.
+   */
+  distanceKey?: string;
+}
+
+/**
+ * Channels every image sampler provides: hue, saturation and value as bytes (0–255).
+ * Samplers may add more (e.g. one per image layer).
+ */
+export const hsvSampleChannels: readonly SampleChannel[] = [
+  { key: "hueByte", label: "Hue", min: 0, max: 255 },
+  { key: "saturationByte", label: "Saturation", min: 0, max: 255 },
+  { key: "valueByte", label: "Value", min: 0, max: 255 },
+];
+
+/**
  * Samples image data at specified coordinates.
  *
  * Implementations handle image loading, coordinate mapping (normalized to pixel),
