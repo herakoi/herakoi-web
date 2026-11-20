@@ -125,6 +125,13 @@ export interface SampleChannel {
 }
 
 /**
+ * Keys the engine adds to every sample: where the point is on the image canvas, in
+ * canvas heights (y from 0 to 1, x from 0 to the canvas aspect ratio), so a distance
+ * means the same in every direction. Sonifiers can derive motion (speed, travel) from them.
+ */
+export const pointPositionKeys = { x: "pointX", y: "pointY" } as const;
+
+/**
  * Channels every image sampler provides: hue, saturation and value as bytes (0–255).
  * Samplers may add more (e.g. one per image layer).
  */
