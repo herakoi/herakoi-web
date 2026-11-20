@@ -69,6 +69,32 @@ const gate = (track: PointTrack, u: number, v: number, dt: number): [number, num
 };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+/**
+ * Where to look for hands when no body is in view: the screen in the camera image (plus a
+ * margin for hands at its edges), and the smallest believable hand there (~5% of the screen
+ * width; hands shown on the screen, e.g. in the camera preview, are smaller).
+ */
+const screenSearch = (calibration: WallCalibration, video: HTMLVideoElement) => {
+  const xs = calibration.corners.map((c) => c[0]);
+  const ys = calibration.corners.map((c) => c[1]);
+  const marginX = 0.08 * (Math.max(...xs) - Math.min(...xs));
+  const marginY = 0.08 * (Math.max(...ys) - Math.min(...ys));
+  const x = Math.max(0, Math.min(...xs) - marginX);
+  const y = Math.max(0, Math.min(...ys) - marginY);
+  const [tl, tr, br, bl] = calibration.corners;
+  const screenWidth =
+    (Math.hypot(tr[0] - tl[0], tr[1] - tl[1]) + Math.hypot(br[0] - bl[0], br[1] - bl[1])) / 2;
+  return {
+    searchRegion: {
+      x,
+      y,
+      width: Math.min(video.videoWidth, Math.max(...xs) + marginX) - x,
+      height: Math.min(video.videoHeight, Math.max(...ys) + marginY) - y,
+    },
+    minHandSize: 0.05 * screenWidth,
+  };
+};
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export class WallPointDetector implements PointDetector {
@@ -187,6 +213,16 @@ export class WallPointDetector implements PointDetector {
       const result = await mapScreen(io, {
         viewportAspect: window.innerWidth / window.innerHeight,
       });
+      // Logged so a failing mapping can be diagnosed from the dev server / console on site.
+      console.warn(
+        "[wall] mapping",
+        result instanceof Error ? result.name : "ok",
+        JSON.stringify(
+          "diagnostics" in result
+            ? { ...result.diagnostics, viewport: [window.innerWidth, window.innerHeight] }
+            : { message: result.message },
+        ),
+      );
       if (result instanceof Error) return result;
       const errorPx = Number.isFinite(result.rms)
         ? (result.rms * (window.innerWidth + window.innerHeight)) / 2
@@ -283,6 +319,7 @@ export class WallPointDetector implements PointDetector {
       hand: config.hand,
       // Configs saved before the option existed have no value: use the default.
       target: config.playWith ?? "palm",
+      ...(calibration ? screenSearch(calibration, video) : {}),
       isNearTarget: (p) => {
         const s = toScreen(p);
         return !s || (s[0] > -0.15 && s[0] < 1.15 && s[1] > -0.15 && s[1] < 1.15);
@@ -303,7 +340,7 @@ export class WallPointDetector implements PointDetector {
         const [u, v] = s;
         if (u < -EDGE_TOLERANCE || u > 1 + EDGE_TOLERANCE) continue;
         if (v < -EDGE_TOLERANCE || v > 1 + EDGE_TOLERANCE) continue;
-        const id = `wall-${pointer.person}-${pointer.side}`;
+        const id = `wall-${pointer.trackId}`;
         let entry = this.filters.get(id);
         if (!entry || now - entry.seen > 0.5) {
           entry = {

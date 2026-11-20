@@ -131,6 +131,26 @@ describe("screen mapping", () => {
     }
   });
 
+  it("falls back to matching by position when the coded frames are misread", async () => {
+    // Display/camera latency: every capture after a dot pattern still shows the full grid.
+    let current: Pattern | null = null;
+    let full: Pattern | null = null;
+    const io: MappingIO = {
+      showPattern: async (p) => {
+        current = p;
+        if (p?.kind === "dots" && !full) full = p;
+      },
+      capture: async () =>
+        render(current?.kind === "dots" && full ? full : (current ?? { kind: "black" })),
+      wait: async () => {},
+    };
+    const result = await mapScreen(io, { viewportAspect: ASPECT, settleMs: 0 });
+    expect(result).not.toBeInstanceOf(Error);
+    if (result instanceof Error) return;
+    expect(result.diagnostics.method).toBe("proximity");
+    expect(result.matchedDots).toBeGreaterThanOrEqual(30);
+  });
+
   it("reports when no screen is visible", async () => {
     const io = fakeIO();
     io.capture = async () => render({ kind: "black" });

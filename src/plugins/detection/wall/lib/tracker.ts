@@ -26,6 +26,9 @@ const ARMS = {
 } as const;
 
 export type TrackedPointer = {
+  /** Stable id of the hand being tracked ("<person>-<side>"), the same whether it was found
+   * through the body or on its own, so the sound does not restart when the body leaves view. */
+  trackId: string;
   person: number;
   side: "right" | "left";
   /** Playing point (palm centre or index fingertip) in camera pixels. */
@@ -51,6 +54,11 @@ export type TrackOptions = {
   target: PlayTarget;
   /** Return false to skip the (costly) hand model for a pose index outside the area of interest. */
   isNearTarget?: (p: Vec2) => boolean;
+  /** Camera area (the screen) searched for hands directly when no body is in view. */
+  searchRegion?: { x: number; y: number; width: number; height: number };
+  /** Smallest hand (wrist → middle fingertip, camera px) accepted by that search: smaller ones
+   * are hands shown on the screen itself, e.g. in the camera preview. */
+  minHandSize?: number;
 };
 
 const CROP_SIZE = 256;
@@ -64,6 +72,17 @@ const MIN_POSE_VISIBILITY = 0.5;
 const MAX_WRIST_OFFSET = 1.2;
 /** A detection the hand model confidently labels as the other hand is rejected. */
 const HANDEDNESS_REJECT_SCORE = 0.9;
+/** Without a body to anchor it, a hand found on its own must be labelled as the playing hand. */
+const HANDEDNESS_REQUIRE_SCORE = 0.5;
+/** The tiled search for hands without a body runs every N frames while nothing is tracked. */
+const SEARCH_EVERY = 3;
+/** Search tiles: side length (camera px) range, and overlap between neighbouring tiles. */
+const TILE_MIN = 360;
+const TILE_MAX = 720;
+const TILE_STEP = 0.7;
+
+type HandMatch = { points: Vec2[]; handedness: string | null };
+type LoneHand = { hand: Vec2[]; at: number; tip: Vec2 };
 /** How long an arm's state (fingertip offset, raised) is remembered without seeing it (ms). */
 const ARM_MEMORY_MS = 10_000;
 /** Arm counts as raised above RAISE_ON degrees from hanging, and stops below RAISE_OFF. */
@@ -139,6 +158,9 @@ export class WallTracker {
   private lastTimestamp = 0;
   /** Last hand found per arm: the next crop follows it, and short dropouts keep its offset. */
   private readonly memory = new Map<string, ArmMemory>();
+  /** Hands tracked without a body in view, per side. */
+  private readonly loneHands = new Map<"right" | "left", LoneHand>();
+  private searchTick = 0;
   private readonly crop: HTMLCanvasElement;
   private readonly cropCtx: CanvasRenderingContext2D;
 
@@ -169,7 +191,7 @@ export class WallTracker {
       HandLandmarker.createFromOptions(fileset, {
         baseOptions: { modelAssetPath: handModelUrl, delegate },
         runningMode: "IMAGE",
-        numHands: 1,
+        numHands: 2,
         minHandDetectionConfidence: 0.3,
         minHandPresenceConfidence: 0.3,
       }),
@@ -247,6 +269,7 @@ export class WallTracker {
           base[1] + along * dy + across * dx,
         ];
         const pointer: TrackedPointer = {
+          trackId: key.slice(0, key.lastIndexOf("-")),
           person,
           side,
           tip: fromBody(memory.along, memory.across),
@@ -276,7 +299,10 @@ export class WallTracker {
           let hand: Vec2[] | null = null;
           for (const crop of attempts) {
             pointer.crop = crop;
-            const found = this.handInCrop(video, crop, wrist, MAX_WRIST_OFFSET * handLength, side);
+            const found = this.handInCrop(video, crop, side, {
+              wrist,
+              maxWristDistance: MAX_WRIST_OFFSET * handLength,
+            });
             if (found) {
               hand = found.points;
               pointer.handedness = found.handedness;
@@ -316,38 +342,154 @@ export class WallTracker {
         pointers.push(pointer);
       }
     });
+
+    // Hands without a body: someone close to the screen whose body is out of the camera view.
+    const sides = options.hand === "both" ? (["right", "left"] as const) : [options.hand];
+    const tick = this.searchTick++;
+    for (const side of sides) {
+      const viaBody = pointers.filter((p) => p.side === side);
+      // The body already gives a precise hand, or shows this arm hanging down (not playing).
+      if (viaBody.some((p) => (p.raised && p.source !== "pose") || !p.raised)) {
+        this.loneHands.delete(side);
+        continue;
+      }
+      const lone = this.trackLoneHand(video, side, ts, tick, options);
+      if (!lone) continue;
+      // The hand found on its own replaces a coarse body estimate of the same hand.
+      for (let i = pointers.length - 1; i >= 0; i--) {
+        if (pointers[i].trackId === lone.trackId) pointers.splice(i, 1);
+      }
+      pointers.push(lone);
+    }
     return { people, pointers };
   }
 
+  private trackLoneHand(
+    video: HTMLVideoElement,
+    side: "right" | "left",
+    ts: number,
+    tick: number,
+    options: TrackOptions,
+  ): TrackedPointer | null {
+    const previous = this.loneHands.get(side);
+    const recent = previous && ts - previous.at < HAND_MEMORY_MS ? previous : null;
+    let found: HandMatch | null = null;
+    if (recent) found = this.handInCrop(video, cropAroundHand(recent.hand), side, {});
+    if (!found && tick % SEARCH_EVERY === 0) found = this.searchHands(video, side, options);
+    const pointer: TrackedPointer = {
+      trackId: `0-${side}`,
+      person: -1,
+      side,
+      tip: [0, 0],
+      source: "hand",
+      handedness: found?.handedness ?? null,
+      raised: true,
+      hand: found?.points ?? null,
+      crop: null,
+    };
+    if (found) {
+      const tip = options.target === "palm" ? palmCentre(found.points) : found.points[8];
+      this.loneHands.set(side, { hand: found.points, at: ts, tip });
+      pointer.tip = tip;
+      pointer.crop = cropAroundHand(found.points);
+      return pointer;
+    }
+    if (previous && ts - previous.at < HOLD_MS) {
+      pointer.tip = previous.tip;
+      pointer.source = "hold";
+      return pointer;
+    }
+    return null;
+  }
+
+  /** Looks for the playing hand over the search region in overlapping square tiles. */
+  private searchHands(
+    video: HTMLVideoElement,
+    side: "right" | "left",
+    options: TrackOptions,
+  ): HandMatch | null {
+    const W = video.videoWidth;
+    const H = video.videoHeight;
+    const region = options.searchRegion ?? { x: 0, y: 0, width: W, height: H };
+    const size = Math.min(
+      Math.max(Math.min(region.width, region.height), TILE_MIN),
+      TILE_MAX,
+      Math.max(W, H),
+    );
+    const centres = (start: number, length: number) => {
+      if (length <= size) return [start + length / 2];
+      const n = Math.ceil((length - size) / (TILE_STEP * size)) + 1;
+      return Array.from(
+        { length: n },
+        (_, i) => start + size / 2 + ((length - size) * i) / Math.max(1, n - 1),
+      );
+    };
+    let best: HandMatch | null = null;
+    let bestSize = 0;
+    for (const cy of centres(region.y, region.height)) {
+      for (const cx of centres(region.x, region.width)) {
+        const found = this.handInCrop(video, { cx, cy, size }, side, { requireLabel: true });
+        if (!found) continue;
+        const handSize = Math.hypot(
+          found.points[12][0] - found.points[0][0],
+          found.points[12][1] - found.points[0][1],
+        );
+        if (handSize < (options.minHandSize ?? 0) || handSize <= bestSize) continue;
+        best = found;
+        bestSize = handSize;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Runs the hand model on a square crop and returns the hand that fits: with `wrist`, the one
+   * whose wrist is closest to it (within `maxWristDistance`); otherwise the most confident one.
+   * A hand confidently labelled as the other side is skipped; with `requireLabel` the label must
+   * name the playing side.
+   */
   private handInCrop(
     video: HTMLVideoElement,
     { cx, cy, size }: Crop,
-    wrist: Vec2,
-    maxWristDistance: number,
     side: "right" | "left",
-  ): { points: Vec2[]; handedness: string | null } | null {
+    anchor: { wrist?: Vec2; maxWristDistance?: number; requireLabel?: boolean },
+  ): HandMatch | null {
     const ctx = this.cropCtx;
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, CROP_SIZE, CROP_SIZE);
     ctx.drawImage(video, cx - size / 2, cy - size / 2, size, size, 0, 0, CROP_SIZE, CROP_SIZE);
     const r = this.hands.detect(this.crop);
-    const lm = r.landmarks[0];
-    if (!lm) return null;
-    // Labels refer to the person's own hands (the camera image is not mirrored).
-    const label = r.handedness[0]?.[0];
-    if (
-      label &&
-      label.score >= HANDEDNESS_REJECT_SCORE &&
-      label.categoryName.toLowerCase() !== side
-    ) {
-      return null;
-    }
-    const pts = lm.map((l) => [cx - size / 2 + l.x * size, cy - size / 2 + l.y * size] as Vec2);
-    // Reject the other hand or someone else's hand inside the crop.
-    if (Math.hypot(pts[0][0] - wrist[0], pts[0][1] - wrist[1]) > maxWristDistance) return null;
-    return {
-      points: pts,
-      handedness: label ? `${label.categoryName}:${label.score.toFixed(2)}` : null,
-    };
+    let best: HandMatch | null = null;
+    let bestRank = Number.POSITIVE_INFINITY;
+    r.landmarks.forEach((lm, i) => {
+      // Labels refer to the person's own hands (the camera image is not mirrored).
+      const label = r.handedness[i]?.[0];
+      const named = label?.categoryName.toLowerCase();
+      if (label && label.score >= HANDEDNESS_REJECT_SCORE && named !== side) return;
+      if (
+        anchor.requireLabel &&
+        !(named === side && (label?.score ?? 0) >= HANDEDNESS_REQUIRE_SCORE)
+      ) {
+        return;
+      }
+      const points = lm.map(
+        (l) => [cx - size / 2 + l.x * size, cy - size / 2 + l.y * size] as Vec2,
+      );
+      let rank = -(label?.score ?? 0);
+      if (anchor.wrist) {
+        // Reject the other hand or someone else's hand inside the crop.
+        const d = Math.hypot(points[0][0] - anchor.wrist[0], points[0][1] - anchor.wrist[1]);
+        if (d > (anchor.maxWristDistance ?? Number.POSITIVE_INFINITY)) return;
+        rank = d;
+      }
+      if (rank < bestRank) {
+        bestRank = rank;
+        best = {
+          points,
+          handedness: label ? `${label.categoryName}:${label.score.toFixed(2)}` : null,
+        };
+      }
+    });
+    return best;
   }
 }

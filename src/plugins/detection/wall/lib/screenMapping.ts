@@ -66,6 +66,21 @@ export type ScreenMapping = {
   totalDots: number;
   /** Reprojection RMS of the dots, in normalised screen units. */
   rms: number;
+  diagnostics: MappingDiagnostics;
+};
+
+/** What each stage found, for troubleshooting a mapping on site. */
+export type MappingDiagnostics = {
+  /** Share of the camera image covered by the lit screen. */
+  screenShare: number;
+  blobs: number;
+  /** Dots identified by their code, and how many of those the fit kept. */
+  decoded: number;
+  codedMatched: number;
+  /** Dots matched by position (fallback), when it ran. */
+  proximityMatched: number | null;
+  rms: number;
+  method: "coded" | "proximity" | "none";
 };
 
 export const DOT_COLS = 8;
@@ -95,10 +110,12 @@ export class ScreenNotFoundError extends Error {
 export class MappingUnreliableError extends Error {
   matchedDots: number;
   totalDots: number;
-  constructor(matchedDots: number, totalDots: number) {
+  diagnostics: MappingDiagnostics;
+  constructor(matchedDots: number, totalDots: number, diagnostics: MappingDiagnostics) {
     super(`Only ${matchedDots} of ${totalDots} dots were found reliably.`);
     this.matchedDots = matchedDots;
     this.totalDots = totalDots;
+    this.diagnostics = diagnostics;
     this.name = "MappingUnreliableError";
   }
 }
@@ -106,7 +123,7 @@ export class MappingUnreliableError extends Error {
 /** A mapping must match at least this share of the dots… */
 const MIN_MATCHED_SHARE = 0.6;
 /** …with a reprojection RMS below this (normalised screen units, ≈ 4–6 CSS px). */
-const MAX_RMS = 0.004;
+const MAX_RMS = 0.006;
 
 export class MappingAbortedError extends Error {
   constructor() {
@@ -246,6 +263,53 @@ export const decodeDots = (
   return [...byDot].filter(([, js]) => js.length === 1).map(([dot, [blob]]) => ({ dot, blob }));
 };
 
+type Fit = { h: number[]; rms: number; matched: number };
+
+const fitPairs = (
+  blobs: readonly Blob[],
+  dots: readonly Vec2[],
+  pairs: ReadonlyArray<{ dot: number; blob: number }>,
+): Fit | null => {
+  const fit = refine(
+    pairs.map((p) => [blobs[p.blob].x, blobs[p.blob].y] as Vec2),
+    pairs.map((p) => dots[p.dot]),
+  );
+  return fit
+    ? { h: fit.h, rms: reprojectionRms(fit.h, fit.cam, fit.screen), matched: fit.cam.length }
+    : null;
+};
+
+/**
+ * Matches blobs to dots by position, starting from the screen outline: seeds with the dots it
+ * predicts closely, refits, re-predicts and repeats.
+ */
+const matchByProximity = (blobs: readonly Blob[], dots: readonly Vec2[], coarseInv: number[]) => {
+  const predict = (inv: number[]) => dots.map(([u, v]) => applyHomography(inv, u, v) as Vec2);
+  const first = predict(coarseInv);
+  let spacing = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < first.length; i++) {
+    for (let j = i + 1; j < first.length; j++) {
+      spacing = Math.min(spacing, Math.hypot(first[i][0] - first[j][0], first[i][1] - first[j][1]));
+    }
+  }
+  let best: Fit | null = null;
+  let inv = coarseInv;
+  let tolerance = matchDots(first, blobs, 0.2 * spacing).length >= 6 ? 0.2 : 0.45;
+  for (let round = 0; round < 8; round++) {
+    const matches = matchDots(predict(inv), blobs, tolerance * spacing);
+    if (matches.length < 6) break;
+    const fit = fitPairs(blobs, dots, matches);
+    const fitInv = fit ? invert3(fit.h) : null;
+    if (!fit || !fitInv) break;
+    const improved = fit.matched > (best?.matched ?? 0);
+    best = fit;
+    inv = fitInv;
+    tolerance = 0.3;
+    if (!improved && round > 0) break;
+  }
+  return best;
+};
+
 export async function mapScreen(
   io: MappingIO,
   options: { viewportAspect: number; settleMs?: number },
@@ -286,7 +350,8 @@ export async function mapScreen(
     // Identify every dot by its code instead of guessing from positions: the coarse outline can
     // be badly skewed when someone hides part of the screen, the codes are not affected.
     io.progress?.("coding");
-    const codeSettle = Math.min(settleMs, 300);
+    // Display (HDMI, mirroring) and camera add latency: give each coded frame time to show up.
+    const codeSettle = Math.min(settleMs, 600);
     const showCode = async (axis: "col" | "row", bit: number) => {
       const subset = dots.filter((_, i) => {
         const index = axis === "col" ? i % DOT_COLS : Math.floor(i / DOT_COLS);
@@ -304,23 +369,29 @@ export async function mapScreen(
     io.progress?.("solving");
 
     const pairs = decodeDots(blobs, dotsImage, black, colFrames, rowFrames);
-    let homography = coarse;
-    let rms = Number.NaN;
-    let matched = 0;
-    if (pairs.length >= 6) {
-      const fit = refine(
-        pairs.map((p) => [blobs[p.blob].x, blobs[p.blob].y] as Vec2),
-        pairs.map((p) => dots[p.dot]),
-      );
-      if (fit) {
-        homography = fit.h;
-        rms = reprojectionRms(fit.h, fit.cam, fit.screen);
-        matched = fit.cam.length;
-      }
+    const coded = pairs.length >= 6 ? fitPairs(blobs, dots, pairs) : null;
+    let best = coded;
+    let proximityMatched: number | null = null;
+    // Codes misread (e.g. a frame captured before the screen changed): also try matching by
+    // position from the screen outline, and keep whichever explains more dots.
+    if (!coded || coded.matched < MIN_MATCHED_SHARE * dots.length) {
+      const near = matchByProximity(blobs, dots, coarseInv);
+      proximityMatched = near?.matched ?? 0;
+      if (near && near.matched > (best?.matched ?? 0)) best = near;
     }
-    if (matched < MIN_MATCHED_SHARE * dots.length || !(rms <= MAX_RMS)) {
-      return new MappingUnreliableError(matched, dots.length);
+    const diagnostics: MappingDiagnostics = {
+      screenShare: screen.area / (width * height),
+      blobs: blobs.length,
+      decoded: pairs.length,
+      codedMatched: coded?.matched ?? 0,
+      proximityMatched,
+      rms: best?.rms ?? Number.NaN,
+      method: !best ? "none" : best === coded ? "coded" : "proximity",
+    };
+    if (!best || best.matched < MIN_MATCHED_SHARE * dots.length || !(best.rms <= MAX_RMS)) {
+      return new MappingUnreliableError(best?.matched ?? 0, dots.length, diagnostics);
     }
+    const { h: homography, rms, matched } = best;
     const inv = invert3(homography) ?? coarseInv;
     return {
       homography,
@@ -330,6 +401,7 @@ export async function mapScreen(
       matchedDots: matched,
       totalDots: dots.length,
       rms,
+      diagnostics,
     };
   } finally {
     await io.showPattern(null);
