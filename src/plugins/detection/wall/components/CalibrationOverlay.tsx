@@ -1,11 +1,13 @@
 import clsx from "clsx";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "../i18n";
 import { useWallStore } from "../store";
 import styles from "./CalibrationOverlay.module.css";
 
 /** Paints the mapping patterns full screen and tells the detector once each one is on screen. */
 export const CalibrationOverlay = () => {
+  const t = useT();
   const pattern = useWallStore((s) => s.pattern);
   const patternPainted = useWallStore((s) => s.patternPainted);
 
@@ -28,6 +30,12 @@ export const CalibrationOverlay = () => {
       className={clsx(styles.overlay, pattern.kind === "white" && styles.white)}
       aria-hidden="true"
     >
+      {pattern.kind === "countdown" ? (
+        <div className={styles.countdown}>
+          <span className={styles.seconds}>{pattern.seconds}</span>
+          <span className={styles.message}>{t("countdown.stepAway")}</span>
+        </div>
+      ) : null}
       {pattern.kind === "dots"
         ? pattern.dots.map(([x, y]) => (
             <span

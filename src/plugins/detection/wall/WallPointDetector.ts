@@ -28,8 +28,45 @@ type WallDetectorOptions = {
 
 const CAMERA_WIDTH = 1920;
 const CAMERA_HEIGHT = 1080;
-/** Points slightly outside the screen still count (finger on the bezel edge). */
-const EDGE_TOLERANCE = 0.02;
+/** Points slightly outside the screen still count and are clamped to the edge, so corners and
+ * edges stay reachable despite small tracking errors. */
+const EDGE_TOLERANCE = 0.06;
+/** Viewport size change (CSS px) after which the mapping no longer matches the screen. */
+const LAYOUT_TOLERANCE = 2;
+/** Fastest plausible hand movement, in screen widths per second (~4 m/s on an 86" screen). */
+const MAX_SPEED = 2;
+/** A faster jump is only accepted once it repeats this many frames in the same place. */
+const JUMP_CONFIRM_FRAMES = 3;
+
+type PointTrack = {
+  filter: OneEuroFilter2D;
+  seen: number;
+  /** Last accepted raw position (normalised screen). */
+  last: [number, number] | null;
+  candidate: [number, number] | null;
+  candidateFrames: number;
+};
+
+/**
+ * Rejects single-frame outliers: a move faster than a hand can travel is held back until it
+ * repeats in the same place for a few frames (then it is a real relocation, e.g. a new person).
+ */
+const gate = (track: PointTrack, u: number, v: number, dt: number): [number, number] => {
+  const last = track.last;
+  if (last && Math.hypot(u - last[0], v - last[1]) > MAX_SPEED * dt + 0.03) {
+    const c = track.candidate;
+    if (c && Math.hypot(u - c[0], v - c[1]) < 0.05) track.candidateFrames++;
+    else {
+      track.candidate = [u, v];
+      track.candidateFrames = 1;
+    }
+    if (track.candidateFrames < JUMP_CONFIRM_FRAMES) return last;
+  }
+  track.last = [u, v];
+  track.candidate = null;
+  track.candidateFrames = 0;
+  return [u, v];
+};
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -39,7 +76,7 @@ export class WallPointDetector implements PointDetector {
   private camera: NativeCamera | null = null;
   private tracker: WallTracker | null = null;
   private readonly listeners = new Set<(points: DetectedPoint[]) => void>();
-  private readonly filters = new Map<string, { filter: OneEuroFilter2D; seen: number }>();
+  private readonly filters = new Map<string, PointTrack>();
   private raf = 0;
   private lastVideoTime = -1;
   private mapping = false;
@@ -47,8 +84,9 @@ export class WallPointDetector implements PointDetector {
   private grab: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null = null;
   private lastHasHands: boolean | null = null;
   private lastMapped: boolean | null = null;
-  /** Label of the camera in use; a mapping only applies to the camera it was made with. */
-  private cameraLabel = "";
+  private lastLayoutChanged = false;
+  /** Camera selection in use ("" = default); a mapping only applies to the camera it was made with. */
+  private cameraId = "";
   /** Last tracking result, kept for debugging and the preview. */
   lastResult: TrackResult | null = null;
 
@@ -141,6 +179,11 @@ export class WallPointDetector implements PointDetector {
       progress: (step) => store.setMapping({ status: "running", step }),
     };
     try {
+      // Countdown on screen so whoever pressed the button can step out of the camera view.
+      for (let seconds = 3; seconds > 0; seconds--) {
+        store.setPattern({ kind: "countdown", seconds }, null);
+        await sleep(1000);
+      }
       const result = await mapScreen(io, {
         viewportAspect: window.innerWidth / window.innerHeight,
       });
@@ -156,7 +199,9 @@ export class WallPointDetector implements PointDetector {
         matchedDots: result.matchedDots,
         totalDots: result.totalDots,
         errorPx,
-        cameraLabel: this.cameraLabel,
+        cameraId: this.cameraId,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
         createdAt: new Date().toISOString(),
       };
       this.options.setCalibration(calibration);
@@ -191,8 +236,7 @@ export class WallPointDetector implements PointDetector {
       useWallStore.getState().setCameraError(error);
       return error;
     }
-    const stream = this.video.srcObject instanceof MediaStream ? this.video.srcObject : null;
-    this.cameraLabel = stream?.getVideoTracks()[0]?.label ?? "";
+    this.cameraId = available ? deviceId : "";
     useWallStore.getState().setCameraError(null);
     return undefined;
   }
@@ -214,7 +258,7 @@ export class WallPointDetector implements PointDetector {
   private activeCalibration(video: HTMLVideoElement): WallCalibration | null {
     const calibration = this.options.getConfig().calibration;
     if (!calibration) return null;
-    if (calibration.cameraLabel && calibration.cameraLabel !== this.cameraLabel) return null;
+    if (calibration.cameraId !== undefined && calibration.cameraId !== this.cameraId) return null;
     if (
       calibration.cameraWidth !== video.videoWidth ||
       calibration.cameraHeight !== video.videoHeight
@@ -227,11 +271,18 @@ export class WallPointDetector implements PointDetector {
   private processFrame(video: HTMLVideoElement, tracker: WallTracker) {
     const config = this.options.getConfig();
     const calibration = this.activeCalibration(video);
-    const H = calibration?.homography;
+    // The mapping targets the viewport as it was laid out on the screen while mapping.
+    const layoutChanged =
+      calibration?.viewportWidth !== undefined &&
+      (Math.abs(calibration.viewportWidth - window.innerWidth) > LAYOUT_TOLERANCE ||
+        Math.abs((calibration.viewportHeight ?? 0) - window.innerHeight) > LAYOUT_TOLERANCE);
+    const H = layoutChanged ? undefined : calibration?.homography;
     const toScreen = (p: Vec2) => (H ? applyHomography(H, p[0], p[1]) : null);
 
     const result = tracker.process(video, {
       hand: config.hand,
+      // Configs saved before the option existed have no value: use the default.
+      target: config.playWith ?? "palm",
       isNearTarget: (p) => {
         const s = toScreen(p);
         return !s || (s[0] > -0.15 && s[0] < 1.15 && s[1] > -0.15 && s[1] < 1.15);
@@ -255,11 +306,19 @@ export class WallPointDetector implements PointDetector {
         const id = `wall-${pointer.person}-${pointer.side}`;
         let entry = this.filters.get(id);
         if (!entry || now - entry.seen > 0.5) {
-          entry = { filter: new OneEuroFilter2D(1.2, 0.008), seen: now };
+          entry = {
+            filter: new OneEuroFilter2D(0.8, 0.015),
+            seen: now,
+            last: null,
+            candidate: null,
+            candidateFrames: 0,
+          };
           this.filters.set(id, entry);
         }
+        const dt = Math.max(now - entry.seen, 1 / 60);
         entry.seen = now;
-        const [sx, sy] = entry.filter.filter(clamp01(u) * vw, clamp01(v) * vh, now);
+        const [gu, gv] = gate(entry, clamp01(u), clamp01(v), dt);
+        const [sx, sy] = entry.filter.filter(gu * vw, gv * vh, now);
         const x = rect && rect.width > 0 ? (sx - rect.left) / rect.width : sx / vw;
         const y = rect && rect.height > 0 ? (sy - rect.top) / rect.height : sy / vh;
         points.push({ id, x: clamp01(x), y: clamp01(y) });
@@ -268,10 +327,11 @@ export class WallPointDetector implements PointDetector {
 
     this.drawPreview(video, result, calibration);
     this.emit(points);
-    const mapped = calibration !== null;
-    if (mapped !== this.lastMapped) {
+    const mapped = calibration !== null && !layoutChanged;
+    if (mapped !== this.lastMapped || layoutChanged !== this.lastLayoutChanged) {
       this.lastMapped = mapped;
-      useWallStore.getState().setMapped(mapped);
+      this.lastLayoutChanged = layoutChanged;
+      useWallStore.getState().setMapped(mapped, layoutChanged);
     }
     const hasHands = points.length > 0;
     if (hasHands !== this.lastHasHands) {
@@ -380,7 +440,9 @@ export class WallPointDetector implements PointDetector {
         ? "rgba(170, 170, 170, 0.9)"
         : pointer.source === "hand"
           ? "rgba(90, 255, 90, 1)"
-          : "rgba(255, 170, 0, 1)";
+          : pointer.source === "hold"
+            ? "rgba(180, 255, 180, 1)"
+            : "rgba(255, 170, 0, 1)";
       ctx.beginPath();
       ctx.arc(pointer.tip[0] * s, pointer.tip[1] * s, 6, 0, Math.PI * 2);
       ctx.stroke();

@@ -19,6 +19,8 @@ interface WallStoreState {
   previewCanvas: HTMLCanvasElement | null;
   /** Whether a usable screen mapping exists for the running camera. */
   mapped: boolean;
+  /** A mapping exists but the window was resized since (e.g. full screen was left). */
+  layoutChanged: boolean;
   /** Whether a playing hand is on screen. null = engine not running. */
   hasHands: boolean | null;
   cameraError: Error | null;
@@ -26,7 +28,7 @@ interface WallStoreState {
   setMapping: (mapping: WallMappingState) => void;
   setRunMapping: (fn: (() => Promise<void>) | null) => void;
   setPreviewCanvas: (canvas: HTMLCanvasElement | null) => void;
-  setMapped: (mapped: boolean) => void;
+  setMapped: (mapped: boolean, layoutChanged?: boolean) => void;
   setHasHands: (hasHands: boolean | null) => void;
   setCameraError: (error: Error | null) => void;
 }
@@ -38,13 +40,14 @@ export const useWallStore = create<WallStoreState>((set) => ({
   runMapping: null,
   previewCanvas: null,
   mapped: false,
+  layoutChanged: false,
   hasHands: null,
   cameraError: null,
   setPattern: (pattern, patternPainted) => set({ pattern, patternPainted }),
   setMapping: (mapping) => set({ mapping }),
   setRunMapping: (runMapping) => set({ runMapping }),
   setPreviewCanvas: (previewCanvas) => set({ previewCanvas }),
-  setMapped: (mapped) => set({ mapped }),
+  setMapped: (mapped, layoutChanged = false) => set({ mapped, layoutChanged }),
   setHasHands: (hasHands) => set({ hasHands }),
   setCameraError: (cameraError) => set({ cameraError }),
 }));

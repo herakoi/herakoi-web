@@ -19,6 +19,7 @@ import {
   type Vec2,
 } from "./homography";
 import {
+  type Blob,
   blobCentroids,
   boundaryPoints,
   convexHull,
@@ -38,9 +39,11 @@ export type Pattern =
   | { kind: "black" }
   | { kind: "white" }
   /** Dots in normalised screen coordinates; radius as a fraction of the viewport's short side. */
-  | { kind: "dots"; dots: Vec2[]; radius: number };
+  | { kind: "dots"; dots: Vec2[]; radius: number }
+  /** Shown before the mapping so whoever started it can step out of the camera view. */
+  | { kind: "countdown"; seconds: number };
 
-export type MappingStep = "black" | "white" | "dots" | "solving";
+export type MappingStep = "black" | "white" | "dots" | "coding" | "solving";
 
 export type MappingIO = {
   /** Show a pattern full screen (null hides it); resolves once it has been painted. */
@@ -70,6 +73,10 @@ export const DOT_ROWS = 5;
 export const DOT_MARGIN = 0.08;
 export const DOT_RADIUS = 0.025;
 const FRAMES_PER_PATTERN = 5;
+const FRAMES_PER_CODE = 3;
+/** Bits needed to number the columns and rows from 1 (0 = "never lit" stays invalid). */
+const COL_BITS = Math.ceil(Math.log2(DOT_COLS + 1));
+const ROW_BITS = Math.ceil(Math.log2(DOT_ROWS + 1));
 const SCREEN_CORNERS: Vec2[] = [
   [0, 0],
   [1, 0],
@@ -83,6 +90,23 @@ export class ScreenNotFoundError extends Error {
     this.name = "ScreenNotFoundError";
   }
 }
+
+/** Too few dots found or too large an error: the previous mapping is kept. */
+export class MappingUnreliableError extends Error {
+  matchedDots: number;
+  totalDots: number;
+  constructor(matchedDots: number, totalDots: number) {
+    super(`Only ${matchedDots} of ${totalDots} dots were found reliably.`);
+    this.matchedDots = matchedDots;
+    this.totalDots = totalDots;
+    this.name = "MappingUnreliableError";
+  }
+}
+
+/** A mapping must match at least this share of the dots… */
+const MIN_MATCHED_SHARE = 0.6;
+/** …with a reprojection RMS below this (normalised screen units, ≈ 4–6 CSS px). */
+const MAX_RMS = 0.004;
 
 export class MappingAbortedError extends Error {
   constructor() {
@@ -176,10 +200,56 @@ const refine = (cam: Vec2[], screen: Vec2[]) => {
   return { h, cam: camIn, screen: scrIn };
 };
 
+/** Mean of `diff` over a small disc around a blob centre. */
+const discMean = (diff: Gray, b: Blob) => {
+  const r = Math.max(1.5, 0.7 * Math.sqrt(b.area / Math.PI));
+  let sum = 0;
+  let n = 0;
+  for (let y = Math.floor(b.y - r); y <= Math.ceil(b.y + r); y++) {
+    if (y < 0 || y >= diff.height) continue;
+    for (let x = Math.floor(b.x - r); x <= Math.ceil(b.x + r); x++) {
+      if (x < 0 || x >= diff.width || (x - b.x) ** 2 + (y - b.y) ** 2 > r * r) continue;
+      sum += diff.data[y * diff.width + x];
+      n++;
+    }
+  }
+  return n ? sum / n : 0;
+};
+
+/**
+ * Dot (column, row) of each blob from the coded frames: in frame k of an axis only the dots
+ * whose (index + 1) has bit k set are lit, so each blob's on/off sequence spells its index.
+ */
+export const decodeDots = (
+  blobs: readonly Blob[],
+  full: Gray,
+  black: Gray,
+  colFrames: readonly Gray[],
+  rowFrames: readonly Gray[],
+) => {
+  const fullDiff = positiveDiff(full, black);
+  const reference = blobs.map((b) => discMean(fullDiff, b));
+  const read = (frames: readonly Gray[], j: number) =>
+    frames.reduce((code, frame, k) => {
+      const lit = discMean(positiveDiff(frame, black), blobs[j]) > 0.5 * reference[j];
+      return lit ? code | (1 << k) : code;
+    }, 0);
+  const byDot = new Map<number, number[]>();
+  blobs.forEach((_, j) => {
+    const col = read(colFrames, j) - 1;
+    const row = read(rowFrames, j) - 1;
+    if (col < 0 || col >= DOT_COLS || row < 0 || row >= DOT_ROWS) return;
+    const dot = row * DOT_COLS + col;
+    byDot.set(dot, [...(byDot.get(dot) ?? []), j]);
+  });
+  // Two blobs claiming the same dot are ambiguous: keep neither.
+  return [...byDot].filter(([, js]) => js.length === 1).map(([dot, [blob]]) => ({ dot, blob }));
+};
+
 export async function mapScreen(
   io: MappingIO,
   options: { viewportAspect: number; settleMs?: number },
-): Promise<ScreenMapping | ScreenNotFoundError | MappingAbortedError> {
+): Promise<ScreenMapping | ScreenNotFoundError | MappingUnreliableError | MappingAbortedError> {
   const settleMs = options.settleMs ?? 900;
   const aborted = () => io.signal?.aborted === true;
   const show = async (pattern: Pattern, step: MappingStep) => {
@@ -204,18 +274,7 @@ export async function mapScreen(
     const dots = dotGrid();
     const dotsImage = await show({ kind: "dots", dots, radius: DOT_RADIUS }, "dots");
     if (aborted()) return new MappingAbortedError();
-    io.progress?.("solving");
 
-    const predicted = dots.map(([u, v]) => applyHomography(coarseInv, u, v) as Vec2);
-    let spacing = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < predicted.length; i++) {
-      for (let j = i + 1; j < predicted.length; j++) {
-        spacing = Math.min(
-          spacing,
-          Math.hypot(predicted[i][0] - predicted[j][0], predicted[i][1] - predicted[j][1]),
-        );
-      }
-    }
     const { width, height } = dotsImage;
     // Dot radius is relative to the viewport's short side → share of the screen area per dot.
     const aspect = options.viewportAspect;
@@ -223,20 +282,44 @@ export async function mapScreen(
     const expectedArea = Math.max(4, quadArea(screen.corners) * dotAreaFraction);
     const region = dilate(screen.mask, Math.round(0.015 * width));
     const blobs = findDots(dotsImage, black, region, expectedArea);
-    const matches = matchDots(predicted, blobs, 0.45 * spacing);
 
+    // Identify every dot by its code instead of guessing from positions: the coarse outline can
+    // be badly skewed when someone hides part of the screen, the codes are not affected.
+    io.progress?.("coding");
+    const codeSettle = Math.min(settleMs, 300);
+    const showCode = async (axis: "col" | "row", bit: number) => {
+      const subset = dots.filter((_, i) => {
+        const index = axis === "col" ? i % DOT_COLS : Math.floor(i / DOT_COLS);
+        return ((index + 1) >> bit) & 1;
+      });
+      await io.showPattern({ kind: "dots", dots: subset, radius: DOT_RADIUS });
+      await io.wait(codeSettle);
+      return io.capture(FRAMES_PER_CODE);
+    };
+    const colFrames: Gray[] = [];
+    for (let bit = 0; bit < COL_BITS; bit++) colFrames.push(await showCode("col", bit));
+    const rowFrames: Gray[] = [];
+    for (let bit = 0; bit < ROW_BITS; bit++) rowFrames.push(await showCode("row", bit));
+    if (aborted()) return new MappingAbortedError();
+    io.progress?.("solving");
+
+    const pairs = decodeDots(blobs, dotsImage, black, colFrames, rowFrames);
     let homography = coarse;
     let rms = Number.NaN;
     let matched = 0;
-    if (matches.length >= 8) {
-      const cam = matches.map((m) => [blobs[m.blob].x, blobs[m.blob].y] as Vec2);
-      const scr = matches.map((m) => dots[m.dot]);
-      const fit = refine(cam, scr);
+    if (pairs.length >= 6) {
+      const fit = refine(
+        pairs.map((p) => [blobs[p.blob].x, blobs[p.blob].y] as Vec2),
+        pairs.map((p) => dots[p.dot]),
+      );
       if (fit) {
         homography = fit.h;
         rms = reprojectionRms(fit.h, fit.cam, fit.screen);
         matched = fit.cam.length;
       }
+    }
+    if (matched < MIN_MATCHED_SHARE * dots.length || !(rms <= MAX_RMS)) {
+      return new MappingUnreliableError(matched, dots.length);
     }
     const inv = invert3(homography) ?? coarseInv;
     return {

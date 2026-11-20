@@ -1,5 +1,5 @@
 import type { Vec2 } from "./lib/homography";
-import type { HandSide } from "./lib/tracker";
+import type { HandSide, PlayTarget } from "./lib/tracker";
 
 export const wallDetectionPluginId = "detection/wall" as const;
 
@@ -15,14 +15,20 @@ export type WallCalibration = {
   totalDots: number;
   /** Mean reprojection error on screen, in CSS pixels (null when only the coarse fit was used). */
   errorPx: number | null;
-  /** Camera the mapping was made with (track label); empty for mappings saved before it existed. */
-  cameraLabel?: string;
+  /** Camera selection the mapping was made with (device id, "" = default camera). Not the track
+   * label: some browsers give the default camera a new random label on every start. */
+  cameraId?: string;
+  /** Viewport size (CSS px) while mapping; the mapping only holds for the same layout. */
+  viewportWidth?: number;
+  viewportHeight?: number;
   createdAt: string;
 };
 
 export interface WallConfig {
   /** Which hand plays: the person's anatomical side. */
   hand: HandSide;
+  /** Point of the hand that plays: palm centre (steadier, default) or index fingertip. */
+  playWith: PlayTarget;
   /** Maximum number of people tracked at once. */
   maxPeople: number;
   /** Camera device; empty = browser default. */
@@ -34,6 +40,7 @@ export interface WallConfig {
 
 export const defaultWallConfig: WallConfig = {
   hand: "right",
+  playWith: "palm",
   maxPeople: 2,
   deviceId: "",
   showPreview: true,

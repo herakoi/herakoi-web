@@ -9,6 +9,7 @@ export const WallNotifications = () => {
   const errorText = useErrorText();
   const mapping = useWallStore((s) => s.mapping);
   const mapped = useWallStore((s) => s.mapped);
+  const layoutChanged = useWallStore((s) => s.layoutChanged);
   const hasHands = useWallStore((s) => s.hasHands);
   const cameraError = useWallStore((s) => s.cameraError);
   const [dismissed, setDismissed] = useState(false);
@@ -51,6 +52,9 @@ export const WallNotifications = () => {
     return <PluginNotification message={t("notification.done")} icon={Check} />;
   }
   if (hasHands === null) return null;
+  if (layoutChanged) {
+    return <PluginNotification message={t("notification.layoutChanged")} icon={ScanLine} />;
+  }
   if (!mapped) {
     return <PluginNotification message={t("notification.unmapped")} icon={ScanLine} />;
   }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { applyHomography, invert3, solveHomography, type Vec2 } from "./homography";
-import { findScreenQuad, type MappingIO, mapScreen, type Pattern } from "./screenMapping";
+import {
+  findScreenQuad,
+  type MappingIO,
+  MappingUnreliableError,
+  mapScreen,
+  type Pattern,
+} from "./screenMapping";
 import type { Gray } from "./vision";
 
 // A screen seen at an angle: corners of the viewport in camera pixels (like the SMART board).
@@ -20,7 +26,10 @@ const camToScreen = solveHomography(CORNERS, [
   [0, 1],
 ]) as number[];
 
-const render = (pattern: Pattern): Gray => {
+type Rect = { x0: number; y0: number; x1: number; y1: number };
+
+/** Camera image of the screen showing `pattern`, optionally with a person (rect) in front. */
+const render = (pattern: Pattern, occluder?: Rect): Gray => {
   const data = new Float32Array(W * H);
   // Dot radius is a share of the viewport's short side → radii in normalised u and v.
   const aspect = ASPECT;
@@ -41,19 +50,22 @@ const render = (pattern: Pattern): Gray => {
           }
         }
       }
+      if (occluder && x >= occluder.x0 && x < occluder.x1 && y >= occluder.y0 && y < occluder.y1) {
+        v = 55;
+      }
       data[y * W + x] = v;
     }
   }
   return { data, width: W, height: H };
 };
 
-const fakeIO = (): MappingIO => {
+const fakeIO = (occluder?: Rect): MappingIO => {
   let current: Pattern | null = null;
   return {
     showPattern: async (p) => {
       current = p;
     },
-    capture: async () => render(current ?? { kind: "black" }),
+    capture: async () => render(current ?? { kind: "black" }, occluder),
     wait: async () => {},
   };
 };
@@ -86,6 +98,37 @@ describe("screen mapping", () => {
     const inv = invert3(result.homography) as number[];
     const [cx, cy] = applyHomography(inv, 0, 0);
     expect(Math.hypot(cx - CORNERS[0][0], cy - CORNERS[0][1])).toBeLessThan(2);
+  });
+
+  it("still maps accurately when a person hides part of the screen", async () => {
+    // Someone standing in front of the top-left part of the screen while it flashes.
+    const result = await mapScreen(fakeIO({ x0: 60, y0: 20, x1: 150, y1: 120 }), {
+      viewportAspect: ASPECT,
+      settleMs: 0,
+    });
+    expect(result).not.toBeInstanceOf(Error);
+    if (result instanceof Error) return;
+    for (const p of [
+      [250, 150],
+      [100, 200],
+      [290, 110],
+    ] as Vec2[]) {
+      const [u, v] = applyHomography(result.homography, p[0], p[1]);
+      const [eu, ev] = applyHomography(camToScreen, p[0], p[1]);
+      expect(Math.abs(u - eu)).toBeLessThan(0.01);
+      expect(Math.abs(v - ev)).toBeLessThan(0.01);
+    }
+  });
+
+  it("refuses a mapping when most of the screen is hidden", async () => {
+    const result = await mapScreen(fakeIO({ x0: 40, y0: 0, x1: 240, y1: 260 }), {
+      viewportAspect: ASPECT,
+      settleMs: 0,
+    });
+    expect(result).toBeInstanceOf(Error);
+    if (result instanceof MappingUnreliableError) {
+      expect(result.matchedDots).toBeLessThan(24);
+    }
   });
 
   it("reports when no screen is visible", async () => {

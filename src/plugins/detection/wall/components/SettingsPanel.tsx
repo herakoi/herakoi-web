@@ -15,7 +15,7 @@ import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
 import type { WallConfig } from "../config";
 import { useT } from "../i18n";
-import type { HandSide } from "../lib/tracker";
+import type { HandSide, PlayTarget } from "../lib/tracker";
 import { useWallStore } from "../store";
 import styles from "./SettingsPanel.module.css";
 import { useStartMapping } from "./useStartMapping";
@@ -71,6 +71,21 @@ export const WallSettingsPanel = ({ config, setConfig }: PluginSettingsPanelProp
             <SelectItem value="right">{t("settings.hand.right")}</SelectItem>
             <SelectItem value="left">{t("settings.hand.left")}</SelectItem>
             <SelectItem value="both">{t("settings.hand.both")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className={styles.field}>
+        <Label htmlFor="wall-play-with">{t("settings.playWith")}</Label>
+        <Select
+          value={config.playWith ?? "palm"}
+          onValueChange={(playWith) => setConfig({ playWith: playWith as PlayTarget })}
+        >
+          <SelectTrigger id="wall-play-with" aria-label={t("settings.playWith")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value="palm">{t("settings.playWith.palm")}</SelectItem>
+            <SelectItem value="fingertip">{t("settings.playWith.fingertip")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -1,14 +1,25 @@
 import { drawFingerFocus, type HandOverlayStyle } from "#src/plugins/detection/mediapipe/overlay";
 import type { WallPointDetector } from "./WallPointDetector";
 
-/** Large ring under each finger: on a wall-sized screen it shows where the hand is playing. */
+/**
+ * Ring around each fingertip. On a wall-sized screen the hand covers whatever is right under the
+ * finger, so the ring is large (about a hand wide) with a dark halo that reads on any image.
+ */
 const ringStyle: HandOverlayStyle = {
-  focusColor: "rgba(235, 235, 235, 0.95)",
-  focusFillColor: "rgba(220, 220, 220, 0.25)",
-  focusWidth: 4,
-  focusSize: 64,
-  shadowColor: "rgba(0, 0, 0, 0.6)",
-  shadowBlur: 10,
+  focusColor: "rgba(255, 255, 255, 0.95)",
+  focusFillColor: "rgba(255, 255, 255, 0.12)",
+  focusWidth: 6,
+  focusSize: 150,
+  shadowColor: "rgba(0, 0, 0, 0.9)",
+  shadowBlur: 14,
+};
+const dotStyle: HandOverlayStyle = {
+  focusColor: "rgba(255, 255, 255, 1)",
+  focusFillColor: "rgba(255, 255, 255, 0.9)",
+  focusWidth: 2,
+  focusSize: 14,
+  shadowColor: "rgba(0, 0, 0, 0.9)",
+  shadowBlur: 6,
 };
 
 export const bindWallUi = (detector: WallPointDetector, canvas: HTMLCanvasElement) => {
@@ -21,7 +32,9 @@ export const bindWallUi = (detector: WallPointDetector, canvas: HTMLCanvasElemen
     for await (const points of detector.points(abortController.signal)) {
       clear();
       for (const point of points) {
-        drawFingerFocus(ctx, { x: point.x * canvas.width, y: point.y * canvas.height }, ringStyle);
+        const focus = { x: point.x * canvas.width, y: point.y * canvas.height };
+        drawFingerFocus(ctx, focus, ringStyle);
+        drawFingerFocus(ctx, focus, dotStyle);
       }
     }
   })();
