@@ -24,7 +24,11 @@ import {
   type Sonifier,
   type SonifierOptions,
 } from "#src/core/interfaces";
-import { MotionTracker, samplePosition } from "#src/plugins/sonification/shared/motion";
+import {
+  MotionTracker,
+  type RestBehavior,
+  samplePosition,
+} from "#src/plugins/sonification/shared/motion";
 import {
   createMotionGate,
   type MotionGate,
@@ -61,6 +65,8 @@ export type ChannelOscillatorSonifierOptions = SonifierOptions & {
   proximityReach?: number;
   /** How motion shapes the sound: only while moving, plucked, or continuous. */
   soundMode?: SoundMode;
+  /** What to play when the hand rests in one spot. */
+  restBehavior?: RestBehavior;
   minFreq?: number;
   maxFreq?: number;
   minVol?: number;
@@ -226,6 +232,7 @@ export class ChannelOscillatorSonifier implements Sonifier {
       }
     }
     if (options.soundMode !== undefined) this.soundMode = options.soundMode;
+    if (options.restBehavior !== undefined) this.motion.configure({ rest: options.restBehavior });
     if (options.proximityReach !== undefined && options.proximityReach > 0) {
       this.proximityReach = options.proximityReach;
     }

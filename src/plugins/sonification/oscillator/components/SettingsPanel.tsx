@@ -1,5 +1,6 @@
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import { type SoundMode, soundModes } from "#src/plugins/sonification/shared/motionGate";
+import { RestBehaviorSelect } from "#src/plugins/sonification/shared/RestBehaviorSelect";
 import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Label } from "#src/shared/components/ui/label";
 import {
@@ -45,6 +46,12 @@ export const OscillatorSettingsPanel = ({
           </SelectContent>
         </Select>
       </div>
+      {soundMode !== "continuous" ? (
+        <RestBehaviorSelect
+          value={config.restBehavior}
+          onValueChange={(restBehavior) => setConfig({ restBehavior })}
+        />
+      ) : null}
       <div className={utilities.stack2}>
         <Label>{t("frequencyRange.label", { min: minFreq, max: maxFreq })}</Label>
         <Slider

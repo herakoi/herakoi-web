@@ -1,6 +1,10 @@
 import { Frequency, getContext, now, Sampler, setContext, start } from "tone";
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
-import { MotionTracker, samplePosition } from "#src/plugins/sonification/shared/motion";
+import {
+  MotionTracker,
+  type RestBehavior,
+  samplePosition,
+} from "#src/plugins/sonification/shared/motion";
 import {
   type SinkableAudioContext,
   SinkOutputRouter,
@@ -55,6 +59,8 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   velocityMax?: number;
   noteDuration?: string;
   playMode?: PianoPlayMode;
+  /** What to play when the hand rests in one spot. */
+  restBehavior?: RestBehavior;
   /** Motion mode: one more note per this distance travelled, in canvas heights. */
   motionStep?: number;
   /** Motion mode: notes per second while moving, however slowly. */
@@ -228,6 +234,7 @@ export class PianoSamplerSonifier implements Sonifier {
     if (options.velocityMax !== undefined) this.velocityMax = options.velocityMax;
     if (options.noteDuration !== undefined) this.noteDuration = options.noteDuration;
     if (options.playMode !== undefined) this.playMode = options.playMode;
+    if (options.restBehavior !== undefined) this.motion.configure({ rest: options.restBehavior });
     if (
       options.motionStep !== undefined ||
       options.minNotesPerSecond !== undefined ||

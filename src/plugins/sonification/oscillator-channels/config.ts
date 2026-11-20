@@ -1,3 +1,4 @@
+import type { RestBehavior } from "#src/plugins/sonification/shared/motion";
 import type { SoundMode } from "#src/plugins/sonification/shared/motionGate";
 import type { VoiceEffectKind } from "#src/plugins/sonification/shared/voiceEffects";
 import type { NoDataBehavior } from "./ChannelOscillatorSonifier";
@@ -43,6 +44,8 @@ export interface ChannelOscillatorConfig {
   oscillatorType: OscillatorType;
   /** How hand motion shapes the sound: only while moving (default), plucked, or continuous. */
   soundMode: SoundMode;
+  /** What to play when the hand rests in one spot (motion-driven modes). */
+  restBehavior: RestBehavior;
 }
 
 export const defaultChannelOscillatorConfig: ChannelOscillatorConfig = {
@@ -60,6 +63,7 @@ export const defaultChannelOscillatorConfig: ChannelOscillatorConfig = {
   proximityReach: 0.15,
   oscillatorType: "sine",
   soundMode: "moving",
+  restBehavior: "once",
 };
 
 /** Fields of the single effect that configs saved before effect slots still carry. */

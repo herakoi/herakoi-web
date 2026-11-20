@@ -7,7 +7,8 @@
  * What: createMotionGate() returns a gain node to route the voice through, and apply(),
  * called each frame with the point's motion.
  * How: "continuous" passes the voice through; "moving" fades it in while the point moves
- * (louder when faster) and out when it stops, like a bow; "plucked" restarts a short,
+ * (louder when faster) and out when it stops, like a bow, and plucks once for a note due
+ * while still (appearing, or resting); "plucked" restarts a short,
  * decaying envelope on each note the motion tracker makes due. Without motion data (no
  * point position), every mode plays continuously.
  */
@@ -42,22 +43,28 @@ export const createMotionGate = (ctx: BaseAudioContext, mode: SoundMode): Motion
     node,
     apply: (currentMode, motion, time) => {
       const gain = node.gain;
+      const pluck = () => {
+        gain.cancelScheduledValues(time);
+        gain.setValueAtTime(1, time);
+        gain.setTargetAtTime(0, time, PLUCK_DECAY_S);
+      };
       if (currentMode === "continuous" || !motion) {
         gain.setTargetAtTime(1, time, FADE_IN_S);
         return;
       }
       if (currentMode === "moving") {
+        if (motion.note && !motion.moving) {
+          // A still point (just appeared, or resting) sounds its spot once.
+          pluck();
+          return;
+        }
         const loudness = motion.moving
           ? SLOW_LOUDNESS + (1 - SLOW_LOUDNESS) * Math.min(1, motion.speed / FULL_LOUDNESS_SPEED)
           : 0;
         gain.setTargetAtTime(loudness, time, motion.moving ? FADE_IN_S : FADE_OUT_S);
         return;
       }
-      if (motion.note) {
-        gain.cancelScheduledValues(time);
-        gain.setValueAtTime(1, time);
-        gain.setTargetAtTime(0, time, PLUCK_DECAY_S);
-      }
+      if (motion.note) pluck();
     },
     dispose: () => {
       try {

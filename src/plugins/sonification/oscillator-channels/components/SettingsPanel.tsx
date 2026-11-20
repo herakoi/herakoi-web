@@ -3,6 +3,7 @@ import { useId, useMemo } from "react";
 import type { SampleChannel } from "#src/core/interfaces";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
 import { type SoundMode, soundModes } from "#src/plugins/sonification/shared/motionGate";
+import { RestBehaviorSelect } from "#src/plugins/sonification/shared/RestBehaviorSelect";
 import { voiceEffectKinds } from "#src/plugins/sonification/shared/voiceEffects";
 import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Button } from "#src/shared/components/ui/button";
@@ -282,6 +283,12 @@ export const ChannelOscillatorSettingsPanel = ({
           </SelectContent>
         </Select>
       </div>
+      {config.soundMode !== "continuous" ? (
+        <RestBehaviorSelect
+          value={config.restBehavior}
+          onValueChange={(restBehavior) => setConfig({ restBehavior })}
+        />
+      ) : null}
 
       <section className={utilities.stack2}>
         <h3 className={styles.heading}>{t("pitch.title")}</h3>

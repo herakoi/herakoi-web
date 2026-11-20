@@ -1,5 +1,6 @@
 import { Frequency } from "tone";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { RestBehaviorSelect } from "#src/plugins/sonification/shared/RestBehaviorSelect";
 import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Label } from "#src/shared/components/ui/label";
 import {
@@ -73,6 +74,12 @@ export const PianoSamplerSettingsPanel = ({
           </SelectContent>
         </Select>
       </div>
+      {playMode === "motion" ? (
+        <RestBehaviorSelect
+          value={config.restBehavior}
+          onValueChange={(restBehavior) => setConfig({ restBehavior })}
+        />
+      ) : null}
       {playMode === "motion" ? (
         <>
           <div className={utilities.stack2}>

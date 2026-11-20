@@ -48,4 +48,10 @@ describe("createMotionGate", () => {
     expect(gain.setValueAtTime).toHaveBeenCalledWith(1, 2);
     expect(gain.setTargetAtTime).toHaveBeenLastCalledWith(0, 2, expect.any(Number));
   });
+
+  it("plucks once in moving mode for a note due while still", () => {
+    const { gate, gain } = setup("moving");
+    gate.apply("moving", { speed: 0, moving: false, note: true }, 3);
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(1, 3);
+  });
 });

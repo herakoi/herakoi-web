@@ -10,12 +10,21 @@
  * SPEED_WINDOW_MS. Jitter around one spot barely moves over that window, so it stays
  * below the "moving" threshold (with hysteresis, so the state does not flicker). While
  * moving, a note clock runs at `minRate` plus speed / `step` (one more note per `step`
- * travelled), capped at `maxRate`. A point that appears plays right away.
+ * travelled), capped at `maxRate`. A point that appears plays right away. When it comes to
+ * rest, `rest` decides: play one note after REST_DELAY_MS ("once"), repeat every
+ * REST_REPEAT_MS while resting ("repeat"), or stay silent ("silent").
  */
 
 import { type ImageSample, pointPositionKeys } from "#src/core/interfaces";
 
+/** What a point does when it stops moving. */
+export type RestBehavior = "once" | "repeat" | "silent";
+
+export const restBehaviors: readonly RestBehavior[] = ["once", "repeat", "silent"];
+
 export type MotionOptions = {
+  /** What to play when the point rests in one spot. */
+  rest: RestBehavior;
   /** Extra note per this distance travelled, in canvas heights. */
   step: number;
   /** Notes per second while moving, however slowly. */
@@ -31,6 +40,10 @@ const SPEED_WINDOW_MS = 300;
 /** Speeds (canvas heights per second) at which a point starts / stops counting as moving. */
 const START_MOVING_SPEED = 0.05;
 const STOP_MOVING_SPEED = 0.03;
+/** How long a point must rest before its rest note plays. */
+const REST_DELAY_MS = 350;
+/** Interval of repeated rest notes. */
+const REST_REPEAT_MS = 1000;
 
 type Sample = { x: number; y: number; t: number };
 
@@ -44,9 +57,14 @@ type PointState = {
   moving: boolean;
   /** Note clock: a note is due when it reaches 1. */
   phase: number;
+  /** When the point last came to rest (or appeared). */
+  restSinceMs: number;
+  /** Whether a note was played in the current rest. */
+  restPlayed: boolean;
 };
 
 export const defaultMotionOptions: MotionOptions = {
+  rest: "once",
   step: 0.05,
   minRate: 2,
   maxRate: 12,
@@ -57,7 +75,7 @@ export type MotionState = {
   /** Smoothed speed, in canvas heights per second. */
   speed: number;
   moving: boolean;
-  /** A note is due now (also when the point first appears). */
+  /** A note is due now (also when the point first appears, and when it rests). */
   note: boolean;
 };
 
@@ -93,6 +111,9 @@ export class MotionTracker {
         history: [{ x, y, t: nowMs }],
         moving: false,
         phase: 0,
+        // The appearance note counts as the first rest note.
+        restSinceMs: nowMs,
+        restPlayed: true,
       });
       return { speed: 0, moving: false, note: true };
     }
@@ -119,10 +140,15 @@ export class MotionTracker {
       span >= SPEED_WINDOW_MS
         ? Math.hypot(state.x - oldest.x, state.y - oldest.y) / (span / 1000)
         : 0;
+    const wasMoving = state.moving;
     state.moving = state.moving ? speed >= STOP_MOVING_SPEED : speed >= START_MOVING_SPEED;
+    if (wasMoving && !state.moving) {
+      state.restSinceMs = nowMs;
+      state.restPlayed = false;
+    }
 
     const result = { speed, moving: state.moving, note: false };
-    if (!state.moving) return result;
+    if (!state.moving) return this.restNote(state, nowMs) ? { ...result, note: true } : result;
 
     const travelled = Math.hypot(state.x - previousX, state.y - previousY);
     state.phase += (dt / 1000) * minRate + (step > 0 ? travelled / step : 0);
@@ -133,6 +159,18 @@ export class MotionTracker {
     state.phase = Math.min(1, state.phase - 1);
     state.lastNoteMs = nowMs;
     return { ...result, note: true };
+  }
+
+  /** Whether a resting point plays now, as its rest behaviour asks. */
+  private restNote(state: PointState, nowMs: number): boolean {
+    const { rest } = this.options;
+    if (rest === "silent" || nowMs - state.restSinceMs < REST_DELAY_MS) return false;
+    const due =
+      !state.restPlayed || (rest === "repeat" && nowMs - state.lastNoteMs >= REST_REPEAT_MS);
+    if (!due) return false;
+    state.restPlayed = true;
+    state.lastNoteMs = nowMs;
+    return true;
   }
 
   /** Forget points that were not seen in the last frame. */

@@ -14,7 +14,11 @@
  */
 
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
-import { MotionTracker, samplePosition } from "#src/plugins/sonification/shared/motion";
+import {
+  MotionTracker,
+  type RestBehavior,
+  samplePosition,
+} from "#src/plugins/sonification/shared/motion";
 import {
   createMotionGate,
   type MotionGate,
@@ -36,6 +40,8 @@ export type OscillatorSonifierOptions = SonifierOptions & {
   sinkId?: string;
   /** How motion shapes the sound: only while moving, plucked, or continuous. */
   soundMode?: SoundMode;
+  /** What to play when the hand rests in one spot. */
+  restBehavior?: RestBehavior;
 };
 
 type ToneNodes = {
@@ -146,6 +152,7 @@ export class OscillatorSonifier implements Sonifier {
     if (options.maxVol !== undefined) this.maxVol = options.maxVol;
     if (options.fadeMs !== undefined) this.fadeMs = options.fadeMs;
     if (options.soundMode !== undefined) this.soundMode = options.soundMode;
+    if (options.restBehavior !== undefined) this.motion.configure({ rest: options.restBehavior });
     if (options.masterVolume !== undefined) {
       this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
     }

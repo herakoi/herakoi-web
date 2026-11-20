@@ -17,7 +17,13 @@ const countNotes = (
   return notes;
 };
 
-const options = { step: 0.05, minRate: 2, maxRate: 12, smoothingMs: 60 };
+const options = {
+  rest: "silent" as const,
+  step: 0.05,
+  minRate: 2,
+  maxRate: 12,
+  smoothingMs: 60,
+};
 
 const sweep = (speed: number) => (frame: number) => ({
   x: 0.1 + (speed * (frame * FRAME_MS)) / 1000,
@@ -83,5 +89,42 @@ describe("MotionTracker", () => {
     expect(state.moving).toBe(true);
     expect(state.speed).toBeGreaterThan(0.3);
     expect(state.speed).toBeLessThan(0.45);
+  });
+
+  describe("when the point rests", () => {
+    /** Sweep for one second, then hold still for `holdFrames` frames; notes during the hold. */
+    const restNotes = (rest: "once" | "repeat" | "silent", holdFrames: number) => {
+      const tracker = new MotionTracker({ ...options, rest });
+      let notes = 0;
+      for (let frame = 0; frame < 30 + holdFrames; frame += 1) {
+        const x = 0.1 + (0.4 * Math.min(frame, 30) * FRAME_MS) / 1000;
+        const { note } = tracker.update("a", x, 0.5, frame * FRAME_MS);
+        if (frame > 40 && note) notes += 1;
+      }
+      return notes;
+    };
+
+    it("plays one note after stopping", () => {
+      expect(restNotes("once", 120)).toBe(1);
+    });
+
+    it("repeats about once a second while resting", () => {
+      // Four seconds of rest: the first note, then roughly one per second.
+      expect(restNotes("repeat", 120)).toBeGreaterThanOrEqual(3);
+      expect(restNotes("repeat", 120)).toBeLessThanOrEqual(5);
+    });
+
+    it("stays silent when asked", () => {
+      expect(restNotes("silent", 120)).toBe(0);
+    });
+
+    it("does not repeat the appearance note for a point that never moved", () => {
+      const tracker = new MotionTracker({ ...options, rest: "once" });
+      let notes = 0;
+      for (let frame = 0; frame < 90; frame += 1) {
+        if (tracker.update("a", 0.5, 0.5, frame * FRAME_MS).note) notes += 1;
+      }
+      expect(notes).toBe(1);
+    });
   });
 });
