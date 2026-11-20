@@ -30,7 +30,6 @@ import {
   type Mask,
   maxAreaQuad,
   orderCorners,
-  otsuThreshold,
   positiveDiff,
   threshold,
 } from "./vision";
@@ -52,6 +51,8 @@ export type MappingIO = {
   capture: (frames: number) => Promise<Gray>;
   wait: (ms: number) => Promise<void>;
   progress?: (step: MappingStep) => void;
+  /** Receives intermediate camera images (for troubleshooting). */
+  debug?: (name: string, image: Gray) => void;
   signal?: AbortSignal;
 };
 
@@ -81,6 +82,11 @@ export type MappingDiagnostics = {
   proximityMatched: number | null;
   rms: number;
   method: "coded" | "proximity" | "none";
+  /** Share of the dot grid spanned by the dots used. */
+  coverage: number;
+  /** Screen outline and dot blobs in camera pixels. */
+  corners: Vec2[];
+  blobPoints: Vec2[];
 };
 
 export const DOT_COLS = 8;
@@ -120,8 +126,11 @@ export class MappingUnreliableError extends Error {
   }
 }
 
-/** A mapping must match at least this share of the dots… */
-const MIN_MATCHED_SHARE = 0.6;
+/** A mapping needs at least this many dots… */
+const MIN_MATCHED = 12;
+/** …spread over at least this share of the dot grid's area (a fit from one corner or a thin
+ * strip extrapolates badly; half the screen, precisely fitted, extrapolates well)… */
+const MIN_COVERAGE = 0.45;
 /** …with a reprojection RMS below this (normalised screen units, ≈ 4–6 CSS px). */
 const MAX_RMS = 0.006;
 
@@ -146,9 +155,26 @@ export const dotGrid = (cols = DOT_COLS, rows = DOT_ROWS, margin = DOT_MARGIN): 
 };
 
 /** Finds the lit screen from a white and a black capture. */
+/** Value below which `share` of the pixels fall (0–255 histogram). */
+const percentile = (g: Gray, share: number) => {
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < g.data.length; i++) hist[Math.max(0, Math.min(255, Math.round(g.data[i])))]++;
+  let count = 0;
+  for (let v = 0; v < 256; v++) {
+    count += hist[v];
+    if (count >= share * g.data.length) return v;
+  }
+  return 255;
+};
+
+/** Share of the screen's brightest white response that still counts as lit screen. */
+const LIT_SHARE = 0.2;
+
 export const findScreenQuad = (white: Gray, black: Gray) => {
   const diff = positiveDiff(white, black);
-  const t = Math.max(otsuThreshold(diff), 12);
+  // Seen at an angle an LCD is much dimmer on one side: anything clearly brighter on white than
+  // on black is screen, not just the brighter half an automatic (Otsu) split would keep.
+  const t = Math.max(12, LIT_SHARE * percentile(diff, 0.995));
   // Opening removes thin bridges to reflections on walls or the floor.
   const opened = dilate(erode(threshold(diff, t), 2), 2);
   const comp = largestComponent(opened);
@@ -158,11 +184,33 @@ export const findScreenQuad = (white: Gray, black: Gray) => {
   return { corners: orderCorners(maxAreaQuad(hull)), mask: comp.mask, area: comp.area };
 };
 
-export const findDots = (dots: Gray, black: Gray, region: Mask, expectedArea: number) => {
-  const diff = positiveDiff(dots, black);
-  const t = Math.max(otsuThreshold(diff, region), 15);
-  const mask = threshold(diff, t, region);
-  return blobCentroids(mask, diff, Math.max(2, expectedArea * 0.15), expectedArea * 6 + 50);
+/**
+ * Dots relative to how bright the same spot is on the white frame, so dots in a dim part of the
+ * screen (viewing angle, vignetting) count as much as dots in a bright part.
+ */
+export const findDots = (
+  dots: Gray,
+  black: Gray,
+  white: Gray,
+  region: Mask,
+  expectedArea: number,
+) => {
+  const response = new Float32Array(dots.data.length);
+  const mask = new Uint8Array(dots.data.length);
+  for (let i = 0; i < response.length; i++) {
+    if (!region.data[i]) continue;
+    const lit = white.data[i] - black.data[i];
+    if (lit < 8) continue;
+    const r = Math.min(1.5, Math.max(0, (dots.data[i] - black.data[i]) / lit));
+    response[i] = r * 100;
+    mask[i] = r > 0.45 ? 1 : 0;
+  }
+  return blobCentroids(
+    { data: mask, width: dots.width, height: dots.height },
+    { data: response, width: dots.width, height: dots.height },
+    Math.max(2, expectedArea * 0.15),
+    expectedArea * 6 + 50,
+  );
 };
 
 /** Greedy nearest matching of predicted dot positions to detected blobs. */
@@ -263,7 +311,21 @@ export const decodeDots = (
   return [...byDot].filter(([, js]) => js.length === 1).map(([dot, [blob]]) => ({ dot, blob }));
 };
 
-type Fit = { h: number[]; rms: number; matched: number };
+type Fit = { h: number[]; rms: number; matched: number; coverage: number };
+
+/** Share of the dot grid's area spanned by the given (matched) dots. */
+const gridCoverage = (screenPoints: readonly Vec2[]) => {
+  if (screenPoints.length < 3) return 0;
+  const hull = convexHull(screenPoints);
+  const area =
+    Math.abs(
+      hull.reduce((sum, a, i) => {
+        const b = hull[(i + 1) % hull.length];
+        return sum + a[0] * b[1] - b[0] * a[1];
+      }, 0),
+    ) / 2;
+  return area / (1 - 2 * DOT_MARGIN) ** 2;
+};
 
 const fitPairs = (
   blobs: readonly Blob[],
@@ -275,7 +337,12 @@ const fitPairs = (
     pairs.map((p) => dots[p.dot]),
   );
   return fit
-    ? { h: fit.h, rms: reprojectionRms(fit.h, fit.cam, fit.screen), matched: fit.cam.length }
+    ? {
+        h: fit.h,
+        rms: reprojectionRms(fit.h, fit.cam, fit.screen),
+        matched: fit.cam.length,
+        coverage: gridCoverage(fit.screen),
+      }
     : null;
 };
 
@@ -329,6 +396,7 @@ export async function mapScreen(
     const white = await show({ kind: "white" }, "white");
     if (aborted()) return new MappingAbortedError();
 
+    io.debug?.("white-minus-black", positiveDiff(white, black));
     const screen = findScreenQuad(white, black);
     if (!screen) return new ScreenNotFoundError();
     const coarse = solveHomography(screen.corners, SCREEN_CORNERS);
@@ -338,6 +406,7 @@ export async function mapScreen(
     const dots = dotGrid();
     const dotsImage = await show({ kind: "dots", dots, radius: DOT_RADIUS }, "dots");
     if (aborted()) return new MappingAbortedError();
+    io.debug?.("dots-minus-black", positiveDiff(dotsImage, black));
 
     const { width, height } = dotsImage;
     // Dot radius is relative to the viewport's short side → share of the screen area per dot.
@@ -345,7 +414,7 @@ export async function mapScreen(
     const dotAreaFraction = Math.PI * DOT_RADIUS ** 2 * Math.min(aspect, 1 / aspect);
     const expectedArea = Math.max(4, quadArea(screen.corners) * dotAreaFraction);
     const region = dilate(screen.mask, Math.round(0.015 * width));
-    const blobs = findDots(dotsImage, black, region, expectedArea);
+    const blobs = findDots(dotsImage, black, white, region, expectedArea);
 
     // Identify every dot by its code instead of guessing from positions: the coarse outline can
     // be badly skewed when someone hides part of the screen, the codes are not affected.
@@ -370,14 +439,27 @@ export async function mapScreen(
 
     const pairs = decodeDots(blobs, dotsImage, black, colFrames, rowFrames);
     const coded = pairs.length >= 6 ? fitPairs(blobs, dots, pairs) : null;
+    const acceptable = (fit: Fit | null): boolean =>
+      fit !== null &&
+      fit.matched >= MIN_MATCHED &&
+      fit.coverage >= MIN_COVERAGE &&
+      fit.rms <= MAX_RMS;
     let best = coded;
     let proximityMatched: number | null = null;
-    // Codes misread (e.g. a frame captured before the screen changed): also try matching by
-    // position from the screen outline, and keep whichever explains more dots.
-    if (!coded || coded.matched < MIN_MATCHED_SHARE * dots.length) {
+    // Decoded dots are ground truth: when enough were read, they decide. Matching by position is
+    // only a fallback for unreadable codes (e.g. frames captured before the screen changed), and
+    // it can lock onto the wrong dots when the outline is wrong, so it must agree with any dots
+    // that were decoded.
+    if (pairs.length < MIN_MATCHED) {
       const near = matchByProximity(blobs, dots, coarseInv);
       proximityMatched = near?.matched ?? 0;
-      if (near && near.matched > (best?.matched ?? 0)) best = near;
+      const agrees =
+        near !== null &&
+        pairs.every((p) => {
+          const [u, v] = applyHomography(near.h, blobs[p.blob].x, blobs[p.blob].y);
+          return Math.hypot(u - dots[p.dot][0], v - dots[p.dot][1]) < 0.02;
+        });
+      if (near && agrees && acceptable(near)) best = near;
     }
     const diagnostics: MappingDiagnostics = {
       screenShare: screen.area / (width * height),
@@ -387,8 +469,11 @@ export async function mapScreen(
       proximityMatched,
       rms: best?.rms ?? Number.NaN,
       method: !best ? "none" : best === coded ? "coded" : "proximity",
+      coverage: best?.coverage ?? 0,
+      corners: screen.corners.map(([x, y]) => [Math.round(x), Math.round(y)] as Vec2),
+      blobPoints: blobs.map((b) => [Math.round(b.x), Math.round(b.y)] as Vec2),
     };
-    if (!best || best.matched < MIN_MATCHED_SHARE * dots.length || !(best.rms <= MAX_RMS)) {
+    if (!best || !acceptable(best)) {
       return new MappingUnreliableError(best?.matched ?? 0, dots.length, diagnostics);
     }
     const { h: homography, rms, matched } = best;

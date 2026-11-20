@@ -29,7 +29,7 @@ const camToScreen = solveHomography(CORNERS, [
 type Rect = { x0: number; y0: number; x1: number; y1: number };
 
 /** Camera image of the screen showing `pattern`, optionally with a person (rect) in front. */
-const render = (pattern: Pattern, occluder?: Rect): Gray => {
+const render = (pattern: Pattern, occluder?: Rect, falloff = false): Gray => {
   const data = new Float32Array(W * H);
   // Dot radius is a share of the viewport's short side → radii in normalised u and v.
   const aspect = ASPECT;
@@ -50,6 +50,8 @@ const render = (pattern: Pattern, occluder?: Rect): Gray => {
           }
         }
       }
+      // Viewing angle: the screen's top looks four times dimmer than its bottom.
+      if (falloff && onScreen) v = 12 + (v - 12) * (0.25 + 0.75 * s);
       if (occluder && x >= occluder.x0 && x < occluder.x1 && y >= occluder.y0 && y < occluder.y1) {
         v = 55;
       }
@@ -59,13 +61,13 @@ const render = (pattern: Pattern, occluder?: Rect): Gray => {
   return { data, width: W, height: H };
 };
 
-const fakeIO = (occluder?: Rect): MappingIO => {
+const fakeIO = (occluder?: Rect, falloff = false): MappingIO => {
   let current: Pattern | null = null;
   return {
     showPattern: async (p) => {
       current = p;
     },
-    capture: async () => render(current ?? { kind: "black" }, occluder),
+    capture: async () => render(current ?? { kind: "black" }, occluder, falloff),
     wait: async () => {},
   };
 };
@@ -149,6 +151,17 @@ describe("screen mapping", () => {
     if (result instanceof Error) return;
     expect(result.diagnostics.method).toBe("proximity");
     expect(result.matchedDots).toBeGreaterThanOrEqual(30);
+  });
+
+  it("finds every dot when the screen is much dimmer on one side (viewing angle)", async () => {
+    const result = await mapScreen(fakeIO(undefined, true), {
+      viewportAspect: ASPECT,
+      settleMs: 0,
+    });
+    expect(result).not.toBeInstanceOf(Error);
+    if (result instanceof Error) return;
+    expect(result.matchedDots).toBe(40);
+    expect(result.diagnostics.method).toBe("coded");
   });
 
   it("reports when no screen is visible", async () => {

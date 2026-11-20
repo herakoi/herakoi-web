@@ -70,6 +70,30 @@ const gate = (track: PointTrack, u: number, v: number, dt: number): [number, num
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
+/** Small JPEG of a grey image, auto-scaled to its brightest values (for troubleshooting logs). */
+const grayToDataUrl = (image: Gray, width: number) => {
+  const height = Math.round((width * image.height) / image.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  let max = 1;
+  for (let i = 0; i < image.data.length; i += 7) max = Math.max(max, image.data[i]);
+  const out = ctx.createImageData(width, height);
+  for (let y = 0; y < height; y++) {
+    const sy = Math.floor((y * image.height) / height);
+    for (let x = 0; x < width; x++) {
+      const v = (255 * image.data[sy * image.width + Math.floor((x * image.width) / width)]) / max;
+      const p = (y * width + x) * 4;
+      out.data[p] = out.data[p + 1] = out.data[p + 2] = v;
+      out.data[p + 3] = 255;
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+  return canvas.toDataURL("image/jpeg", 0.8);
+};
+
 /**
  * Where to look for hands when no body is in view: the screen in the camera image (plus a
  * margin for hands at its edges), and the smallest believable hand there (~5% of the screen
@@ -203,7 +227,9 @@ export class WallPointDetector implements PointDetector {
       capture: (frames) => this.captureGray(video, frames),
       wait: sleep,
       progress: (step) => store.setMapping({ status: "running", step }),
+      debug: (name, image) => debugImages.push({ name, image }),
     };
+    const debugImages: Array<{ name: string; image: Gray }> = [];
     try {
       // Countdown on screen so whoever pressed the button can step out of the camera view.
       for (let seconds = 3; seconds > 0; seconds--) {
@@ -223,7 +249,14 @@ export class WallPointDetector implements PointDetector {
             : { message: result.message },
         ),
       );
-      if (result instanceof Error) return result;
+      if (result instanceof Error) {
+        if (import.meta.env.DEV) {
+          for (const { name, image } of debugImages) {
+            console.warn(`[wall] debug-image ${name} ${grayToDataUrl(image, 480)}`);
+          }
+        }
+        return result;
+      }
       const errorPx = Number.isFinite(result.rms)
         ? (result.rms * (window.innerWidth + window.innerHeight)) / 2
         : null;
