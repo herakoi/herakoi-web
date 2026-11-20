@@ -19,6 +19,10 @@ export const messages = defineMessages({
     "waveform.triangle": "Triangle",
     "waveform.sawtooth": "Sawtooth",
     "waveform.square": "Square",
+    "soundMode.label": "Sound",
+    "soundMode.moving": "Only while the hand moves (louder when faster)",
+    "soundMode.plucked": "Plucked, faster as the hand moves",
+    "soundMode.continuous": "Continuous",
   },
   it: {
     displayName: "Oscillatore Web Audio",
@@ -36,6 +40,10 @@ export const messages = defineMessages({
     "waveform.triangle": "Triangolare",
     "waveform.sawtooth": "A dente di sega",
     "waveform.square": "Quadra",
+    "soundMode.label": "Suono",
+    "soundMode.moving": "Solo mentre la mano si muove (più forte se più veloce)",
+    "soundMode.plucked": "Pizzicato, più fitto se la mano è più veloce",
+    "soundMode.continuous": "Continuo",
   },
 });
 

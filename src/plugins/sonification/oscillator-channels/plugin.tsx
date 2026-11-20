@@ -17,6 +17,7 @@ import {
   type ChannelOscillatorConfig,
   channelOscillatorPluginId,
   defaultChannelOscillatorConfig,
+  effectSlotsOf,
 } from "./config";
 import "./i18n";
 import { useChannelOscillatorAudioStore } from "./store";
@@ -37,19 +38,19 @@ const optionsFromConfig = (config: ChannelOscillatorConfig): ChannelOscillatorSo
     invert: config.volumeInvert,
     noData: config.volumeNoData,
   },
-  effectBinding: {
-    channel: config.effectChannel,
-    invert: config.effectInvert,
-    noData: config.effectNoData,
-  },
-  effectKind: config.effectChannel ? config.effectKind : "none",
-  effectAmount: config.effectAmount,
+  effects: effectSlotsOf(config).map((slot) => ({
+    binding: { channel: slot.channel, invert: slot.invert, noData: slot.noData },
+    kind: slot.kind,
+    amount: slot.amount,
+  })),
   proximityReach: config.proximityReach,
   minFreq: config.minFreq,
   maxFreq: config.maxFreq,
   minVol: config.minVol,
   maxVol: config.maxVol,
   oscillatorType: config.oscillatorType,
+  soundMode: config.soundMode,
+  restBehavior: config.restBehavior,
 });
 
 export const plugin: SonificationPluginDefinition<

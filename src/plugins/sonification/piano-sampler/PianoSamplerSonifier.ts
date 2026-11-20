@@ -1,9 +1,21 @@
 import { Frequency, getContext, now, Sampler, setContext, start } from "tone";
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
 import {
+  MotionTracker,
+  type RestBehavior,
+  samplePosition,
+} from "#src/plugins/sonification/shared/motion";
+import {
   type SinkableAudioContext,
   SinkOutputRouter,
 } from "#src/plugins/sonification/shared/SinkOutputRouter";
+
+/**
+ * When notes play: "motion" fires a note each time the point has moved a set distance
+ * (faster hand, more notes; still hand, none); "change" fires whenever the note under
+ * the point changes.
+ */
+export type PianoPlayMode = "motion" | "change";
 
 const SALAMANDER_BASE_URL = "https://tonejs.github.io/audio/salamander/";
 
@@ -46,6 +58,15 @@ export interface PianoSamplerSonifierOptions extends SonifierOptions {
   velocityMin?: number;
   velocityMax?: number;
   noteDuration?: string;
+  playMode?: PianoPlayMode;
+  /** What to play when the hand rests in one spot. */
+  restBehavior?: RestBehavior;
+  /** Motion mode: one more note per this distance travelled, in canvas heights. */
+  motionStep?: number;
+  /** Motion mode: notes per second while moving, however slowly. */
+  minNotesPerSecond?: number;
+  /** Most notes per second for one point in motion mode. */
+  maxNotesPerSecond?: number;
   masterVolume?: number;
   muted?: boolean;
   sinkId?: string;
@@ -66,6 +87,8 @@ export class PianoSamplerSonifier implements Sonifier {
   private velocityMin = 40;
   private velocityMax = 127;
   private noteDuration = "8n";
+  private playMode: PianoPlayMode = "motion";
+  private motion = new MotionTracker();
   private masterVolume = 1;
   private muted = false;
   private sinkId = "";
@@ -151,10 +174,8 @@ export class PianoSamplerSonifier implements Sonifier {
         ),
       );
 
-      if (midiNote === this.lastNotes.get(id)) {
-        seen.add(id);
-        continue;
-      }
+      seen.add(id);
+      if (!this.shouldPlay(id, sample, midiNote)) continue;
 
       // Map valueByte (0–255) → velocity (0–1)
       const velocity =
@@ -164,7 +185,6 @@ export class PianoSamplerSonifier implements Sonifier {
       this.sampler.triggerAttackRelease(noteName, this.noteDuration, now(), velocity);
 
       this.lastNotes.set(id, midiNote);
-      seen.add(id);
     }
 
     // Clean up IDs no longer in samples
@@ -173,6 +193,19 @@ export class PianoSamplerSonifier implements Sonifier {
         this.lastNotes.delete(id);
       }
     }
+    this.motion.retain(seen);
+  }
+
+  /**
+   * Whether point `id` should play `midiNote` now. Motion mode needs the point's position
+   * (added by the engine); without it, notes play on change.
+   */
+  private shouldPlay(id: string, sample: ImageSample, midiNote: number): boolean {
+    const position = samplePosition(sample);
+    if (this.playMode === "motion" && position) {
+      return this.motion.update(id, position.x, position.y, performance.now()).note;
+    }
+    return midiNote !== this.lastNotes.get(id);
   }
 
   stop(): void {
@@ -191,6 +224,7 @@ export class PianoSamplerSonifier implements Sonifier {
     // Tone uses a shared global context. Closing it during plugin switches can leave
     // future plugin instances bound to a closed context and block audio recovery.
     this.lastNotes.clear();
+    this.motion.clear();
   }
 
   configure(options: PianoSamplerSonifierOptions): void {
@@ -199,6 +233,19 @@ export class PianoSamplerSonifier implements Sonifier {
     if (options.velocityMin !== undefined) this.velocityMin = options.velocityMin;
     if (options.velocityMax !== undefined) this.velocityMax = options.velocityMax;
     if (options.noteDuration !== undefined) this.noteDuration = options.noteDuration;
+    if (options.playMode !== undefined) this.playMode = options.playMode;
+    if (options.restBehavior !== undefined) this.motion.configure({ rest: options.restBehavior });
+    if (
+      options.motionStep !== undefined ||
+      options.minNotesPerSecond !== undefined ||
+      options.maxNotesPerSecond !== undefined
+    ) {
+      this.motion.configure({
+        ...(options.motionStep !== undefined ? { step: options.motionStep } : {}),
+        ...(options.minNotesPerSecond !== undefined ? { minRate: options.minNotesPerSecond } : {}),
+        ...(options.maxNotesPerSecond !== undefined ? { maxRate: options.maxNotesPerSecond } : {}),
+      });
+    }
     if (options.masterVolume !== undefined) {
       this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
     }

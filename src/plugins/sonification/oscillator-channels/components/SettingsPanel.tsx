@@ -1,11 +1,12 @@
-import { useId } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useId, useMemo } from "react";
 import type { SampleChannel } from "#src/core/interfaces";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
-import {
-  type VoiceEffectKind,
-  voiceEffectKinds,
-} from "#src/plugins/sonification/shared/voiceEffects";
+import { type SoundMode, soundModes } from "#src/plugins/sonification/shared/motionGate";
+import { RestBehaviorSelect } from "#src/plugins/sonification/shared/RestBehaviorSelect";
+import { voiceEffectKinds } from "#src/plugins/sonification/shared/voiceEffects";
 import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
+import { Button } from "#src/shared/components/ui/button";
 import { Label } from "#src/shared/components/ui/label";
 import {
   Select,
@@ -18,8 +19,13 @@ import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
 import { useSampleChannels } from "#src/shared/sampling/sampleChannels";
 import utilities from "#src/shared/styles/utilities.module.css";
-import type { NoDataBehavior } from "../ChannelOscillatorSonifier";
-import type { ChannelOscillatorConfig } from "../config";
+import { handSpeedChannel, type NoDataBehavior } from "../ChannelOscillatorSonifier";
+import {
+  type ChannelOscillatorConfig,
+  type EffectSlotConfig,
+  type EffectSlotKind,
+  effectSlotsOf,
+} from "../config";
 import { useT } from "../i18n";
 import { useChannelOscillatorAudioStore } from "../store";
 import styles from "./SettingsPanel.module.css";
@@ -27,7 +33,7 @@ import styles from "./SettingsPanel.module.css";
 /** Value of the "None" option; Radix Select does not accept an empty value. */
 const NONE = "__none__";
 
-const translatedChannels = new Set(["hueByte", "saturationByte", "valueByte"]);
+const translatedChannels = new Set(["hueByte", "saturationByte", "valueByte", "handSpeed"]);
 
 const noDataBehaviors: NoDataBehavior[] = ["pulse", "proximity", "silence", "neutral"];
 
@@ -65,7 +71,7 @@ const ChannelPicker = ({
   const invertId = useId();
   const channelName = (channel: SampleChannel) =>
     translatedChannels.has(channel.key)
-      ? t(`channel.${channel.key as "hueByte" | "saturationByte" | "valueByte"}`)
+      ? t(`channel.${channel.key as "hueByte" | "saturationByte" | "valueByte" | "handSpeed"}`)
       : channel.label;
   // A stored channel the current image lacks stays selectable, so the choice is not lost.
   const missing = value !== null && !channels.some((channel) => channel.key === value);
@@ -127,23 +133,162 @@ const ChannelPicker = ({
   );
 };
 
+const effectKinds = voiceEffectKinds.filter((kind): kind is EffectSlotKind => kind !== "none");
+
+type EffectSlotEditorProps = {
+  slot: EffectSlotConfig;
+  index: number;
+  channels: readonly SampleChannel[];
+  /** Kinds taken by other slots: each effect type is used at most once. */
+  usedKinds: readonly EffectSlotKind[];
+  onChange: (updates: Partial<EffectSlotConfig>) => void;
+  onRemove: () => void;
+};
+
+const EffectSlotEditor = ({
+  slot,
+  index,
+  channels,
+  usedKinds,
+  onChange,
+  onRemove,
+}: EffectSlotEditorProps) => {
+  const t = useT();
+  const name = t("effects.name", { number: index + 1 });
+
+  return (
+    <div className={styles.effectSlot}>
+      <div className={styles.effectHeader}>
+        <Select
+          value={slot.kind}
+          onValueChange={(kind) => onChange({ kind: kind as EffectSlotKind })}
+        >
+          <SelectTrigger aria-label={t("effects.kind", { name })}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {effectKinds
+              .filter((kind) => kind === slot.kind || !usedKinds.includes(kind))
+              .map((kind) => (
+                <SelectItem key={kind} value={kind}>
+                  {t(`effect.${kind}`)}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={t("effects.remove", { name })}
+          onClick={onRemove}
+        >
+          <Trash2 className={styles.buttonIcon} aria-hidden="true" />
+        </Button>
+      </div>
+      <p className={styles.hint}>{t(`effect.${slot.kind}.hint`)}</p>
+      <ChannelPicker
+        label={t("effects.channel", { name })}
+        value={slot.channel}
+        channels={channels}
+        invert={slot.invert}
+        invertLabel={t("invert.aria", { property: name })}
+        onChannelChange={(channel) => {
+          if (channel) onChange({ channel });
+        }}
+        onInvertChange={(invert) => onChange({ invert })}
+        noData={slot.noData}
+        neutralKind="effect"
+        noDataLabel={t("noData.aria", { property: name })}
+        onNoDataChange={(noData) => onChange({ noData })}
+      />
+      <Label>{t("effectAmount.label", { amount: Math.round(slot.amount * 100) })}</Label>
+      <Slider
+        min={0}
+        max={100}
+        step={1}
+        value={[slot.amount * 100]}
+        aria-label={t("effectAmount.aria", { name })}
+        onValueChange={([amount]) => onChange({ amount: amount / 100 })}
+      />
+    </div>
+  );
+};
+
 export const ChannelOscillatorSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<ChannelOscillatorConfig>) => {
   const t = useT();
-  const channels = useSampleChannels();
+  const sampleChannels = useSampleChannels();
+  const channels = useMemo(() => [...sampleChannels, handSpeedChannel], [sampleChannels]);
   const sinkId = useChannelOscillatorAudioStore((state) => state.sinkId);
   const setSinkId = useChannelOscillatorAudioStore((state) => state.setSinkId);
-  const effectActive = config.effectChannel !== null && config.effectKind !== "none";
+  // Hand speed drives pitch or volume only; effects follow image channels.
+  const effectChannels = sampleChannels;
+  const effects = effectSlotsOf(config);
+  const freeKinds = effectKinds.filter((kind) => !effects.some((slot) => slot.kind === kind));
   const usesProximity =
     config.pitchNoData === "proximity" ||
     config.volumeNoData === "proximity" ||
-    (config.effectChannel !== null && config.effectNoData === "proximity");
+    effects.some((slot) => slot.channel !== null && slot.noData === "proximity");
+
+  const updateEffect = (id: string, updates: Partial<EffectSlotConfig>) => {
+    setConfig({
+      effects: effects.map((slot) => (slot.id === id ? { ...slot, ...updates } : slot)),
+    });
+  };
+
+  const addEffect = () => {
+    const kind = freeKinds[0];
+    if (!kind) return;
+    // Start from an image layer when there is one: that is what extra effects are for.
+    const channel =
+      effectChannels.find((channel) => channel.key.startsWith("layer."))?.key ?? "saturationByte";
+    const ids = effects.map((slot) => Number(slot.id.replace("effect-", "")) || 0);
+    setConfig({
+      effects: [
+        ...effects,
+        {
+          id: `effect-${Math.max(0, ...ids) + 1}`,
+          channel,
+          invert: false,
+          noData: "pulse",
+          kind,
+          amount: 0.7,
+        },
+      ],
+    });
+  };
 
   return (
     <div className={utilities.stack4}>
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
+
+      <div className={utilities.stack2}>
+        <Label>{t("soundMode.label")}</Label>
+        <Select
+          value={config.soundMode}
+          onValueChange={(value) => setConfig({ soundMode: value as SoundMode })}
+        >
+          <SelectTrigger aria-label={t("soundMode.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {soundModes.map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {t(`soundMode.${mode}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {config.soundMode !== "continuous" ? (
+        <RestBehaviorSelect
+          value={config.restBehavior}
+          onValueChange={(restBehavior) => setConfig({ restBehavior })}
+        />
+      ) : null}
 
       <section className={utilities.stack2}>
         <h3 className={styles.heading}>{t("pitch.title")}</h3>
@@ -209,55 +354,24 @@ export const ChannelOscillatorSettingsPanel = ({
       </section>
 
       <section className={utilities.stack2}>
-        <h3 className={styles.heading}>{t("effect.title")}</h3>
-        <ChannelPicker
-          label={t("effect.channel")}
-          value={config.effectChannel}
-          channels={channels}
-          allowNone
-          invert={config.effectInvert}
-          invertLabel={t("invert.aria", { property: t("effect.title") })}
-          onChannelChange={(effectChannel) => setConfig({ effectChannel })}
-          onInvertChange={(effectInvert) => setConfig({ effectInvert })}
-          noData={config.effectNoData}
-          neutralKind="effect"
-          noDataLabel={t("noData.aria", { property: t("effect.title") })}
-          onNoDataChange={(effectNoData) => setConfig({ effectNoData })}
-        />
-        {config.effectChannel !== null ? (
-          <>
-            <Select
-              value={config.effectKind}
-              onValueChange={(value) => setConfig({ effectKind: value as VoiceEffectKind })}
-            >
-              <SelectTrigger aria-label={t("effect.kind")}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {voiceEffectKinds.map((kind) => (
-                  <SelectItem key={kind} value={kind}>
-                    {t(`effect.${kind}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className={styles.hint}>{t(`effect.${config.effectKind}.hint`)}</p>
-          </>
-        ) : null}
-        {effectActive ? (
-          <>
-            <Label>
-              {t("effectAmount.label", { amount: Math.round(config.effectAmount * 100) })}
-            </Label>
-            <Slider
-              min={0}
-              max={100}
-              step={1}
-              value={[config.effectAmount * 100]}
-              aria-label={t("effectAmount.aria")}
-              onValueChange={([amount]) => setConfig({ effectAmount: amount / 100 })}
-            />
-          </>
+        <h3 className={styles.heading}>{t("effects.title")}</h3>
+        {effects.length === 0 ? <p className={styles.hint}>{t("effects.empty")}</p> : null}
+        {effects.map((slot, index) => (
+          <EffectSlotEditor
+            key={slot.id}
+            slot={slot}
+            index={index}
+            channels={effectChannels}
+            usedKinds={effects.filter((other) => other.id !== slot.id).map((other) => other.kind)}
+            onChange={(updates) => updateEffect(slot.id, updates)}
+            onRemove={() => setConfig({ effects: effects.filter((other) => other.id !== slot.id) })}
+          />
+        ))}
+        {freeKinds.length > 0 ? (
+          <Button type="button" variant="outline" size="sm" onClick={addEffect}>
+            <Plus className={styles.buttonIcon} aria-hidden="true" />
+            {t("effects.add")}
+          </Button>
         ) : null}
       </section>
 

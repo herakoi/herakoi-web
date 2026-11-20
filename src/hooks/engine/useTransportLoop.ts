@@ -6,7 +6,7 @@ import type {
   SonifierHandle,
   VisualizerFrameData,
 } from "#src/core/plugin";
-import { mapDetectedPointsForSampling } from "#src/lib/canvas/sampling";
+import { attachPointPositions, mapDetectedPointsForSampling } from "#src/lib/canvas/sampling";
 import { updateSonificationDebugFrame } from "#src/lib/engine/visualizerFrame";
 import { syncChain } from "#src/lib/syncChain";
 import { useAppRuntimeStore } from "#src/state/appRuntimeStore";
@@ -124,7 +124,14 @@ export const useTransportLoop = (params: {
                   },
                 }),
               )
-              .next((mappedPoints) => activeSampler.sampler.sampleAt(mappedPoints))
+              .next((mappedPoints) => {
+                const samples = activeSampler.sampler.sampleAt(mappedPoints);
+                if (isError(samples)) return samples;
+                return attachPointPositions(samples, mappedPoints, {
+                  width: imageOverlayRef.current?.width ?? 0,
+                  height: imageOverlayRef.current?.height ?? 0,
+                });
+              })
               .next((samplesResult) => {
                 visualizerFrameDataRef.current.sampling = { samples: samplesResult };
                 return samplesResult;

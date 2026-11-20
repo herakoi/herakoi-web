@@ -1,3 +1,5 @@
+import { type ImageSample, pointPositionKeys } from "#src/core/interfaces";
+
 export type SamplePoint = {
   id: string;
   x: number;
@@ -88,4 +90,23 @@ export const mapDetectedPointsForSampling = <T extends SamplePoint>(params: {
   }
 
   return mappedPoints;
+};
+
+/**
+ * Add each point's canvas position (see `pointPositionKeys`) to its sample, so sonifiers
+ * can follow the point's motion. Points are normalised to the canvas (0–1 on each axis).
+ */
+export const attachPointPositions = (
+  samples: Map<string, ImageSample>,
+  points: readonly SamplePoint[],
+  canvasSize: CanvasSize,
+): Map<string, ImageSample> => {
+  const aspect = canvasSize.height > 0 ? canvasSize.width / canvasSize.height : 1;
+  for (const point of points) {
+    const sample = samples.get(point.id);
+    if (!sample) continue;
+    sample.data[pointPositionKeys.x] = point.x * aspect;
+    sample.data[pointPositionKeys.y] = point.y;
+  }
+  return samples;
 };

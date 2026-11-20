@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  attachPointPositions,
   isPointInsideVisibleRect,
   mapDetectedPointsForSampling,
   mapPointToCanvasSpace,
@@ -50,5 +51,24 @@ describe("canvas sampling utils", () => {
       { id: "inside-1", x: 0.5, y: 0.5 },
       { id: "inside-2", x: 0.4, y: 0.4 },
     ]);
+  });
+});
+
+describe("attachPointPositions", () => {
+  it("adds each point's position in canvas heights to its sample", () => {
+    const samples = new Map([["a", { data: { hueByte: 1 } as Record<string, number> }]]);
+    attachPointPositions(
+      samples,
+      [
+        { id: "a", x: 0.5, y: 0.25 },
+        { id: "gone", x: 0, y: 0 },
+      ],
+      {
+        width: 200,
+        height: 100,
+      },
+    );
+    expect(samples.get("a")?.data).toEqual({ hueByte: 1, pointX: 1, pointY: 0.25 });
+    expect(samples.has("gone")).toBe(false);
   });
 });

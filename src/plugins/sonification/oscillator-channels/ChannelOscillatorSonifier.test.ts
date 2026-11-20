@@ -87,9 +87,13 @@ describe("ChannelOscillatorSonifier", () => {
 
   it("applies the effect from its channel and leaves it neutral without data when asked", async () => {
     const sonifier = create({
-      effectBinding: { channel: "layer.0", invert: false, noData: "neutral" },
-      effectKind: "pan",
-      effectAmount: 1,
+      effects: [
+        {
+          binding: { channel: "layer.0", invert: false, noData: "neutral" },
+          kind: "pan",
+          amount: 1,
+        },
+      ],
     });
     await sonifier.initialize();
 
@@ -104,16 +108,16 @@ describe("ChannelOscillatorSonifier", () => {
 
   it("pulses the tone where the effect channel has no data, keeping the effect neutral", async () => {
     const sonifier = create({
-      effectBinding: { channel: "layer.0", invert: false, noData: "pulse" },
-      effectKind: "pan",
-      effectAmount: 1,
+      effects: [
+        { binding: { channel: "layer.0", invert: false, noData: "pulse" }, kind: "pan", amount: 1 },
+      ],
     });
     await sonifier.initialize();
 
     sonifier.processSamples(new Map([["a", { data: { hueByte: 0, valueByte: 255 } }]]));
 
-    // Gains in order: master, voice, pulse stage, pulse depth.
-    const pulseDepth = ctx.createGain.mock.results.at(-1)?.value;
+    // Gains in order: master, voice, pulse stage, pulse depth, motion gate.
+    const pulseDepth = ctx.createGain.mock.results.at(-2)?.value;
     expect(pulseDepth.gain.setTargetAtTime).toHaveBeenLastCalledWith(1, 0, expect.any(Number));
     const panner = ctx.createStereoPanner.mock.results[0]?.value;
     expect(panner.pan.setTargetAtTime).toHaveBeenLastCalledWith(0, 0, expect.any(Number));
@@ -126,8 +130,13 @@ describe("ChannelOscillatorSonifier", () => {
 
   it("silences the voice or plays the mid value, as each binding asks", async () => {
     const silent = create({
-      effectBinding: { channel: "layer.0", invert: false, noData: "silence" },
-      effectKind: "pan",
+      effects: [
+        {
+          binding: { channel: "layer.0", invert: false, noData: "silence" },
+          kind: "pan",
+          amount: 1,
+        },
+      ],
     });
     await silent.initialize();
     silent.processSamples(new Map([["a", { data: { hueByte: 0, valueByte: 255 } }]]));
@@ -147,8 +156,13 @@ describe("ChannelOscillatorSonifier", () => {
         { key: "layer.0", label: "1. Z", min: 0, max: 1, distanceKey: "layer.0:distance" },
       ],
       proximityReach: 0.2,
-      effectBinding: { channel: "layer.0", invert: false, noData: "proximity" },
-      effectKind: "pan",
+      effects: [
+        {
+          binding: { channel: "layer.0", invert: false, noData: "proximity" },
+          kind: "pan",
+          amount: 1,
+        },
+      ],
     });
     await sonifier.initialize();
     const rateAt = (distance: number) => {
@@ -164,5 +178,59 @@ describe("ChannelOscillatorSonifier", () => {
     expect(rateAt(0.1)).toBeGreaterThan(1);
     expect(rateAt(0.1)).toBeLessThan(rateAt(0.01));
     expect(rateAt(0)).toBeCloseTo(8);
+  });
+
+  it("offers the hand speed as a channel", async () => {
+    const sonifier = create({
+      pitchBinding: { channel: "handSpeed", invert: false, noData: "silence" },
+    });
+    await sonifier.initialize();
+    const frame = (x: number, ms: number) => {
+      vi.spyOn(performance, "now").mockReturnValue(ms);
+      sonifier.processSamples(
+        new Map([["a", { data: { valueByte: 255, pointX: x, pointY: 0.5 } }]]),
+      );
+    };
+
+    // 0.5 canvas heights per second for half a second.
+    for (let step = 0; step <= 15; step += 1) frame(0.1 + (0.5 * step) / 30, (step * 1000) / 30);
+
+    // Speed 0.5 of the channel's 0–1 range: halfway between 200 and 700 Hz.
+    expect(sonifier.getLastFrameDebug().get("a")?.frequency).toBeGreaterThan(400);
+    expect(sonifier.getLastFrameDebug().get("a")?.frequency).toBeLessThan(470);
+    vi.restoreAllMocks();
+  });
+
+  it("chains several effects, each driven by its own channel", async () => {
+    const sonifier = create({
+      channels: [
+        { key: "layer.0", label: "1. A", min: 0, max: 1 },
+        { key: "layer.1", label: "2. B", min: 0, max: 1 },
+      ],
+      effects: [
+        {
+          binding: { channel: "layer.0", invert: false, noData: "neutral" },
+          kind: "pan",
+          amount: 1,
+        },
+        {
+          binding: { channel: "layer.1", invert: false, noData: "neutral" },
+          kind: "vibrato",
+          amount: 1,
+        },
+      ],
+    });
+    await sonifier.initialize();
+
+    sonifier.processSamples(
+      new Map([["a", { data: { hueByte: 0, valueByte: 255, "layer.0": 0, "layer.1": 1 } }]]),
+    );
+
+    const panner = ctx.createStereoPanner.mock.results[0]?.value;
+    expect(panner.pan.setTargetAtTime).toHaveBeenLastCalledWith(-1, 0, expect.any(Number));
+    // Oscillators in order: voice, no-data pulse LFO, vibrato LFO. Vibrato depth is the last gain.
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(3);
+    const vibratoDepth = ctx.createGain.mock.results.at(-1)?.value;
+    expect(vibratoDepth.gain.setTargetAtTime).toHaveBeenLastCalledWith(100, 0, expect.any(Number));
   });
 });
