@@ -30,13 +30,17 @@ The app is built around a **compile-time plugin system** with four pipeline slot
 | Slot | Interface | Current implementation |
 |------|-----------|----------------------|
 | `detection` | `PointDetector` | `mediapipe/` — MediaPipe Hands |
-| `sampling` | `ImageSampler` | `hsv/` — HSV color space sampler |
-| `sonification` | `Sonifier` | `oscillator/` — Web Audio oscillators |
+| `sampling` | `ImageSampler` | `hsv/` — HSV color space sampler; `layers/` — multi-layer images (FITS, PNG/JPG as R/G/B) |
+| `sonification` | `Sonifier` | `oscillator/` — Web Audio oscillators; `oscillator-channels/` — pitch/volume/effect from chosen channels; `piano-sampler/` |
 | `visualization` | *(optional)* | `debugHud/` — Canvas overlay |
 
 **Data flow:** Video → MediaPipe → normalized (0–1) points → pixel color samples (`{h,s,v,...}`) → oscillator tones → speakers.
 
-**Plugin discovery** (`src/engineConfig.ts`): Uses `import.meta.glob()` to find all `src/plugins/<kind>/<name>/plugin.ts(x)` files at build time. The path determines the plugin's `kind` and `id` (e.g. `detection/mediapipe`).
+**Sample channels:** besides `hueByte`/`saturationByte`/`valueByte` (0–255, always present), a sampler may add channels (`layers/` adds `layer.<i>`, 0–1). It publishes their list (`SampleChannel` in `src/core/interfaces.ts`) through `src/shared/sampling/sampleChannels.ts`, which sonifiers read. A channel missing from a sample means "no data" (NaN).
+
+**Image samplers** share their lifecycle, viewport (pan/zoom/rotate), image library and toolbar through `src/shared/image/` (`createImageSamplerHandle`, `createImageRuntimeStore`, `ImageToolbar`, `ImageLibrarySettings`).
+
+**Plugin discovery** (`src/engineConfig.ts`): Uses `import.meta.glob()` to find all `src/plugins/<kind>/<name>/plugin.ts(x)` files at build time. The path determines the plugin's `kind` and `id` (e.g. `detection/mediapipe`). Plugins are sorted by id, and the first in each slot is the default.
 
 **Plugin isolation**: Biome enforces that plugins only import from `#src/core/*`, `#src/shared/*`, or other plugins — never from shell/app code. Adding a new plugin means creating a directory under `src/plugins/<kind>/<name>/` with a `plugin.ts(x)` entry exporting a typed plugin object.
 
