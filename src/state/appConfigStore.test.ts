@@ -89,6 +89,53 @@ describe("appConfigStore", () => {
     });
   });
 
+  describe("saved plugin configs", () => {
+    afterEach(() => {
+      localStorage.removeItem(APP_CONFIG_KEY);
+    });
+
+    const savedPluginConfigs = (pluginConfigs: Record<string, unknown>) => {
+      localStorage.setItem(
+        APP_CONFIG_KEY,
+        JSON.stringify({ version: 1, state: { pluginConfigs } }),
+      );
+    };
+
+    it("fills in plugins added after the config was saved", async () => {
+      savedPluginConfigs({
+        "sonification/oscillator": {
+          ...pluginConfigDefaults["sonification/oscillator"],
+          minFreq: 300,
+        },
+      });
+      await useAppConfigStore.persist.rehydrate();
+
+      const { pluginConfigs } = useAppConfigStore.getState();
+      expect(pluginConfigs["sonification/oscillator"]).toMatchObject({ minFreq: 300 });
+      expect(pluginConfigs["sonification/oscillator-channels"]).toEqual(
+        pluginConfigDefaults["sonification/oscillator-channels"],
+      );
+    });
+
+    it("repairs a partial saved entry and keeps defaults when writing a new plugin", async () => {
+      savedPluginConfigs({ "sonification/oscillator-channels": { pitchInvert: true } });
+      await useAppConfigStore.persist.rehydrate();
+      expect(
+        useAppConfigStore.getState().pluginConfigs["sonification/oscillator-channels"],
+      ).toEqual({
+        ...pluginConfigDefaults["sonification/oscillator-channels"],
+        pitchInvert: true,
+      });
+
+      useAppConfigStore.setState({ pluginConfigs: {} as typeof pluginConfigDefaults });
+      useAppConfigStore.getState().setPluginConfig("sampling/layers", { currentImageId: "x" });
+      expect(useAppConfigStore.getState().pluginConfigs["sampling/layers"]).toEqual({
+        ...pluginConfigDefaults["sampling/layers"],
+        currentImageId: "x",
+      });
+    });
+  });
+
   describe("initial state", () => {
     it("should initialize with default active plugins", () => {
       const state = useAppConfigStore.getState();

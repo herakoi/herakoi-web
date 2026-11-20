@@ -173,7 +173,9 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
         set((state) => ({
           pluginConfigs: {
             ...state.pluginConfigs,
+            // Start from the defaults: a plugin added after the config was saved has no entry yet.
             [pluginId]: {
+              ...(pluginConfigDefaults[pluginId] as Record<string, unknown>),
               ...(state.pluginConfigs[pluginId] as Record<string, unknown>),
               ...updates,
             },
@@ -229,6 +231,16 @@ export const useAppConfigStore = create<AppConfigState & AppConfigActions>()(
       name: APP_CONFIG_KEY,
       storage: configStorage,
       version: 1,
+      // The default merge is shallow: saved pluginConfigs would replace the defaults as a
+      // whole, leaving plugins (or config fields) added since the last save undefined.
+      merge: (persistedState, currentState) => {
+        if (!isRecord(persistedState)) return currentState;
+        return {
+          ...currentState,
+          ...(persistedState as Partial<AppConfigState>),
+          pluginConfigs: mergePluginConfigs(persistedState.pluginConfigs),
+        };
+      },
       migrate: (persistedState, version) => {
         if (!isRecord(persistedState)) return getDefaultConfig();
         const defaults = getDefaultActivePlugins();
