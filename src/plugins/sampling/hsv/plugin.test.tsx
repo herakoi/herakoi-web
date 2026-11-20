@@ -3,7 +3,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultHSVSamplingConfig, type HSVSamplingConfig, type HSVViewportMode } from "./config";
+import type { ImageViewportMode } from "#src/shared/image/types";
+import { defaultHSVSamplingConfig, type HSVSamplingConfig } from "./config";
 import { plugin } from "./plugin";
 
 const expectSamplerHandle = (result: ReturnType<typeof plugin.createSampler>) => {
@@ -14,7 +15,8 @@ const expectSamplerHandle = (result: ReturnType<typeof plugin.createSampler>) =>
 const mocks = vi.hoisted(() => ({
   samplerLoadImage: vi.fn().mockResolvedValue(undefined),
   drawImageToCanvas: vi.fn(
-    (_canvas: HTMLCanvasElement, _image: HTMLImageElement, _viewportMode: HSVViewportMode) => true,
+    (_canvas: HTMLCanvasElement, _image: HTMLImageElement, _viewportMode: ImageViewportMode) =>
+      true,
   ),
   resizeCanvasToContainer: vi.fn(),
   getDefaultImageId: vi.fn<() => string | null>(() => "curated-default"),
@@ -56,7 +58,7 @@ vi.mock("./HSVImageSampler", () => ({
   ),
 }));
 
-vi.mock("./imageDrawing", () => ({
+vi.mock("#src/shared/image/drawing", () => ({
   drawImageToCanvas: mocks.drawImageToCanvas,
   resizeCanvasToContainer: mocks.resizeCanvasToContainer,
 }));

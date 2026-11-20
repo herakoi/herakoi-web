@@ -5,8 +5,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { curatedImages } from "#src/shared/image/library/curatedImages";
 import { defaultHSVSamplingConfig } from "../config";
-import { curatedImages } from "../data/curatedImages";
 import { HSVToolbarItems } from "./ToolbarItems";
 
 describe("HSVToolbarItems image selection sync", () => {

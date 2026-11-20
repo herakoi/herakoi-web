@@ -1,4 +1,19 @@
-import type { HSVViewportMode } from "./config";
+import type { ImageViewportMode } from "./types";
+
+/**
+ * Where the image was drawn: centre, drawn size and rotation, in canvas pixels.
+ * Samplers that read the image itself (not the canvas) invert it to find image pixels.
+ */
+export type ImageTransform = {
+  centerX: number;
+  centerY: number;
+  drawWidth: number;
+  drawHeight: number;
+  /** Radians, clockwise on screen. */
+  rotation: number;
+  imageWidth: number;
+  imageHeight: number;
+};
 
 export type ImageLayout = {
   /** Full drawn rect (may extend beyond canvas in cover mode). */
@@ -6,6 +21,28 @@ export type ImageLayout = {
   y: number;
   width: number;
   height: number;
+  transform: ImageTransform;
+};
+
+/**
+ * The image pixel under a canvas pixel, or null outside the image.
+ * Inverse of the transform drawImageToCanvas applies.
+ */
+export const canvasToImagePixel = (
+  transform: ImageTransform,
+  canvasX: number,
+  canvasY: number,
+): { x: number; y: number } | null => {
+  const dx = canvasX - transform.centerX;
+  const dy = canvasY - transform.centerY;
+  const cos = Math.cos(-transform.rotation);
+  const sin = Math.sin(-transform.rotation);
+  const localX = dx * cos - dy * sin;
+  const localY = dx * sin + dy * cos;
+  const u = (localX / transform.drawWidth + 0.5) * transform.imageWidth;
+  const v = (localY / transform.drawHeight + 0.5) * transform.imageHeight;
+  if (u < 0 || v < 0 || u >= transform.imageWidth || v >= transform.imageHeight) return null;
+  return { x: Math.floor(u), y: Math.floor(v) };
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -19,20 +56,29 @@ export const resizeCanvasToContainer = (canvas: HTMLCanvasElement) => {
   canvas.height = height;
 };
 
+/** Anything the samplers draw: a decoded image or a rendered canvas. */
+export type DrawableImage = HTMLImageElement | HTMLCanvasElement;
+
+const sourceSize = (image: DrawableImage) =>
+  image instanceof HTMLImageElement
+    ? { width: image.naturalWidth, height: image.naturalHeight }
+    : { width: image.width, height: image.height };
+
 export const drawImageToCanvas = (
   canvas: HTMLCanvasElement,
-  image: HTMLImageElement,
-  viewportMode: HSVViewportMode,
+  image: DrawableImage,
+  viewportMode: ImageViewportMode,
 ): ImageLayout | null => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
+  const { width: imageWidth, height: imageHeight } = sourceSize(image);
   const baseScale =
     viewportMode.kind === "cover"
-      ? Math.max(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight)
-      : Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
+      ? Math.max(canvas.width / imageWidth, canvas.height / imageHeight)
+      : Math.min(canvas.width / imageWidth, canvas.height / imageHeight);
   const scale = viewportMode.kind === "cover" ? baseScale * viewportMode.zoom : baseScale;
-  const drawWidth = image.naturalWidth * scale;
-  const drawHeight = image.naturalHeight * scale;
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
   const baseOffsetX = (canvas.width - drawWidth) / 2;
   const baseOffsetY = (canvas.height - drawHeight) / 2;
   const extraX = Math.max(0, (drawWidth - canvas.width) / 2);
@@ -77,5 +123,14 @@ export const drawImageToCanvas = (
     y: minY,
     width: maxX - minX,
     height: maxY - minY,
+    transform: {
+      centerX,
+      centerY,
+      drawWidth,
+      drawHeight,
+      rotation,
+      imageWidth,
+      imageHeight,
+    },
   };
 };

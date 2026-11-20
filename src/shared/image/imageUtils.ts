@@ -34,3 +34,13 @@ export const loadImageDimensions = (src: string) =>
     img.onerror = () => reject(new Error("Failed to load image metadata"));
     img.src = src;
   });
+
+/** Load an image from a URL into an HTMLImageElement (CORS-enabled for pixel reads). */
+export const loadImageElement = (src: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+    img.src = src;
+  });

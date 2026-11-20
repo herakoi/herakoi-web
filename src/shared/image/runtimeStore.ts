@@ -1,0 +1,161 @@
+/**
+ * Image sampling runtime state store, one per image-based sampling plugin.
+ *
+ * Manages transient state that changes during execution but should NOT persist
+ * across sessions. This includes image readiness indicator.
+ *
+ * Persistent configuration (currentImageId) is managed by appConfigStore.
+ * Viewport interactions (cover/pan/zoom/rotate lock state) stay runtime-only.
+ */
+
+import { create, type StoreApi, type UseBoundStore } from "zustand";
+import { UploadCacheReadError, UploadCacheWriteError } from "./errors";
+import type { ImageEntry, ImageViewportMode } from "./types";
+
+/** Any error shown by the image library; plugins add their own (e.g. FITS parsing). */
+export type ImageLibraryError = Error;
+
+export type ImageLibraryStatus = { status: "ok" } | { status: "error"; error: ImageLibraryError };
+
+export interface ImageRuntimeState {
+  /** Whether the image has been loaded and encoded */
+  imageReady: boolean;
+  /** Runtime viewport mode for image rendering and interactions. */
+  viewportMode: ImageViewportMode;
+  /** Whether cover viewport mode is currently active. */
+  coverModeActive: boolean;
+  /** Whether cover image editing interactions are unlocked. */
+  panInteractionEnabled: boolean;
+  /** User uploaded images cached for the HSV image library */
+  uploads: ImageEntry[];
+  /** Whether upload cache has been hydrated from localStorage */
+  uploadsHydrated: boolean;
+  /** Runtime error state for image library operations. */
+  imageLibraryStatus: ImageLibraryStatus;
+}
+
+export interface ImageRuntimeActions {
+  setImageReady: (ready: boolean) => void;
+  setViewportMode: (mode: ImageViewportMode) => void;
+  setCoverModeActive: (active: boolean) => void;
+  setPanInteractionEnabled: (enabled: boolean) => void;
+  notifyCoverModeActivated: () => void;
+  setImageLibraryOk: () => void;
+  setImageLibraryError: (error: ImageLibraryError) => void;
+  hydrateUploads: () => void;
+  upsertUpload: (entry: ImageEntry) => void;
+  removeUpload: (id: string) => void;
+}
+
+const asError = (error: unknown, fallback: string): Error =>
+  error instanceof Error ? error : new Error(fallback);
+
+export const readUploadCache = (cacheKey: string): UploadCacheReadError | ImageEntry[] => {
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem(cacheKey);
+  if (!stored) return [];
+
+  const parsed = (() => {
+    try {
+      return JSON.parse(stored) as ImageEntry[];
+    } catch (error) {
+      return new UploadCacheReadError({ cause: asError(error, "Failed to parse upload cache.") });
+    }
+  })();
+
+  if (parsed instanceof Error) {
+    return parsed;
+  }
+
+  return parsed
+    .filter((entry) => entry.kind === "upload")
+    .map((entry) => ({ ...entry, previewSrc: entry.previewSrc ?? entry.src }));
+};
+
+const persistUploadCache = (
+  cacheKey: string,
+  uploads: ImageEntry[],
+): UploadCacheWriteError | undefined => {
+  if (typeof window === "undefined") return;
+  const result = (() => {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(uploads));
+    } catch (error) {
+      return new UploadCacheWriteError({
+        cause: asError(error, "Failed to persist upload cache."),
+      });
+    }
+  })();
+  return result;
+};
+
+const defaultState: ImageRuntimeState = {
+  imageReady: false,
+  viewportMode: { kind: "cover", pan: { x: 0, y: 0 }, zoom: 1, rotation: 0 },
+  coverModeActive: false,
+  panInteractionEnabled: false,
+  uploads: [],
+  uploadsHydrated: false,
+  imageLibraryStatus: { status: "ok" },
+};
+
+export type ImageRuntimeStore = UseBoundStore<StoreApi<ImageRuntimeState & ImageRuntimeActions>>;
+
+/** A runtime store whose uploads persist under `cacheKey` in localStorage. */
+export const createImageRuntimeStore = (cacheKey: string): ImageRuntimeStore =>
+  create<ImageRuntimeState & ImageRuntimeActions>((set, get) => ({
+    ...defaultState,
+    setImageReady: (ready) => set({ imageReady: ready }),
+    setViewportMode: (mode) => set({ viewportMode: mode }),
+    setCoverModeActive: (active) => set({ coverModeActive: active }),
+    setPanInteractionEnabled: (enabled) => set({ panInteractionEnabled: enabled }),
+    notifyCoverModeActivated: () => set({ coverModeActive: true }),
+    setImageLibraryOk: () => set({ imageLibraryStatus: { status: "ok" } }),
+    setImageLibraryError: (error) => set({ imageLibraryStatus: { status: "error", error } }),
+    hydrateUploads: () => {
+      if (get().uploadsHydrated) return;
+      const uploads = readUploadCache(cacheKey);
+      if (uploads instanceof Error) {
+        set({
+          uploads: [],
+          uploadsHydrated: true,
+          imageLibraryStatus: {
+            status: "error",
+            error: uploads,
+          },
+        });
+        return;
+      }
+      set({
+        uploads,
+        uploadsHydrated: true,
+        imageLibraryStatus: { status: "ok" },
+      });
+    },
+    upsertUpload: (entry) =>
+      set((state) => {
+        const uploads = [entry, ...state.uploads.filter((item) => item.id !== entry.id)];
+        const persistError = persistUploadCache(cacheKey, uploads);
+        return {
+          uploads,
+          uploadsHydrated: true,
+          imageLibraryStatus:
+            persistError instanceof Error
+              ? { status: "error", error: persistError }
+              : { status: "ok" },
+        };
+      }),
+    removeUpload: (id) =>
+      set((state) => {
+        const uploads = state.uploads.filter((item) => item.id !== id);
+        const persistError = persistUploadCache(cacheKey, uploads);
+        return {
+          uploads,
+          uploadsHydrated: true,
+          imageLibraryStatus:
+            persistError instanceof Error
+              ? { status: "error", error: persistError }
+              : { status: "ok" },
+        };
+      }),
+  }));

@@ -6,16 +6,18 @@ import { act, useCallback, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ErrorOr } from "#src/core/interfaces";
-import { useHSVRuntimeStore } from "../runtimeStore";
-import type { ImageEntry } from "../types/image";
+import { createImageRuntimeStore } from "./runtimeStore";
+import type { ImageEntry } from "./types";
 import { useImageLibrary } from "./useImageLibrary";
 
-vi.mock("../lib/imageUtils", async () => ({
+vi.mock("./imageUtils", async () => ({
   formatBytes: () => "3 B",
   formatImageType: () => "PNG",
   loadImageDimensions: vi.fn(async () => ({ width: 100, height: 50 })),
   readFileAsDataUrl: vi.fn(async () => "data:image/png;base64,AAAA"),
 }));
+
+const useTestRuntimeStore = createImageRuntimeStore("herakoi.test-image-cache");
 
 const curatedImages = [
   {
@@ -50,6 +52,7 @@ const HookHarness = ({
   onSnapshot,
 }: HookHarnessProps) => {
   const { currentImage, uploads, handleImageFile } = useImageLibrary({
+    store: useTestRuntimeStore,
     curatedImages,
     howItWorksImages: [],
     selectedImageId,
@@ -88,7 +91,7 @@ describe("useImageLibrary", () => {
 
   beforeEach(() => {
     localStorage.clear();
-    useHSVRuntimeStore.setState({
+    useTestRuntimeStore.setState({
       imageReady: false,
       uploads: [],
       uploadsHydrated: false,

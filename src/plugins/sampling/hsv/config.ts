@@ -1,9 +1,8 @@
 export const hsvSamplingPluginId = "sampling/hsv" as const;
 
-export type HSVViewportMode =
-  // Deprecated: kept for compatibility with existing runtime flows.
-  | { kind: "contain" }
-  | { kind: "cover"; pan: { x: number; y: number }; zoom: number; rotation: number };
+import type { ImageViewportMode } from "#src/shared/image/types";
+
+export type HSVViewportMode = ImageViewportMode;
 
 export interface HSVSamplingConfig {
   currentImageId: string | null;
