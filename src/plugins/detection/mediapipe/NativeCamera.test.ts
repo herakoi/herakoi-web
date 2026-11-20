@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NativeCamera } from "./NativeCamera";
+import { CAMERA_STALL_MS, NativeCamera } from "./NativeCamera";
 
 describe("NativeCamera", () => {
   let videoElement: HTMLVideoElement;
@@ -25,10 +25,11 @@ describe("NativeCamera", () => {
       configurable: true,
     });
 
-    mockTrack = {
+    // An EventTarget, so tests can dispatch "ended" as a real track would.
+    mockTrack = Object.assign(new EventTarget(), {
       stop: vi.fn(),
       getSettings: vi.fn().mockReturnValue({ facingMode: "user" }),
-    } as unknown as MediaStreamTrack;
+    }) as unknown as MediaStreamTrack;
 
     mockStream = {
       getTracks: vi.fn().mockReturnValue([mockTrack]),
@@ -381,6 +382,115 @@ describe("NativeCamera", () => {
       const devices = await NativeCamera.enumerateVideoDevices();
 
       expect(devices[0].label).toBe("Camera abcdef12");
+    });
+  });
+
+  describe("feed recovery", () => {
+    let deliverFrame: () => Promise<void>;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      // Controllable requestVideoFrameCallback: frames arrive only when a test delivers one.
+      const waiting = new Map<number, () => void>();
+      let nextId = 1;
+      Object.assign(videoElement, {
+        requestVideoFrameCallback: vi.fn((callback: () => void) => {
+          waiting.set(nextId, callback);
+          return nextId++;
+        }),
+        cancelVideoFrameCallback: vi.fn((id: number) => waiting.delete(id)),
+      });
+      deliverFrame = async () => {
+        const callbacks = [...waiting.values()];
+        waiting.clear();
+        for (const callback of callbacks) callback();
+        await vi.advanceTimersByTimeAsync(0);
+      };
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("keeps the frame loop running after a frame fails", async () => {
+      const onFrame = vi.fn().mockRejectedValueOnce(new Error("frame failed"));
+      const camera = new NativeCamera(videoElement, { onFrame });
+
+      await camera.start();
+      await deliverFrame();
+      await deliverFrame();
+      camera.stop();
+
+      expect(onFrame).toHaveBeenCalledTimes(2);
+    });
+
+    it("reopens the camera when its track ends", async () => {
+      const onFrame = vi.fn();
+      const camera = new NativeCamera(videoElement, { onFrame });
+
+      await camera.start();
+      mockTrack.dispatchEvent(new Event("ended"));
+      await vi.advanceTimersByTimeAsync(0);
+      await deliverFrame();
+      camera.stop();
+
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+      expect(onFrame).toHaveBeenCalledTimes(1);
+    });
+
+    it("reopens the camera when no frame arrives for CAMERA_STALL_MS", async () => {
+      const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+      await camera.start();
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS + 1000);
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+
+      camera.stop();
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS * 3);
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+    });
+
+    it("retries until the camera reopens", async () => {
+      vi.mocked(navigator.mediaDevices.getUserMedia)
+        .mockResolvedValueOnce(mockStream)
+        .mockRejectedValueOnce(Object.assign(new Error("busy"), { name: "NotReadableError" }))
+        .mockResolvedValue(mockStream);
+      const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+      await camera.start();
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS + 1000);
+      expect(videoElement.srcObject).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS + 1000);
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(3);
+      expect(videoElement.srcObject).toBe(mockStream);
+      camera.stop();
+    });
+
+    it("does not reopen the camera while a frame is still processing", async () => {
+      const onFrame = vi.fn(() => new Promise<void>(() => {}));
+      const camera = new NativeCamera(videoElement, { onFrame });
+
+      await camera.start();
+      await deliverFrame();
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS * 3);
+      camera.stop();
+
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reopen the camera while the page is hidden", async () => {
+      vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+      const camera = new NativeCamera(videoElement, { onFrame: vi.fn() });
+
+      await camera.start();
+      await vi.advanceTimersByTimeAsync(CAMERA_STALL_MS * 3);
+      camera.stop();
+
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
     });
   });
 });
