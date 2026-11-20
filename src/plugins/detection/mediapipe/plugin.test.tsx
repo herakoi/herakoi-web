@@ -96,6 +96,8 @@ const { setMirror, setMaxHands, restartCamera, stop, emitPoints, clearPointStrea
     };
   });
 
+const dispose = vi.hoisted(() => vi.fn());
+
 vi.mock("./MediaPipePointDetector", () => {
   const MockClass = vi.fn().mockImplementation(
     class {
@@ -103,6 +105,7 @@ vi.mock("./MediaPipePointDetector", () => {
       public setMaxHands = setMaxHands;
       public restartCamera = restartCamera;
       public stop = stop;
+      public dispose = dispose;
       public initialize = vi.fn().mockResolvedValue(undefined);
       public start = vi.fn().mockResolvedValue(undefined);
       public points = points;
@@ -224,6 +227,19 @@ describe("MediaPipe detection plugin runtime subscription lifecycle", () => {
     handle.cleanup?.();
 
     expect(useDeviceStore.getState().hasHands).toBeNull();
+  });
+
+  it("disposes the detector on cleanup", () => {
+    const runtime = {
+      getConfig: vi.fn(() => defaultMediaPipeConfig),
+      setConfig: vi.fn(),
+      subscribeConfig: vi.fn(() => vi.fn()),
+    };
+
+    const handle = expectDetectorHandle(plugin.createDetector(defaultMediaPipeConfig, runtime));
+    handle.cleanup?.();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 });
 

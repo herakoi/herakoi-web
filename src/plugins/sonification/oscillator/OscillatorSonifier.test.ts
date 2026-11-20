@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OscillatorSonifier } from "./OscillatorSonifier";
 
@@ -30,6 +30,9 @@ class FakeAudioContext {
   public setSinkId = vi.fn(async (_sinkId: string) => {});
   public createOscillator = vi.fn(() => new FakeOscillator());
   public createGain = vi.fn(() => new FakeGain());
+  public close = vi.fn(async () => {
+    this.state = "closed";
+  });
 }
 
 const makeSample = (hue: number, value: number) => ({
@@ -139,5 +142,44 @@ describe("OscillatorSonifier", () => {
     const masterGain = ctx.createGain.mock.results[2]?.value as FakeGain | undefined;
     expect(masterGain).toBeDefined();
     expect(masterGain?.gain.setValueAtTime).toHaveBeenCalledWith(1, ctx.currentTime);
+  });
+
+  describe("dispose()", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it("closes the AudioContext it created, after the fade-out", async () => {
+      vi.useFakeTimers();
+      const created: FakeAudioContext[] = [];
+      vi.stubGlobal("window", {
+        AudioContext: class extends FakeAudioContext {
+          constructor() {
+            super();
+            created.push(this);
+          }
+        },
+      });
+      const sonifier = new OscillatorSonifier(undefined, { fadeMs: 50 });
+      await sonifier.initialize();
+
+      sonifier.dispose();
+      expect(created[0]?.close).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(created[0]?.close).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves an AudioContext passed by the caller open", async () => {
+      vi.useFakeTimers();
+      const sonifier = new OscillatorSonifier(ctx as unknown as AudioContext, { fadeMs: 50 });
+      await sonifier.initialize();
+
+      sonifier.dispose();
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(ctx.close).not.toHaveBeenCalled();
+    });
   });
 });

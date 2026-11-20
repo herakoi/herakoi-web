@@ -48,7 +48,7 @@ describe("MediaPipePointDetector", () => {
         });
         public send = vi.fn().mockResolvedValue(undefined);
         public initialize = vi.fn().mockResolvedValue(undefined);
-        public close = vi.fn();
+        public close = vi.fn().mockResolvedValue(undefined);
         // biome-ignore lint/suspicious/noExplicitAny: Vitest mock requires constructor signature loosening
       } as unknown as (...args: any[]) => any,
     );
@@ -217,6 +217,33 @@ describe("MediaPipePointDetector", () => {
 
       expect(NativeCameraMock).toHaveBeenCalledTimes(2);
       expect(lastCameraInstance?.start).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("dispose()", () => {
+    it("should stop the camera and close MediaPipe Hands", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+      await detector.start();
+      detector.dispose();
+
+      const hands = HandsMock.mock.instances[0] as unknown as { close: ReturnType<typeof vi.fn> };
+      expect(lastCameraInstance?.stop).toHaveBeenCalled();
+      expect(hands.close).toHaveBeenCalledTimes(1);
+    });
+
+    it("should be safe to call multiple times", async () => {
+      const { MediaPipePointDetector } = await import("./MediaPipePointDetector");
+      const detector = new MediaPipePointDetector(videoElement);
+
+      await detector.initialize();
+      detector.dispose();
+      detector.dispose();
+
+      const hands = HandsMock.mock.instances[0] as unknown as { close: ReturnType<typeof vi.fn> };
+      expect(hands.close).toHaveBeenCalledTimes(1);
     });
   });
 
