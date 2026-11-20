@@ -13,6 +13,7 @@ import { Slider } from "#src/shared/components/ui/slider";
 import utilities from "#src/shared/styles/utilities.module.css";
 import type { PianoSamplerConfig } from "../config";
 import { useT } from "../i18n";
+import type { PianoPlayMode } from "../PianoSamplerSonifier";
 import { usePianoSamplerAudioStore } from "../store";
 
 const NOTE_DURATIONS = ["32n", "16n", "8n", "4n", "2n", "1n", "0.5"] as const;
@@ -25,7 +26,17 @@ export const PianoSamplerSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<PianoSamplerConfig>) => {
-  const { noteMin, noteMax, velocityMin, velocityMax, noteDuration } = config;
+  const {
+    noteMin,
+    noteMax,
+    velocityMin,
+    velocityMax,
+    noteDuration,
+    playMode,
+    motionStep,
+    minNotesPerSecond,
+    maxNotesPerSecond,
+  } = config;
   const sinkId = usePianoSamplerAudioStore((state) => state.sinkId);
   const setSinkId = usePianoSamplerAudioStore((state) => state.setSinkId);
   const t = useT();
@@ -47,6 +58,58 @@ export const PianoSamplerSettingsPanel = ({
           onValueChange={([min, max]) => setConfig({ noteMin: min, noteMax: max })}
         />
       </div>
+      <div className={utilities.stack2}>
+        <Label>{t("playMode.label")}</Label>
+        <Select
+          value={playMode}
+          onValueChange={(value) => setConfig({ playMode: value as PianoPlayMode })}
+        >
+          <SelectTrigger aria-label={t("playMode.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="motion">{t("playMode.motion")}</SelectItem>
+            <SelectItem value="change">{t("playMode.change")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {playMode === "motion" ? (
+        <>
+          <div className={utilities.stack2}>
+            <Label>{t("minRate.label", { rate: minNotesPerSecond })}</Label>
+            <Slider
+              min={0}
+              max={8}
+              step={0.5}
+              value={[minNotesPerSecond]}
+              aria-label={t("minRate.aria")}
+              onValueChange={([rate]) => setConfig({ minNotesPerSecond: rate })}
+            />
+          </div>
+          <div className={utilities.stack2}>
+            <Label>{t("motionStep.label", { percent: Math.round(motionStep * 100) })}</Label>
+            <Slider
+              min={1}
+              max={20}
+              step={1}
+              value={[Math.round(motionStep * 100)]}
+              aria-label={t("motionStep.aria")}
+              onValueChange={([percent]) => setConfig({ motionStep: percent / 100 })}
+            />
+          </div>
+          <div className={utilities.stack2}>
+            <Label>{t("maxRate.label", { rate: maxNotesPerSecond })}</Label>
+            <Slider
+              min={1}
+              max={20}
+              step={1}
+              value={[maxNotesPerSecond]}
+              aria-label={t("maxRate.aria")}
+              onValueChange={([rate]) => setConfig({ maxNotesPerSecond: rate })}
+            />
+          </div>
+        </>
+      ) : null}
       <div className={utilities.stack2}>
         <Label>{t("velocityRange.label", { min: velocityMin, max: velocityMax })}</Label>
         <Slider
