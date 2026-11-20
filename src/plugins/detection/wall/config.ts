@@ -15,6 +15,8 @@ export type WallCalibration = {
   totalDots: number;
   /** Mean reprojection error on screen, in CSS pixels (null when only the coarse fit was used). */
   errorPx: number | null;
+  /** Camera the mapping was made with (track label); empty for mappings saved before it existed. */
+  cameraLabel?: string;
   createdAt: string;
 };
 

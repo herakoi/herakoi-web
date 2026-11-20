@@ -46,6 +46,9 @@ export class WallPointDetector implements PointDetector {
   private started = false;
   private grab: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null = null;
   private lastHasHands: boolean | null = null;
+  private lastMapped: boolean | null = null;
+  /** Label of the camera in use; a mapping only applies to the camera it was made with. */
+  private cameraLabel = "";
   /** Last tracking result, kept for debugging and the preview. */
   lastResult: TrackResult | null = null;
 
@@ -153,6 +156,7 @@ export class WallPointDetector implements PointDetector {
         matchedDots: result.matchedDots,
         totalDots: result.totalDots,
         errorPx,
+        cameraLabel: this.cameraLabel,
         createdAt: new Date().toISOString(),
       };
       this.options.setCalibration(calibration);
@@ -166,8 +170,15 @@ export class WallPointDetector implements PointDetector {
 
   private async startCamera(deviceId: string): Promise<WallCameraStartError | undefined> {
     if (!this.video) return new WallCameraStartError();
+    // A camera that was unplugged (or a Continuity Camera that dropped) would fail with an
+    // over-constrained error: use the default camera instead.
+    const devices = await NativeCamera.enumerateVideoDevices();
+    const available = deviceId !== "" && devices.some((device) => device.deviceId === deviceId);
+    if (deviceId && !available) {
+      console.warn("[wall] selected camera not found, using the default camera");
+    }
     this.camera = new NativeCamera(this.video, {
-      deviceId: deviceId || undefined,
+      deviceId: available ? deviceId : undefined,
       width: CAMERA_WIDTH,
       height: CAMERA_HEIGHT,
       // Frames are pulled by our own loop (works while the video element is hidden).
@@ -180,6 +191,8 @@ export class WallPointDetector implements PointDetector {
       useWallStore.getState().setCameraError(error);
       return error;
     }
+    const stream = this.video.srcObject instanceof MediaStream ? this.video.srcObject : null;
+    this.cameraLabel = stream?.getVideoTracks()[0]?.label ?? "";
     useWallStore.getState().setCameraError(null);
     return undefined;
   }
@@ -197,10 +210,11 @@ export class WallPointDetector implements PointDetector {
     }
   };
 
-  /** Calibration made for this camera resolution, if any. */
+  /** Calibration made with this camera at this resolution, if any. */
   private activeCalibration(video: HTMLVideoElement): WallCalibration | null {
     const calibration = this.options.getConfig().calibration;
     if (!calibration) return null;
+    if (calibration.cameraLabel && calibration.cameraLabel !== this.cameraLabel) return null;
     if (
       calibration.cameraWidth !== video.videoWidth ||
       calibration.cameraHeight !== video.videoHeight
@@ -254,6 +268,11 @@ export class WallPointDetector implements PointDetector {
 
     this.drawPreview(video, result, calibration);
     this.emit(points);
+    const mapped = calibration !== null;
+    if (mapped !== this.lastMapped) {
+      this.lastMapped = mapped;
+      useWallStore.getState().setMapped(mapped);
+    }
     const hasHands = points.length > 0;
     if (hasHands !== this.lastHasHands) {
       this.lastHasHands = hasHands;

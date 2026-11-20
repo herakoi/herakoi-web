@@ -85,11 +85,9 @@ export const plugin: DetectionPluginDefinition<typeof wallDetectionPluginId, Wal
           const store = useWallStore.getState();
           store.setRunMapping(runMapping);
           store.setHasHands(false);
-          store.setMapped(runtime.getConfig().calibration !== null);
 
           let previous = runtime.getConfig();
           unsubscribeConfig = runtime.subscribeConfig((current) => {
-            useWallStore.getState().setMapped(current.calibration !== null);
             if (current.maxPeople !== previous.maxPeople) {
               void detector.setMaxPeople(current.maxPeople);
             }
