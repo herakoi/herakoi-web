@@ -8,10 +8,18 @@
  * into oscillator/gain updates, and stop() fades and cleans up everything. configure()
  * lets us tune min/max frequency, volume range, waveform, and fade time at runtime.
  * How: We cache nodes per point id, translate hue/value bytes to frequency/volume, and
- * stop any nodes missing from the latest frame with a short fade-out.
+ * stop any nodes missing from the latest frame with a short fade-out. `soundMode` ties
+ * each voice to its point's motion (see shared/motionGate.ts): only while moving, plucked,
+ * or continuous.
  */
 
 import type { ErrorOr, ImageSample, Sonifier, SonifierOptions } from "#src/core/interfaces";
+import { MotionTracker, samplePosition } from "#src/plugins/sonification/shared/motion";
+import {
+  createMotionGate,
+  type MotionGate,
+  type SoundMode,
+} from "#src/plugins/sonification/shared/motionGate";
 import {
   type SinkableAudioContext,
   SinkOutputRouter,
@@ -26,11 +34,14 @@ export type OscillatorSonifierOptions = SonifierOptions & {
   masterVolume?: number;
   muted?: boolean;
   sinkId?: string;
+  /** How motion shapes the sound: only while moving, plucked, or continuous. */
+  soundMode?: SoundMode;
 };
 
 type ToneNodes = {
   osc: OscillatorNode;
   gain: GainNode;
+  gate: MotionGate;
 };
 
 export type OscillatorSonifierAnalyserOptions = {
@@ -61,6 +72,8 @@ export class OscillatorSonifier implements Sonifier {
   private muted = false;
   private sinkId = "";
   private fadeMs = 100;
+  private soundMode: SoundMode = "continuous";
+  private motion = new MotionTracker();
   private initialized = false;
   private stopped = false;
   private lastFrameDebug = new Map<string, DebugFrameSample>();
@@ -132,6 +145,7 @@ export class OscillatorSonifier implements Sonifier {
     if (options.minVol !== undefined) this.minVol = options.minVol;
     if (options.maxVol !== undefined) this.maxVol = options.maxVol;
     if (options.fadeMs !== undefined) this.fadeMs = options.fadeMs;
+    if (options.soundMode !== undefined) this.soundMode = options.soundMode;
     if (options.masterVolume !== undefined) {
       this.masterVolume = Math.max(0, Math.min(1, options.masterVolume));
     }
@@ -189,10 +203,17 @@ export class OscillatorSonifier implements Sonifier {
       });
 
       this.updateTone(id, frequency, volume);
+      const position = samplePosition(sample);
+      const motion = position
+        ? this.motion.update(id, position.x, position.y, performance.now())
+        : null;
+      const tone = this.nodes.get(id);
+      tone?.gate.apply(this.soundMode, motion, this.ctx.currentTime);
       seen.add(id);
     }
 
     this.lastFrameDebug = frameDebug;
+    this.motion.retain(seen);
 
     // Stop any tones that were not present in this frame
     for (const id of Array.from(this.nodes.keys())) {
@@ -204,6 +225,7 @@ export class OscillatorSonifier implements Sonifier {
 
   stop(): void {
     this.stopped = true;
+    this.motion.clear();
     this.stopAll();
     this.sinkRouter?.dispose();
     this.sinkRouter = null;
@@ -285,10 +307,12 @@ export class OscillatorSonifier implements Sonifier {
 
     osc.type = this.oscillatorType;
     osc.connect(gain);
-    gain.connect(this.ensureMasterGain());
+    const gate = createMotionGate(ctx, this.soundMode);
+    gain.connect(gate.node);
+    gate.node.connect(this.ensureMasterGain());
     osc.start();
 
-    const toneNodes: ToneNodes = { osc, gain };
+    const toneNodes: ToneNodes = { osc, gain, gate };
     this.nodes.set(id, toneNodes);
     return toneNodes;
   }
@@ -302,7 +326,7 @@ export class OscillatorSonifier implements Sonifier {
     // If a new tone with same ID is created during fade, it won't conflict
     this.nodes.delete(id);
 
-    const { gain, osc } = tone;
+    const { gain, osc, gate } = tone;
     const now = ctx.currentTime;
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + this.fadeMs / 1000);
@@ -311,6 +335,7 @@ export class OscillatorSonifier implements Sonifier {
       osc.stop();
       osc.disconnect();
       gain.disconnect();
+      gate.dispose();
     }, this.fadeMs);
   }
 

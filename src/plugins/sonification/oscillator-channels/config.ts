@@ -1,3 +1,4 @@
+import type { SoundMode } from "#src/plugins/sonification/shared/motionGate";
 import type { VoiceEffectKind } from "#src/plugins/sonification/shared/voiceEffects";
 import type { NoDataBehavior } from "./ChannelOscillatorSonifier";
 
@@ -29,6 +30,8 @@ export interface ChannelOscillatorConfig {
   /** Distance (fraction of the image's longer side) at which "pulse faster near data" starts. */
   proximityReach: number;
   oscillatorType: OscillatorType;
+  /** How hand motion shapes the sound: only while moving (default), plucked, or continuous. */
+  soundMode: SoundMode;
 }
 
 export const defaultChannelOscillatorConfig: ChannelOscillatorConfig = {
@@ -49,4 +52,5 @@ export const defaultChannelOscillatorConfig: ChannelOscillatorConfig = {
   effectAmount: 0.7,
   proximityReach: 0.15,
   oscillatorType: "sine",
+  soundMode: "moving",
 };

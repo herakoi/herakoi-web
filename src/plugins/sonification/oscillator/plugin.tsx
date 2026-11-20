@@ -45,6 +45,7 @@ export const plugin: SonificationPluginDefinition<
       minVol: config.minVol,
       maxVol: config.maxVol,
       oscillatorType: config.oscillatorType,
+      soundMode: config.soundMode,
       masterVolume: audioState.volume,
       muted: audioState.muted,
       sinkId: audioState.sinkId,
@@ -58,6 +59,7 @@ export const plugin: SonificationPluginDefinition<
         minVol: config.minVol,
         maxVol: config.maxVol,
         oscillatorType: config.oscillatorType,
+        soundMode: config.soundMode,
       });
     });
     const unsubscribeAudio = useOscillatorAudioStore.subscribe((nextState, prevState) => {

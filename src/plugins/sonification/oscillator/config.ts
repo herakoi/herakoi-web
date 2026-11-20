@@ -1,3 +1,5 @@
+import type { SoundMode } from "#src/plugins/sonification/shared/motionGate";
+
 export const oscillatorSonificationPluginId = "sonification/oscillator" as const;
 
 export interface OscillatorConfig {
@@ -6,6 +8,8 @@ export interface OscillatorConfig {
   minVol: number;
   maxVol: number;
   oscillatorType: OscillatorType;
+  /** How hand motion shapes the sound: only while moving (default), plucked, or continuous. */
+  soundMode: SoundMode;
 }
 
 export const defaultOscillatorConfig: OscillatorConfig = {
@@ -14,4 +18,5 @@ export const defaultOscillatorConfig: OscillatorConfig = {
   minVol: 0,
   maxVol: 0.2,
   oscillatorType: "sine",
+  soundMode: "moving",
 };

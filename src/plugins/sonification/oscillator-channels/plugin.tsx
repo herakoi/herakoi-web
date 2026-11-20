@@ -50,6 +50,7 @@ const optionsFromConfig = (config: ChannelOscillatorConfig): ChannelOscillatorSo
   minVol: config.minVol,
   maxVol: config.maxVol,
   oscillatorType: config.oscillatorType,
+  soundMode: config.soundMode,
 });
 
 export const plugin: SonificationPluginDefinition<

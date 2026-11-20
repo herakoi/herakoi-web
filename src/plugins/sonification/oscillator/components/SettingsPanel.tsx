@@ -1,4 +1,5 @@
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { type SoundMode, soundModes } from "#src/plugins/sonification/shared/motionGate";
 import { AudioOutputSelector } from "#src/shared/components/audio-output/AudioOutputSelector";
 import { Label } from "#src/shared/components/ui/label";
 import {
@@ -18,7 +19,7 @@ export const OscillatorSettingsPanel = ({
   config,
   setConfig,
 }: PluginSettingsPanelProps<OscillatorConfig>) => {
-  const { minFreq, maxFreq, minVol, maxVol, oscillatorType } = config;
+  const { minFreq, maxFreq, minVol, maxVol, oscillatorType, soundMode } = config;
   const sinkId = useOscillatorAudioStore((state) => state.sinkId);
   const setSinkId = useOscillatorAudioStore((state) => state.setSinkId);
   const t = useT();
@@ -26,6 +27,24 @@ export const OscillatorSettingsPanel = ({
   return (
     <div className={utilities.stack4}>
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
+      <div className={utilities.stack2}>
+        <Label>{t("soundMode.label")}</Label>
+        <Select
+          value={soundMode}
+          onValueChange={(value) => setConfig({ soundMode: value as SoundMode })}
+        >
+          <SelectTrigger aria-label={t("soundMode.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {soundModes.map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {t(`soundMode.${mode}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className={utilities.stack2}>
         <Label>{t("frequencyRange.label", { min: minFreq, max: maxFreq })}</Label>
         <Slider

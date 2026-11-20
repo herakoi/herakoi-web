@@ -1,6 +1,7 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import type { SampleChannel } from "#src/core/interfaces";
 import type { PluginSettingsPanelProps } from "#src/core/plugin";
+import { type SoundMode, soundModes } from "#src/plugins/sonification/shared/motionGate";
 import {
   type VoiceEffectKind,
   voiceEffectKinds,
@@ -18,7 +19,7 @@ import { Slider } from "#src/shared/components/ui/slider";
 import { Switch } from "#src/shared/components/ui/switch";
 import { useSampleChannels } from "#src/shared/sampling/sampleChannels";
 import utilities from "#src/shared/styles/utilities.module.css";
-import type { NoDataBehavior } from "../ChannelOscillatorSonifier";
+import { handSpeedChannel, type NoDataBehavior } from "../ChannelOscillatorSonifier";
 import type { ChannelOscillatorConfig } from "../config";
 import { useT } from "../i18n";
 import { useChannelOscillatorAudioStore } from "../store";
@@ -27,7 +28,7 @@ import styles from "./SettingsPanel.module.css";
 /** Value of the "None" option; Radix Select does not accept an empty value. */
 const NONE = "__none__";
 
-const translatedChannels = new Set(["hueByte", "saturationByte", "valueByte"]);
+const translatedChannels = new Set(["hueByte", "saturationByte", "valueByte", "handSpeed"]);
 
 const noDataBehaviors: NoDataBehavior[] = ["pulse", "proximity", "silence", "neutral"];
 
@@ -65,7 +66,7 @@ const ChannelPicker = ({
   const invertId = useId();
   const channelName = (channel: SampleChannel) =>
     translatedChannels.has(channel.key)
-      ? t(`channel.${channel.key as "hueByte" | "saturationByte" | "valueByte"}`)
+      ? t(`channel.${channel.key as "hueByte" | "saturationByte" | "valueByte" | "handSpeed"}`)
       : channel.label;
   // A stored channel the current image lacks stays selectable, so the choice is not lost.
   const missing = value !== null && !channels.some((channel) => channel.key === value);
@@ -132,7 +133,8 @@ export const ChannelOscillatorSettingsPanel = ({
   setConfig,
 }: PluginSettingsPanelProps<ChannelOscillatorConfig>) => {
   const t = useT();
-  const channels = useSampleChannels();
+  const sampleChannels = useSampleChannels();
+  const channels = useMemo(() => [...sampleChannels, handSpeedChannel], [sampleChannels]);
   const sinkId = useChannelOscillatorAudioStore((state) => state.sinkId);
   const setSinkId = useChannelOscillatorAudioStore((state) => state.setSinkId);
   const effectActive = config.effectChannel !== null && config.effectKind !== "none";
@@ -144,6 +146,25 @@ export const ChannelOscillatorSettingsPanel = ({
   return (
     <div className={utilities.stack4}>
       <AudioOutputSelector value={sinkId} onValueChange={setSinkId} mode="inline" />
+
+      <div className={utilities.stack2}>
+        <Label>{t("soundMode.label")}</Label>
+        <Select
+          value={config.soundMode}
+          onValueChange={(value) => setConfig({ soundMode: value as SoundMode })}
+        >
+          <SelectTrigger aria-label={t("soundMode.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {soundModes.map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {t(`soundMode.${mode}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <section className={utilities.stack2}>
         <h3 className={styles.heading}>{t("pitch.title")}</h3>

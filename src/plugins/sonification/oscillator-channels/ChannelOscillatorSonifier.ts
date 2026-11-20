@@ -12,7 +12,8 @@
  * but pulses its loudness, "proximity" pulses faster the closer the nearest data is (from
  * the channel's distance value, within `proximityReach`), "neutral" plays the
  * mid-range/neutral setting as if it were data.
- * Invert flips a channel's 0–1 value.
+ * Invert flips a channel's 0–1 value. The sonifier adds a "handSpeed" channel from the
+ * point's motion, and `soundMode` ties each voice to motion (see shared/motionGate.ts).
  */
 
 import {
@@ -23,6 +24,12 @@ import {
   type Sonifier,
   type SonifierOptions,
 } from "#src/core/interfaces";
+import { MotionTracker, samplePosition } from "#src/plugins/sonification/shared/motion";
+import {
+  createMotionGate,
+  type MotionGate,
+  type SoundMode,
+} from "#src/plugins/sonification/shared/motionGate";
 import {
   type SinkableAudioContext,
   SinkOutputRouter,
@@ -54,6 +61,8 @@ export type ChannelOscillatorSonifierOptions = SonifierOptions & {
   channels?: readonly SampleChannel[];
   /** Distance (fraction of the image's longer side) at which proximity pulsing starts. */
   proximityReach?: number;
+  /** How motion shapes the sound: only while moving, plucked, or continuous. */
+  soundMode?: SoundMode;
   minFreq?: number;
   maxFreq?: number;
   minVol?: number;
@@ -69,6 +78,18 @@ type ToneNodes = {
   gain: GainNode;
   pulse: NoDataPulse;
   effect: VoiceEffect;
+  gate: MotionGate;
+};
+
+/**
+ * Channel this sonifier adds to every sample with a position: the point's speed, in canvas
+ * heights per second (1 is a fast sweep).
+ */
+export const handSpeedChannel: SampleChannel = {
+  key: "handSpeed",
+  label: "Hand speed",
+  min: 0,
+  max: 1,
 };
 
 /** A binding's value for one sample: 0–1 or null for "neutral", plus a pulse rate; or silent. */
@@ -114,8 +135,10 @@ export class ChannelOscillatorSonifier implements Sonifier {
   private effectKind: VoiceEffectKind = "none";
   private effectAmount = 0.7;
   private proximityReach = 0.15;
+  private soundMode: SoundMode = "continuous";
+  private motion = new MotionTracker();
   private channelRanges = new Map<string, SampleChannel>(
-    hsvSampleChannels.map((channel) => [channel.key, channel]),
+    [...hsvSampleChannels, handSpeedChannel].map((channel) => [channel.key, channel]),
   );
   private initialized = false;
   private stopped = false;
@@ -194,12 +217,16 @@ export class ChannelOscillatorSonifier implements Sonifier {
     if (options.effectAmount !== undefined) {
       this.effectAmount = Math.max(0, Math.min(1, options.effectAmount));
     }
+    if (options.soundMode !== undefined) this.soundMode = options.soundMode;
     if (options.proximityReach !== undefined && options.proximityReach > 0) {
       this.proximityReach = options.proximityReach;
     }
     if (options.channels) {
       this.channelRanges = new Map(
-        [...hsvSampleChannels, ...options.channels].map((channel) => [channel.key, channel]),
+        [...hsvSampleChannels, ...options.channels, handSpeedChannel].map((channel) => [
+          channel.key,
+          channel,
+        ]),
       );
     }
     if (options.effectKind !== undefined && options.effectKind !== this.effectKind) {
@@ -244,6 +271,12 @@ export class ChannelOscillatorSonifier implements Sonifier {
     const frameDebug = new Map<string, DebugFrameSample>();
 
     for (const [id, sample] of samples) {
+      const position = samplePosition(sample);
+      const motion = position
+        ? this.motion.update(id, position.x, position.y, performance.now())
+        : null;
+      if (motion) sample.data[handSpeedChannel.key] = motion.speed;
+
       const pitch = this.resolve(sample.data, this.pitch, 0.5);
       const loudness = this.resolve(sample.data, this.volume, 0.5);
       const effect = this.effect.channel
@@ -270,10 +303,12 @@ export class ChannelOscillatorSonifier implements Sonifier {
       });
 
       this.updateTone(id, frequency, volume, effect.value, pulse);
+      this.nodes.get(id)?.gate.apply(this.soundMode, motion, this.ctx.currentTime);
       seen.add(id);
     }
 
     this.lastFrameDebug = frameDebug;
+    this.motion.retain(new Set(samples.keys()));
 
     // Stop any tones that were not present in this frame
     for (const id of Array.from(this.nodes.keys())) {
@@ -285,6 +320,7 @@ export class ChannelOscillatorSonifier implements Sonifier {
 
   stop(): void {
     this.stopped = true;
+    this.motion.clear();
     this.stopAll();
     this.sinkRouter?.dispose();
     this.sinkRouter = null;
@@ -410,16 +446,12 @@ export class ChannelOscillatorSonifier implements Sonifier {
     osc.connect(gain);
     const pulse = createNoDataPulse(ctx);
     gain.connect(pulse.node);
-    const effect = createVoiceEffect(
-      ctx,
-      this.effectKind,
-      osc,
-      pulse.node,
-      this.ensureMasterGain(),
-    );
+    const gate = createMotionGate(ctx, this.soundMode);
+    pulse.node.connect(gate.node);
+    const effect = createVoiceEffect(ctx, this.effectKind, osc, gate.node, this.ensureMasterGain());
     osc.start();
 
-    const toneNodes: ToneNodes = { osc, gain, pulse, effect };
+    const toneNodes: ToneNodes = { osc, gain, pulse, effect, gate };
     this.nodes.set(id, toneNodes);
     return toneNodes;
   }
@@ -433,7 +465,7 @@ export class ChannelOscillatorSonifier implements Sonifier {
     // If a new tone with same ID is created during fade, it won't conflict
     this.nodes.delete(id);
 
-    const { gain, osc, pulse, effect } = tone;
+    const { gain, osc, pulse, effect, gate } = tone;
     const now = ctx.currentTime;
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + this.fadeMs / 1000);
@@ -443,6 +475,7 @@ export class ChannelOscillatorSonifier implements Sonifier {
       osc.disconnect();
       gain.disconnect();
       pulse.dispose();
+      gate.dispose();
       effect.dispose();
     }, this.fadeMs);
   }

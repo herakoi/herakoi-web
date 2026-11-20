@@ -15,6 +15,7 @@ class FakeGain {
   public gain = {
     setValueAtTime: vi.fn(),
     exponentialRampToValueAtTime: vi.fn(),
+    setTargetAtTime: vi.fn(),
     cancelScheduledValues: vi.fn(),
     linearRampToValueAtTime: vi.fn(),
     value: 1,
@@ -139,5 +140,20 @@ describe("OscillatorSonifier", () => {
     const masterGain = ctx.createGain.mock.results[2]?.value as FakeGain | undefined;
     expect(masterGain).toBeDefined();
     expect(masterGain?.gain.setValueAtTime).toHaveBeenCalledWith(1, ctx.currentTime);
+  });
+
+  it("sounds only while the point moves in moving mode", async () => {
+    const sonifier = new OscillatorSonifier(ctx as unknown as AudioContext, {
+      soundMode: "moving",
+    });
+    await sonifier.initialize();
+    const at = (x: number) => ({ data: { hueByte: 0, valueByte: 255, pointX: x, pointY: 0.5 } });
+
+    sonifier.processSamples(new Map([["a", at(0.5)]]));
+
+    // Gains in order: sink router, master, voice, motion gate.
+    const gate = ctx.createGain.mock.results.at(-1)?.value as FakeGain;
+    expect(gate.gain.value).toBe(0);
+    expect(gate.gain.setTargetAtTime).toHaveBeenLastCalledWith(0, 0, expect.any(Number));
   });
 });

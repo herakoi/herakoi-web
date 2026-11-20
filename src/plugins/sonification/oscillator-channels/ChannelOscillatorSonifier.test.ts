@@ -112,8 +112,8 @@ describe("ChannelOscillatorSonifier", () => {
 
     sonifier.processSamples(new Map([["a", { data: { hueByte: 0, valueByte: 255 } }]]));
 
-    // Gains in order: master, voice, pulse stage, pulse depth.
-    const pulseDepth = ctx.createGain.mock.results.at(-1)?.value;
+    // Gains in order: master, voice, pulse stage, pulse depth, motion gate.
+    const pulseDepth = ctx.createGain.mock.results.at(-2)?.value;
     expect(pulseDepth.gain.setTargetAtTime).toHaveBeenLastCalledWith(1, 0, expect.any(Number));
     const panner = ctx.createStereoPanner.mock.results[0]?.value;
     expect(panner.pan.setTargetAtTime).toHaveBeenLastCalledWith(0, 0, expect.any(Number));
@@ -164,5 +164,26 @@ describe("ChannelOscillatorSonifier", () => {
     expect(rateAt(0.1)).toBeGreaterThan(1);
     expect(rateAt(0.1)).toBeLessThan(rateAt(0.01));
     expect(rateAt(0)).toBeCloseTo(8);
+  });
+
+  it("offers the hand speed as a channel", async () => {
+    const sonifier = create({
+      pitchBinding: { channel: "handSpeed", invert: false, noData: "silence" },
+    });
+    await sonifier.initialize();
+    const frame = (x: number, ms: number) => {
+      vi.spyOn(performance, "now").mockReturnValue(ms);
+      sonifier.processSamples(
+        new Map([["a", { data: { valueByte: 255, pointX: x, pointY: 0.5 } }]]),
+      );
+    };
+
+    // 0.5 canvas heights per second for half a second.
+    for (let step = 0; step <= 15; step += 1) frame(0.1 + (0.5 * step) / 30, (step * 1000) / 30);
+
+    // Speed 0.5 of the channel's 0–1 range: halfway between 200 and 700 Hz.
+    expect(sonifier.getLastFrameDebug().get("a")?.frequency).toBeGreaterThan(400);
+    expect(sonifier.getLastFrameDebug().get("a")?.frequency).toBeLessThan(470);
+    vi.restoreAllMocks();
   });
 });
