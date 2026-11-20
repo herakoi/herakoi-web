@@ -14,6 +14,9 @@ importers:
       '@mediapipe/hands':
         specifier: ^0.4.1675469240
         version: 0.4.1675469240
+      '@mediapipe/tasks-vision':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@radix-ui/react-label':
         specifier: ^2.1.17
         version: 2.1.17(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -848,6 +851,9 @@ packages:
 
   '@mediapipe/hands@0.4.1675469240':
     resolution: {integrity: sha512-GxoZvL1mmhJxFxjuyj7vnC++JIuInGznHBin5c7ZSq/RbcnGyfEcJrkM/bMu5K1Mz/2Ko+vEX6/+wewmEHPrHg==}
+
+  '@mediapipe/tasks-vision@1.2.3':
+    resolution: {integrity: sha512-sxJyfhbN+EamexhaaCmUlw7v8vWWMum7VDsORe6d4c8Dk/xlI4qiIgoSw9cE9hpvYhVRRVLIA8y605FbqWkNeQ==}
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -4499,6 +4505,8 @@ snapshots:
   '@mediapipe/drawing_utils@0.3.1675466124': {}
 
   '@mediapipe/hands@0.4.1675469240': {}
+
+  '@mediapipe/tasks-vision@1.2.3': {}
 
   '@oxc-project/types@0.156.0': {}
 

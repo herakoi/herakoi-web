@@ -1,0 +1,40 @@
+/* Full-screen pattern shown while mapping; above every other layer. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  cursor: none;
+  background-color: #000;
+}
+
+.white {
+  background-color: #fff;
+}
+
+.dot {
+  position: absolute;
+  border-radius: calc(infinity * 1px);
+  background-color: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.countdown {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  color: #fff;
+  text-align: center;
+}
+
+.seconds {
+  font-size: 30vmin;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.message {
+  font-size: 4vmin;
+}
