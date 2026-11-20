@@ -6,7 +6,11 @@
  * - Device selection via deviceId constraint
  * - Access to active facingMode via track settings
  * - Frame loop via requestVideoFrameCallback (fallback: requestAnimationFrame)
+ * - Reopens the camera when its feed ends or stalls, so a long-running page keeps tracking
  */
+
+/** Waiting this long for a video frame means the camera feed has stalled. */
+export const CAMERA_STALL_MS = 3000;
 
 /**
  * Convert DOMException errors from getUserMedia into user-friendly messages.
@@ -74,6 +78,13 @@ export class NativeCamera {
   private running = false;
   /** Set by stop() so that a pending start() can clean up on resolve. */
   private stopped = false;
+  /** Bumped when the stream is released, so the frame loop of an older stream exits. */
+  private generation = 0;
+  /** When the loop began waiting for a video frame; null while a frame is processed. */
+  private waitingSince: number | null = null;
+  private watchdogId: ReturnType<typeof setInterval> | null = null;
+  private recovering = false;
+  private readonly handleTrackEnded = () => void this.recover("ended");
 
   constructor(videoElement: HTMLVideoElement, options: NativeCameraOptions) {
     this.videoElement = videoElement;
@@ -93,6 +104,21 @@ export class NativeCamera {
 
     this.stopped = false;
 
+    const error = await this.openStream();
+    if (error) return error;
+    // No stream means stop() or a newer load cancelled this start.
+    if (!this.stream) return;
+
+    this.running = true;
+    this.watchdogId ??= setInterval(() => this.checkForStall(), CAMERA_STALL_MS / 3);
+    this.scheduleFrame();
+  }
+
+  /**
+   * Open the camera and attach it to the video element.
+   * Leaves `stream` null when the open was cancelled.
+   */
+  private async openStream(): Promise<Error | undefined> {
     const videoConstraints: MediaTrackConstraints = {};
     if (this.options.deviceId) {
       videoConstraints.deviceId = { exact: this.options.deviceId };
@@ -141,8 +167,9 @@ export class NativeCamera {
         throw err;
       }
 
-      this.running = true;
-      this.scheduleFrame();
+      for (const track of stream.getVideoTracks()) {
+        track.addEventListener("ended", this.handleTrackEnded);
+      }
     } catch (err) {
       // Convert DOMException or any error into a user-friendly message
       const message = getUserMediaErrorMessage(err);
@@ -153,6 +180,19 @@ export class NativeCamera {
   stop(): void {
     this.stopped = true;
     this.running = false;
+
+    if (this.watchdogId != null) {
+      clearInterval(this.watchdogId);
+      this.watchdogId = null;
+    }
+
+    this.releaseStream();
+  }
+
+  /** Cancel the frame loop, stop the stream, and detach it from the video element. */
+  private releaseStream(): void {
+    this.generation++;
+    this.waitingSince = null;
 
     if (this.frameCallbackId != null) {
       // Cancel whichever loop is active
@@ -171,6 +211,7 @@ export class NativeCamera {
     // Stop tracks from our stored reference.
     if (ownStream) {
       for (const track of ownStream.getTracks()) {
+        track.removeEventListener("ended", this.handleTrackEnded);
         track.stop();
       }
       this.stream = null;
@@ -214,14 +255,58 @@ export class NativeCamera {
       });
   }
 
+  /**
+   * Reopen the camera after its feed ended or stalled (unplugged webcam, macOS camera
+   * interruption, another app taking the device). A failed reopen is retried by the watchdog.
+   */
+  private async recover(reason: "ended" | "stalled"): Promise<void> {
+    if (!this.running || this.recovering) return;
+    this.recovering = true;
+    console.warn(`Camera feed ${reason}; reopening the camera.`);
+
+    this.releaseStream();
+    const error = await this.openStream();
+    this.recovering = false;
+
+    if (!this.running) return;
+    if (error || !this.stream) {
+      if (error) console.warn("Could not reopen the camera; retrying.", error);
+      this.waitingSince = Date.now();
+      return;
+    }
+    this.scheduleFrame();
+  }
+
+  private checkForStall(): void {
+    if (this.waitingSince == null) return;
+    // A hidden page receives no video frames; that is not a stall.
+    if (document.hidden) {
+      this.waitingSince = Date.now();
+      return;
+    }
+    if (Date.now() - this.waitingSince > CAMERA_STALL_MS) {
+      void this.recover("stalled");
+    }
+  }
+
   private scheduleFrame(): void {
     if (!this.running) return;
 
+    const generation = this.generation;
     const loop = async () => {
-      if (!this.running) return;
-      await this.options.onFrame();
+      if (!this.running || generation !== this.generation) return;
+      this.waitingSince = null;
+      try {
+        await this.options.onFrame();
+      } catch (error) {
+        // One failed frame must not end the loop: the next frame tries again.
+        console.error("Camera frame processing failed:", error);
+      }
+      if (generation !== this.generation) return;
       this.scheduleFrame();
     };
+
+    this.waitingSince = Date.now();
 
     if ("requestVideoFrameCallback" in this.videoElement) {
       this.frameCallbackId = (
