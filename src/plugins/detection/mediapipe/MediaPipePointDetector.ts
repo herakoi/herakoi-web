@@ -202,6 +202,18 @@ export class MediaPipePointDetector implements PointDetector {
     this.started = false;
   }
 
+  /**
+   * Stop detection and free MediaPipe Hands (its WASM module and WebGL context).
+   * Unlike stop(), the detector cannot start again afterwards.
+   */
+  dispose(): void {
+    this.stop();
+    const hands = this.hands;
+    this.hands = null;
+    this.initialized = false;
+    void hands?.close().catch((error) => console.warn("Could not close MediaPipe Hands:", error));
+  }
+
   points(signal?: AbortSignal): AsyncIterable<DetectedPoint[]> {
     return this.createPointStream(signal);
   }

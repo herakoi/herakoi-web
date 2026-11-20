@@ -86,7 +86,7 @@ export const plugin: DetectionPluginDefinition<typeof mediaPipeDetectionPluginId
         cleanupHandsUi = null;
         abortHasHandsStream = null;
         useDeviceStore.getState().setHasHands(null);
-        detector.stop();
+        detector.dispose();
       };
 
       const getSourceSize = () => {

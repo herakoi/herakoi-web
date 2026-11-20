@@ -76,7 +76,7 @@ export const plugin: SonificationPluginDefinition<
     const dispose = () => {
       unsubscribe();
       unsubscribeAudio();
-      sonifier.stop();
+      sonifier.dispose();
     };
 
     return {

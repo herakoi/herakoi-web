@@ -63,6 +63,8 @@ export class OscillatorSonifier implements Sonifier {
   private fadeMs = 100;
   private initialized = false;
   private stopped = false;
+  /** True when initialize() created the AudioContext, so dispose() must close it. */
+  private ownsContext = false;
   private lastFrameDebug = new Map<string, DebugFrameSample>();
 
   constructor(ctx?: AudioContext, options: OscillatorSonifierOptions = {}) {
@@ -86,6 +88,7 @@ export class OscillatorSonifier implements Sonifier {
       }
 
       this.ctx = new NativeAudioContext();
+      this.ownsContext = true;
     }
 
     // Try to resume AudioContext if suspended, but don't block initialization
@@ -207,6 +210,20 @@ export class OscillatorSonifier implements Sonifier {
     this.stopAll();
     this.sinkRouter?.dispose();
     this.sinkRouter = null;
+  }
+
+  /**
+   * Stop all tones and close the AudioContext this sonifier created.
+   * The context closes after the fade-out, so the last tones end smoothly.
+   */
+  dispose(): void {
+    this.stop();
+    const ctx = this.ctx;
+    if (!ctx || !this.ownsContext) return;
+    this.ownsContext = false;
+    setTimeout(() => {
+      void ctx.close().catch(() => {});
+    }, this.fadeMs);
   }
 
   getLastFrameDebug(): Map<string, DebugFrameSample> {
