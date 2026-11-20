@@ -1,0 +1,19 @@
+/* Full-screen pattern shown while mapping; above every other layer. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  cursor: none;
+  background-color: #000;
+}
+
+.white {
+  background-color: #fff;
+}
+
+.dot {
+  position: absolute;
+  border-radius: calc(infinity * 1px);
+  background-color: #fff;
+  transform: translate(-50%, -50%);
+}
